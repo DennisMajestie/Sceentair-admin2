@@ -120,6 +120,13 @@ export class DashboardOverview {
   private mm?: gsap.MatchMedia;
   private played = false;
 
+  private sellerPhoto(sku: string, productName: string): string {
+    const products = this.store.products();
+    return products.find((product) => product.sku === sku)?.photo
+      ?? products.find((product) => product.name === productName)?.photo
+      ?? '';
+  }
+
   constructor() {
     effect(() => {
       this.store.data();
@@ -152,14 +159,16 @@ export class DashboardOverview {
   protected readonly apiOpenOrders = computed(() => this.dashboardData()?.metrics.openOrders ?? null);
   protected readonly apiTotalSales = computed(() => this.dashboardData()?.metrics.revenue ?? null);
   protected readonly apiNumberOfSales = computed(() => this.dashboardData()?.salesToday.orders ?? null);
-  protected readonly apiSellers = computed(() => this.dashboardBestSellers().map((s) => ({
-    id: s.variantId,
-    name: s.productName,
-    sku: s.sku,
-    units: s.unitsSold,
-    revenue: s.revenue,
-    photo: '',
-  })));
+  protected readonly apiSellers = computed(() => this.dashboardBestSellers().map((s) => {
+    return {
+      id: s.variantId,
+      name: s.productName,
+      sku: s.sku,
+      units: s.unitsSold,
+      revenue: s.revenue,
+      photo: this.sellerPhoto(s.sku, s.productName),
+    };
+  }));
 
   private onData() {
     if (!this.motion.isBrowser) {
@@ -389,15 +398,17 @@ export class DashboardOverview {
 
   /** Top sellers — from API bestSellers when available. */
   protected readonly sellers = computed(() =>
-    this.dashboardBestSellers().map((s) => ({
-      id: s.variantId,
-      name: s.productName,
-      sku: s.sku,
-      size: '',
-      units: s.unitsSold,
-      revenue: s.revenue,
-      photo: '',
-    })),
+    this.dashboardBestSellers().map((s) => {
+      return {
+        id: s.variantId,
+        name: s.productName,
+        sku: s.sku,
+        size: '',
+        units: s.unitsSold,
+        revenue: s.revenue,
+        photo: this.sellerPhoto(s.sku, s.productName),
+      };
+    }),
   );
 
   /** Channel bars — from API salesByChannel when available. */

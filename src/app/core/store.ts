@@ -1,5 +1,5 @@
 import { Injectable, computed, signal, inject } from '@angular/core';
-import { CatalogueApiService, type ApiProduct } from './catalogue-api.service';
+import { CatalogueApiService, primaryProductImage, type ApiProduct } from './catalogue-api.service';
 import { CustomersApiService, type ApiCustomer } from './customers-api.service';
 import { HelpApiService, type ApiTicket } from './help-api.service';
 import { InventoryApiService, type ApiCount } from './inventory-api.service';
@@ -91,7 +91,7 @@ function mapProduct(p: ApiProduct): Product {
     line: p.category ?? '',
     size: p.sizeClass ?? '',
     category: p.category ?? '',
-    photo: p.primaryImageUrl ?? '',
+    photo: primaryProductImage(p) ?? '',
     price: p.salePrice ?? p.basePrice,
     wholesale: p.salePrice ?? p.basePrice,
     cost: p.basePrice,

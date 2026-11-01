@@ -22,6 +22,7 @@ import { gsap } from 'gsap';
 import {
   ApiProduct,
   CatalogueApiService,
+  primaryProductImage,
 } from '../../core/catalogue-api.service';
 import { Icon } from '../../ui/icon';
 import { ProductShot } from '../../ui/product-shot';
@@ -387,7 +388,7 @@ export class ProductItem {
   }
 
   protected readonly primaryPhoto = (p: ApiProduct): string =>
-    p.primaryImageUrl ?? p.variants[0]?.imageUrl ?? '';
+    primaryProductImage(p) ?? '';
 
   protected variantTone(status: string): string {
     switch (status) {

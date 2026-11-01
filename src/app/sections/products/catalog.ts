@@ -19,6 +19,7 @@ import {
   ApiProduct,
   ApiProductVariant,
   CatalogueApiService,
+  primaryProductImage,
 } from '../../core/catalogue-api.service';
 import { Icon } from '../../ui/icon';
 import { SdSlidingIndicator } from '../../ui/sliding-indicator';
@@ -80,10 +81,6 @@ function categoryTone(name: string | null): string {
   return toneColors[categoryHash(name) % toneColors.length];
 }
 
-function primaryPhoto(product: ApiProduct): string | null {
-  return product.primaryImageUrl ?? product.variants[0]?.imageUrl ?? null;
-}
-
 function productPrice(product: ApiProduct): number {
   return product.salePrice ?? product.basePrice;
 }
@@ -93,7 +90,7 @@ function mapRow(product: ApiProduct): CatalogRow {
     id: product.id,
     name: product.name,
     category: product.category,
-    photo: primaryPhoto(product),
+    photo: primaryProductImage(product),
     price: productPrice(product),
     isBestseller: product.isBestseller,
     soldCount: product.soldCount ?? 0,

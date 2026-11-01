@@ -121,8 +121,11 @@ describe('catalogue response mapping', () => {
   it('falls back to variant image URL when product has no primary image', async () => {
     const productNoImage: ApiProduct = {
       ...PRODUCT,
-      primaryImageUrl: null,
-      variants: [{ ...PRODUCT.variants[0], imageUrl: 'variant-img' }],
+      primaryImageUrl: '',
+      variants: [
+        { ...PRODUCT.variants[0], imageUrl: null },
+        { ...PRODUCT.variants[1], imageUrl: 'variant-img' },
+      ],
     };
     const catalogueApi = makeCatalogueApi({ data: [productNoImage], total: 1 });
     const fixture = createComponent(catalogueApi);

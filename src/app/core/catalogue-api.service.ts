@@ -34,6 +34,16 @@ export interface ApiProduct {
   salePrice?: number | null;
 }
 
+export function primaryProductImage(
+  product: Pick<ApiProduct, 'primaryImageUrl' | 'variants'>,
+): string | null {
+  return (
+    product.primaryImageUrl ||
+    product.variants.find((variant) => variant.imageUrl)?.imageUrl ||
+    null
+  );
+}
+
 export interface ApiProductList {
   data: ApiProduct[];
   total: number;
