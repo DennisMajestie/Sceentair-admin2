@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Vessa — stock & supply</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Vessa stock and supply — inventory, orders, purchasing and warehouse operations.">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700&display=swap">
+  <script>
+    (function () {
+      try {
+        var theme = localStorage.getItem('vessa:theme') || 'system';
+        var resolved = theme;
+        if (theme === 'system') {
+          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        var accent = localStorage.getItem('vessa:accent') || 'pine';
+        var root = document.documentElement;
+        root.dataset['theme'] = resolved;
+        root.dataset['accent'] = accent;
+        root.style.colorScheme = resolved;
+      } catch (e) {
+        document.documentElement.dataset['theme'] = 'light';
+        document.documentElement.dataset['accent'] = 'pine';
+      }
+    })();
+    // Point Vessa at the local Seentair API for dev.
+    window.VESSA_CONFIG = { apiBaseUrl: 'http://localhost:3000/api/v1' };
+  </script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

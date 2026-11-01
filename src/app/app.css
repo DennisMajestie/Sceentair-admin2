@@ -1,0 +1,56 @@
+.skip {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-radius: 0 0 10px 0;
+  font-weight: 600;
+}
+
+.skip:focus {
+  left: 0;
+}
+
+/* Island concept shell: gradient page, floating islands, no dividers. */
+.app {
+  min-height: 100vh;
+  padding: 10px 20px 20px;
+  background:
+    radial-gradient(80% 70% at 0% 0%, var(--sd-tint), transparent 55%),
+    var(--sd-page);
+  box-sizing: border-box;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: var(--sd-island-gap);
+  margin-top: var(--sd-island-gap);
+  align-items: start;
+}
+.layout.sd-collapsed {
+  grid-template-columns: 76px minmax(0, 1fr);
+}
+.layout.sd-layout-animated {
+  transition: grid-template-columns 0.3s var(--ease);
+}
+
+.main {
+  min-width: 0;
+  outline: none;
+  container: main / inline-size;
+}
+
+.main:has(app-drawer .scrim) {
+  position: relative;
+  z-index: 41;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

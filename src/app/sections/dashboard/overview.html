@@ -1,0 +1,278 @@
+@if (flags().welcome) {
+  <div class="welcome">
+    <span class="welcome__date">{{ stamp() }}</span>
+    <h1 class="welcome__title">Welcome back, {{ me().name.split(' ')[0] || 'there' }}!</h1>
+    <p class="welcome__lead">Here's what's moving today: <strong>{{ toShip() }} orders</strong> to dispatch and <strong>{{ lowCount() }} products</strong> running low.</p>
+    <div class="welcome__actions">
+      <button type="button" class="btn btn--primary" routerLink="/orders/all">
+        <app-icon name="plus" [size]="15" />
+        New order
+      </button>
+      <button type="button" class="btn btn--dark" routerLink="/products/batches">
+        Add product
+      </button>
+    </div>
+  </div>
+}
+
+@if (flags().stock) {
+    <article class="card kpi">
+    <div class="kpi__stat">
+      <span class="kpi__label">Items in stock</span>
+      <span class="kpi__valuerow">
+        <span class="kpi__value">
+          <span class="sd-num" aria-hidden="true" [attr.data-to]="units()"></span>
+          <span class="sr">{{ units() }}</span>
+        </span>
+        @if (hasTrend()) {
+          <span class="kpi__trend" [class.trend--bad]="unitsDelta() < 0">{{ unitsDelta() >= 0 ? '+' : '' }}{{ unitsDelta() }}%</span>
+        }
+      </span>
+    </div>
+    <div class="kpi__orb">
+      <app-icon name="grid" [size]="20" />
+    </div>
+    <div class="kpi__meta">
+      <span class="kpi__info">{{ store.activeSkus() }} products · {{ store.locations().length }} warehouses</span>
+      @if (hasTrend()) {
+        <div class="kpi__trendchart">
+          <app-sparkline [values]="stockTrendSeries()" [width]="80" [height]="30" [color]="'var(--rose)'" [showGrid]="false" />
+        </div>
+      }
+    </div>
+  </article>
+}
+
+@if (flags().value) {
+  <article class="card kpi">
+    <div class="kpi__stat">
+      <span class="kpi__label">Total stock value</span>
+      <span class="kpi__valuerow">
+        <span class="kpi__value">
+        <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="stockValue()"></span>
+        <span class="sr">{{ money(stockValue()) }}</span>
+        </span>
+        @if (hasTrend()) {
+          <span class="kpi__trend" [class.trend--bad]="stockValueDelta() < 0">{{ stockValueDelta() >= 0 ? '+' : '' }}{{ stockValueDelta() }}%</span>
+        }
+      </span>
+    </div>
+    <div class="kpi__orb">
+      <app-icon name="diamond" [size]="20" />
+    </div>
+    <div class="kpi__meta">
+      <span class="kpi__info">At cost</span>
+      @if (hasTrend()) {
+        <div class="kpi__trendchart">
+          <app-sparkline [values]="stockTrendSeries()" [width]="80" [height]="30" [color]="'var(--ocean)'" [showGrid]="false" />
+        </div>
+      }
+    </div>
+  </article>
+}
+
+@if (flags().low) {
+  <article class="card kpi">
+    <div class="kpi__stat">
+      <span class="kpi__label">Low stock items</span>
+      <span class="kpi__valuerow">
+        <span class="kpi__value">
+          <span class="sd-num" aria-hidden="true" [attr.data-to]="lowCount()"></span>
+          <span class="sr">{{ lowCount() }}</span>
+        </span>
+        <span class="kpi__trend trend--bad">{{ outCount() }} out of stock</span>
+      </span>
+    </div>
+    <div class="kpi__orb">
+      <app-icon name="alert" [size]="20" />
+    </div>
+    <div class="kpi__meta">
+      <span class="kpi__info">{{ lowProducts() }} products · {{ lowMaterials() }} materials</span>
+      @if (lowThumbs().length > 0) {
+        <div class="kpi__stack" aria-hidden="true">
+          @for (t of lowThumbs(); track t.id) {
+            <span class="kpi__shot">
+              <app-product-shot [photo]="t.photo" [label]="t.name" />
+            </span>
+          }
+        </div>
+      }
+    </div>
+  </article>
+}
+
+@if (flags().chart) {
+  <article class="card chart-card">
+    <div class="card__head">
+      <div>
+        <h2 class="card__title">Inventory statistics</h2>
+      </div>
+      <div class="chart-legend" aria-label="Chart legend">
+        <span><i class="chart-legend__in"></i>Stock in</span>
+        <span><i class="chart-legend__out"></i>Stock out</span>
+        <span><i class="chart-legend__value"></i>Stock value</span>
+      </div>
+    </div>
+    <div class="chart-content">
+      <app-bars [data]="stockTrendBars()" />
+    </div>
+  </article>
+}
+
+@if (flags().gauge) {
+  <article class="card sales-card">
+    <div class="card__head">
+      <h2 class="card__title">Sales overview</h2>
+      <button class="card__more" type="button"><app-icon name="more" [size]="22" /></button>
+    </div>
+    <div class="sales-content">
+      <app-gauge [pct]="salesPct()" [value]="salesPctLabel()" [caption]="'Sales goal'" [size]="180" />
+      <div class="sales-stats">
+        <div class="stat-row">
+          <span class="stat-label">Number of sales</span>
+          <span class="stat-value num">
+            <span class="sd-num" aria-hidden="true" [attr.data-to]="numberOfSales()"></span>
+            <span class="sr">{{ numberOfSales() }}</span>
+          </span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Total sales</span>
+          <span class="stat-value num">
+            <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="totalSales()"></span>
+            <span class="sr">{{ money(totalSales()) }}</span>
+          </span>
+        </div>
+      </div>
+      <div class="sales-goal">
+        <app-icon name="arrowUp" [size]="18" />
+        <strong>{{ money(remainingGoal()) }}</strong>
+        to the <strong>{{ money(salesGoal()) }}</strong> goal, {{ daysLeftInMonth() }} days left.
+      </div>
+    </div>
+  </article>
+}
+
+@if (flags().activities) {
+  <article class="card acts-card">
+    <div class="card__head">
+      <h2 class="card__title">Recent activities</h2>
+      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+    </div>
+    <ul class="feed">
+      @for (row of feed(); track row.id) {
+        <li class="row-item">
+          <div class="row-item__tile"></div>
+          <div class="row-item__text">
+            <strong>{{ row.title }}</strong>
+            <span>{{ row.text }}</span>
+          </div>
+        </li>
+      } @empty {
+        <li class="overview-empty">No recent activity yet.</li>
+      }
+    </ul>
+  </article>
+}
+
+@if (flags().alerts) {
+  <article class="card alerts-card">
+    <div class="card__head">
+      <h2 class="card__title">Alerts</h2>
+      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+    </div>
+    <ul class="rows">
+      @for (row of store.alerts().slice(0, 5); track row.id) {
+        <li class="row-item">
+          <div class="row-item__tile" [style.background-color]="row.tone === 'bad' ? 'var(--rose)' : 'var(--ochre)'"></div>
+          <div class="row-item__text">
+            <strong>{{ row.title }}</strong>
+            <span>{{ row.detail }}</span>
+          </div>
+        </li>
+      }
+    </ul>
+  </article>
+}
+
+@if (flags().sellers) {
+  <article class="card topsell-card">
+    <div class="card__head">
+      <h2 class="card__title">Top sellers</h2>
+      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+    </div>
+    <ul class="sellers">
+      @for (s of sellers().slice(0, 5); track s.id) {
+        <li>
+          <a class="seller" [routerLink]="'/products/item/' + s.id">
+            <span class="thumb thumb--sm seller__shot">
+              <app-product-shot [photo]="s.photo" [label]="s.name" />
+            </span>
+            <span class="seller__text">
+              <strong>{{ s.name }}</strong>
+              <span>{{ s.sku }}</span>
+            </span>
+            <span class="seller__nums">
+              <span class="num">{{ s.units }}</span>
+              <span class="seller__rev">{{ compact(s.revenue) }}</span>
+            </span>
+          </a>
+        </li>
+      }
+    </ul>
+  </article>
+}
+
+@if (flags().ships) {
+  <article class="card ships-card">
+    <div class="card__head">
+      <h2 class="card__title">Ships out the door</h2>
+      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Order</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Units</th>
+            <th scope="col">Ship by</th>
+            <th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of queue(); track row.id) {
+            <tr>
+              <td><a class="link" [routerLink]="'/orders/all/' + row.id">{{ row.number }}</a></td>
+              <td>{{ row.customer }}</td>
+              <td class="num">{{ row.units }}</td>
+              <td><span class="due" [class.due--late]="row.shipBy < now">{{ due(row.shipBy) }}</span></td>
+              <td><span class="badge" [class]="'badge badge--' + tone(row.status)">{{ label(row.status) }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+}
+
+@if (flags().locations) {
+  <article class="card loc-card">
+    <div class="card__head">
+      <h2 class="card__title">Stock by location</h2>
+      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+    </div>
+    <ul class="location-list">
+      @for (l of locationSlices(); track l.label) {
+        <li class="location-row">
+          <span class="location__name">{{ l.label }}</span>
+          <div class="location__bar">
+            <div class="location__fill" [style.width.%]="l.pct" [style.background]="l.color"></div>
+          </div>
+          <span class="location__num num">{{ l.value }}</span>
+        </li>
+      } @empty {
+        <li class="overview-empty">No stock by location data yet.</li>
+      }
+    </ul>
+  </article>
+}
