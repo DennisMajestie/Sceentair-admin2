@@ -66,8 +66,12 @@ import { ProductShot } from '../../ui/product-shot';
                 <td>{{ row.location }}</td>
                 <td>{{ date(row.madeAt) }}</td>
                 <td>
-                  <span [class.expiring]="row.daysLeft <= 90">{{ date(row.expiresAt) }}</span>
-                  <span class="sub">{{ row.daysLeft }}d left</span>
+                  @if (row.expiresAt) {
+                    <span [class.expiring]="(row.daysLeft ?? 0) <= 90">{{ date(row.expiresAt) }}</span>
+                    <span class="sub">{{ row.daysLeft }}d left</span>
+                  } @else {
+                    <span class="sub">Not tracked</span>
+                  }
                 </td>
                 <td class="num">{{ row.left }}/{{ row.qty }}</td>
                 <td><span class="badge" [class]="'badge badge--' + row.tone">{{ row.label }}</span></td>
@@ -98,7 +102,7 @@ import { ProductShot } from '../../ui/product-shot';
             <div><dt>SKU</dt><dd class="mono">{{ b.sku }}</dd></div>
             <div><dt>Location</dt><dd>{{ b.location }}</dd></div>
             <div><dt>Made</dt><dd>{{ date(b.madeAt) }}</dd></div>
-            <div><dt>Expires</dt><dd>{{ date(b.expiresAt) }}</dd></div>
+            <div><dt>Expires</dt><dd>{{ b.expiresAt ? date(b.expiresAt) : 'Not tracked' }}</dd></div>
             <div><dt>Produced</dt><dd class="num">{{ b.qty }}</dd></div>
             <div><dt>Remaining</dt><dd class="num">{{ b.left }}</dd></div>
             <div><dt>Chemist</dt><dd>{{ b.chemist }}</dd></div>
@@ -209,7 +213,7 @@ export class ProductBatches {
         location: this.store.location(b.locId)?.name ?? b.locId,
         madeAt: b.madeAt,
         expiresAt: b.expiresAt,
-        daysLeft: daysUntil(b.expiresAt),
+        daysLeft: b.expiresAt ? daysUntil(b.expiresAt) : null,
         qty: b.qty,
         left: b.left,
         status: b.status,

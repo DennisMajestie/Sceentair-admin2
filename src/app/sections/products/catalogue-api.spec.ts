@@ -6,7 +6,9 @@ import {
   ApiProductList,
   CatalogueApiService,
 } from '../../core/catalogue-api.service';
+import { InventoryApiService } from '../../core/inventory-api.service';
 import { ProductsCatalog } from './catalog';
+import { ProductItem } from './item';
 import { ToastService } from '../../core/toast';
 
 const PRODUCT: ApiProduct = {
@@ -104,6 +106,79 @@ describe('catalogue response mapping', () => {
     expect(rows[0].soldCount).toBe(42);
     expect(rows[0].variants).toHaveSize(2);
     expect(rows[0].photo).toBe('balm');
+  });
+
+  describe('product detail stock alignment', () => {
+    function createProductDetail(
+      inventoryRows: Array<{
+        itemType: string;
+        itemId: string;
+        currentQuantity: number;
+        byMovementType: Record<string, number>;
+      }> = [],
+      inventoryFailure?: Error,
+    ) {
+      const catalogueApi = jasmine.createSpyObj('CatalogueApiService', ['list', 'detail']);
+      catalogueApi.list.and.returnValue(Promise.resolve({ data: [PRODUCT], total: 1 }));
+      catalogueApi.detail.and.returnValue(Promise.resolve(PRODUCT));
+      const inventoryApi = jasmine.createSpyObj('InventoryApiService', ['summary']);
+      inventoryApi.summary.and.returnValue(
+        inventoryFailure ? Promise.reject(inventoryFailure) : Promise.resolve(inventoryRows),
+      );
+
+      TestBed.configureTestingModule({
+        imports: [ProductItem],
+        providers: [
+          { provide: CatalogueApiService, useValue: catalogueApi },
+          { provide: InventoryApiService, useValue: inventoryApi },
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: of({ get: () => 'p-crb15' } as unknown as ParamMap),
+              snapshot: {
+                paramMap: { get: () => 'p-crb15' },
+                queryParams: {},
+              },
+            },
+          },
+          {
+            provide: Router,
+            useValue: { navigate: jasmine.createSpy('navigate') },
+          },
+        ],
+      });
+      return TestBed.createComponent(ProductItem);
+    }
+
+    it('shows ledger quantities and variant stock distribution, not catalogue status as quantity', async () => {
+      const fixture = createProductDetail([{
+        itemType: 'variant',
+        itemId: 'v-crb15-15',
+        currentQuantity: 612,
+        byMovementType: { production: 700, sale: -88 },
+      }]);
+
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const component = fixture.componentInstance as any;
+      expect(component.onHand()).toBe(612);
+      expect(component.stockedVariants()).toBe(1);
+      expect(component.emptyVariants()).toBe(1);
+      expect(fixture.nativeElement.textContent).toContain('612 on hand');
+      expect(fixture.nativeElement.textContent).toContain('MF-CRB-50');
+      expect(fixture.nativeElement.textContent).not.toContain('A-04');
+    });
+
+    it('keeps stock unavailable and reports errors when the inventory ledger fails', async () => {
+      const fixture = createProductDetail([], new Error('Inventory unavailable'));
+      await fixture.whenStable();
+      const component = fixture.componentInstance as any;
+      fixture.detectChanges();
+
+      expect(component.onHand()).toBeNull();
+      expect(component.inventoryError()).toBe('Inventory unavailable');
+    });
   });
 
   it('uses sale price when a sale is running', async () => {

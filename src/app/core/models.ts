@@ -41,6 +41,7 @@ export interface Product {
   bom: BomLine[];
   blurb: string;
   stock: Record<string, number>;
+  variantIds?: string[];
 }
 
 export interface Material {
@@ -163,6 +164,8 @@ export interface PurchaseOrder {
   sentAt: number | null;
   eta: number | null;
   receivedAt: number | null;
+  leadTimeDays: number;
+  recordedBy: string;
   lines: PoLine[];
   note: string;
 }
@@ -237,6 +240,7 @@ export interface Teammate {
   tone: string;
   status: string;
   since: number;
+  permissions?: Array<{ module: string; accessLevel: string }>;
 }
 
 export interface ActivityEntry {

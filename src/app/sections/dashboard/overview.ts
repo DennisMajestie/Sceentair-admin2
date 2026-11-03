@@ -2,14 +2,19 @@ import { ChangeDetectionStrategy, Component, computed, inject, ElementRef, NgZon
 import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { count as fmtCount, dateFull, money as fmtMoney, moneyCompact, relative, statusTone, statusLabel, until } from '../../core/format';
-import { Sparkline, Donut, Bars, HBar, Gauge } from '../../ui/chart';
+import { Bars, Gauge } from '../../ui/chart';
 import { Icon } from '../../ui/icon';
 import { ProductShot } from '../../ui/product-shot';
+import { ChartPeriodSelect } from './chart-period-select';
 import { SdMotionService } from '../../core/sd-motion.service';
 import { AuthService } from '../../core/auth.service';
 import { gsap } from 'gsap';
 import {
+  AnalyticsInventoryValuation,
+  AnalyticsInventoryMovementMonth,
+  AnalyticsInventoryMovementPeriod,
   AnalyticsDashboard,
+  AnalyticsLowStock,
   AnalyticsApiService,
 } from '../../core/analytics-api.service';
 
@@ -85,7 +90,7 @@ export function computeOverviewSpans(p: OverviewPresence): OverviewSpans {
 @Component({
   selector: 'app-dashboard-overview',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Sparkline, Bars, Gauge, Icon, ProductShot],
+  imports: [RouterLink, Bars, Gauge, Icon, ProductShot, ChartPeriodSelect],
   host: {
     '[class.sd-pending]': 'pending()',
     '[style.--ov-welcome]': 'spans().welcome',
@@ -115,8 +120,16 @@ export class DashboardOverview {
   protected readonly store = inject(Store);
   protected readonly analyticsApi = inject(AnalyticsApiService);
   protected readonly dashboardData = signal<AnalyticsDashboard | null>(null);
+  protected readonly lowStockData = signal<AnalyticsLowStock | null>(null);
+  protected readonly inventoryValuation = signal<AnalyticsInventoryValuation | null>(null);
+  protected readonly inventoryMovements = signal<AnalyticsInventoryMovementMonth[] | null>(null);
   protected readonly dashboardBestSellers = signal<{ variantId: string; sku: string; productName: string; unitsSold: number; revenue: number }[]>([]);
   protected readonly dashboardError = signal<string | null>(null);
+  protected readonly chartExpanded = signal(false);
+  protected readonly chartPeriod = signal<AnalyticsInventoryMovementPeriod>('weekly');
+  protected readonly chartLoading = signal(false);
+  protected readonly chartError = signal<string | null>(null);
+  private chartRequest = 0;
   private mm?: gsap.MatchMedia;
   private played = false;
 
@@ -139,26 +152,49 @@ export class DashboardOverview {
   private async loadDashboard(): Promise<void> {
     this.pending.set(true);
     this.dashboardError.set(null);
-    try {
-      const [dashboard, bestSellers] = await Promise.all([
-        this.analyticsApi.dashboard(),
-        this.analyticsApi.bestSellers(5),
-      ]);
-      this.dashboardData.set(dashboard);
-      this.dashboardBestSellers.set(bestSellers);
-    } catch (err) {
-      this.dashboardError.set(err instanceof Error ? err.message : 'Could not load dashboard data.');
-    } finally {
-      this.pending.set(false);
+    this.dashboardData.set(null);
+    this.dashboardBestSellers.set([]);
+    this.lowStockData.set(null);
+    this.inventoryValuation.set(null);
+    this.inventoryMovements.set(null);
+    const results = await Promise.allSettled([
+      this.analyticsApi.dashboard(),
+      this.analyticsApi.bestSellers(5),
+      this.analyticsApi.lowStock(),
+      this.analyticsApi.inventoryValuation(),
+      this.analyticsApi.inventoryMovementTrend(this.chartPeriod()),
+    ]);
+    const errors: string[] = [];
+    const [dashboard, bestSellers, lowStock, inventoryValuation, inventoryMovements] = results;
+    if (dashboard.status === 'fulfilled') this.dashboardData.set(dashboard.value);
+    else errors.push(`Inventory totals: ${this.errorMessage(dashboard.reason)}`);
+    if (bestSellers.status === 'fulfilled') this.dashboardBestSellers.set(bestSellers.value);
+    else errors.push(`Best sellers: ${this.errorMessage(bestSellers.reason)}`);
+    if (lowStock.status === 'fulfilled') this.lowStockData.set(lowStock.value);
+    else errors.push(`Low-stock items: ${this.errorMessage(lowStock.reason)}`);
+    if (inventoryValuation.status === 'fulfilled') this.inventoryValuation.set(inventoryValuation.value);
+    else errors.push(`Stock valuation: ${this.errorMessage(inventoryValuation.reason)}`);
+    if (inventoryMovements.status === 'fulfilled') this.inventoryMovements.set(inventoryMovements.value);
+    else {
+      this.chartError.set(this.errorMessage(inventoryMovements.reason));
+      errors.push(`Inventory movement chart: ${this.errorMessage(inventoryMovements.reason)}`);
     }
+    this.dashboardError.set(
+      errors.length ? `Some dashboard data could not be loaded. ${errors.join(' ')}` : null,
+    );
+    this.pending.set(false);
   }
 
-  /** Dashboard aggregates from the API, falling back to local store data when the API has no value. */
+  private errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  /** Dashboard aggregates from the API. */
   protected readonly apiUnits = computed(() => this.dashboardData()?.inventory.finishedGoodsUnits ?? null);
   protected readonly apiLowCount = computed(() => this.dashboardData()?.inventory.lowStockMaterialCount ?? null);
   protected readonly apiOpenOrders = computed(() => this.dashboardData()?.metrics.openOrders ?? null);
-  protected readonly apiTotalSales = computed(() => this.dashboardData()?.metrics.revenue ?? null);
-  protected readonly apiNumberOfSales = computed(() => this.dashboardData()?.salesToday.orders ?? null);
+  protected readonly apiTotalSales = computed(() => this.dashboardData()?.salesMonthToDate.revenue ?? null);
+  protected readonly apiNumberOfSales = computed(() => this.dashboardData()?.salesMonthToDate.orders ?? null);
   protected readonly apiSellers = computed(() => this.dashboardBestSellers().map((s) => {
     return {
       id: s.variantId,
@@ -297,6 +333,7 @@ export class DashboardOverview {
       const kind = el.getAttribute('data-kind');
       const fmt = (n: number) => {
         if (kind === 'currency') return this.compact(n);
+        if (kind === 'currency-full') return this.money(n);
         if (kind === 'percent') return Math.round(n) + '%';
         return this.count(Math.round(n));
       };
@@ -313,6 +350,7 @@ export class DashboardOverview {
       const kind = el.getAttribute('data-kind');
       const fmt = (n: number) => {
         if (kind === 'currency') return this.compact(n);
+        if (kind === 'currency-full') return this.money(n);
         if (kind === 'percent') return Math.round(n) + '%';
         return this.count(Math.round(n));
       };
@@ -327,6 +365,7 @@ export class DashboardOverview {
       const kind = el.getAttribute('data-kind');
       const fmt = (n: number) => {
         if (kind === 'currency') return this.compact(n);
+        if (kind === 'currency-full') return this.money(n);
         if (kind === 'percent') return Math.round(n) + '%';
         return this.count(Math.round(n));
       };
@@ -343,54 +382,58 @@ export class DashboardOverview {
   protected readonly apiDashboard = computed(() => this.dashboardData());
   protected readonly apiBestSellers = computed(() => this.dashboardBestSellers());
 
-  /** Units on hand — from API inventory.finishedGoodsUnits when available. */
-  protected readonly units = computed(() =>
-    this.dashboardData()?.inventory.finishedGoodsUnits ?? this.store.unitsOnHand(),
-  );
+  /** Units on hand — from the API inventory ledger aggregate. */
+  protected readonly units = computed(() => this.dashboardData()?.inventory.finishedGoodsUnits ?? null);
 
-  /** Total stock value — from API metrics.revenue when available (API reports revenue, not at-cost value). */
-  protected readonly stockValue = computed(() =>
-    this.dashboardData()?.metrics.revenue ?? this.store.stockValue(),
-  );
+  /** Preserve the API's null when recorded batch costs are unavailable. */
+  protected readonly stockValue = computed(() => {
+    const valuation = this.inventoryValuation();
+    return valuation?.totalValue ?? null;
+  });
 
-  /** Low stock items — from API inventory.lowStockMaterialCount when available. */
-  protected readonly lowCount = computed(() =>
-    this.dashboardData()?.inventory.lowStockMaterialCount ?? this.store.lowStock().length,
-  );
+  /** Low stock includes variant SKUs and raw materials from the API. */
+  protected readonly lowCount = computed(() => {
+    const data = this.lowStockData();
+    return data ? data.variants.length + data.materials.length : null;
+  });
 
   /** Open orders — from API metrics.openOrders when available. */
   protected readonly openOrders = computed(() =>
     this.dashboardData()?.metrics.openOrders ?? this.store.openOrders().length,
   );
 
-  /** Number of sales — from API salesToday.orders when available. */
+  /** Paid sales count for the current month from the analytics API. */
   protected readonly numberOfSales = computed(() =>
-    this.dashboardData()?.salesToday.orders ??
-      this.store.orders().filter((o) => o.status !== 'cancelled').length,
+    this.dashboardData()?.salesMonthToDate.orders ?? null,
   );
 
-  /** Total sales — from API metrics.revenue when available. */
+  /** Paid revenue for the current month from the analytics API. */
   protected readonly totalSales = computed(() =>
-    this.dashboardData()?.metrics.revenue ??
-      this.store.orders().reduce(
-        (total, o) =>
-          o.status === 'cancelled'
-            ? total
-            : total + o.lines.reduce((a, l) => a + l.qty * l.price, 0),
-        0,
-      ),
+    this.dashboardData()?.salesMonthToDate.revenue ?? null,
   );
 
-  /** Sales goal — kept from settings (not provided by API). */
-  protected readonly salesGoal = computed(() => this.store.settings().goal || 24500);
+  /** Sales goal is an optional user setting, not a value supplied by analytics. */
+  protected readonly salesGoal = computed(() => {
+    const goal = this.store.settings().goal;
+    return goal > 0 ? goal : null;
+  });
 
   protected readonly salesPct = computed(() => {
     const goal = this.salesGoal();
-    return goal > 0 ? (this.totalSales() / goal) * 100 : 0;
+    const total = this.totalSales();
+    return goal !== null && total !== null ? (total / goal) * 100 : 0;
   });
 
-  protected readonly salesPctLabel = computed(() => `${this.salesPct().toFixed(1)}%`);
-  protected readonly remainingGoal = computed(() => Math.max(this.salesGoal() - this.totalSales(), 0));
+  protected readonly salesPctLabel = computed(() =>
+    this.totalSales() === null || this.salesGoal() === null
+      ? '—'
+      : `${this.salesPct().toFixed(1)}%`,
+  );
+  protected readonly remainingGoal = computed(() => {
+    const total = this.totalSales();
+    const goal = this.salesGoal();
+    return total === null || goal === null ? null : Math.max(goal - total, 0);
+  });
   protected readonly daysLeftInMonth = computed(() => {
     const now = new Date(this.now);
     return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate();
@@ -420,62 +463,32 @@ export class DashboardOverview {
     })) ?? [],
   );
 
-  /** Stock trend bars — from API series when available. */
-  /** Stock trend bars — from API series when available. */
-  protected readonly stockTrendBars = computed(() =>
-    this.dashboardData()?.series.map((s) => ({
-      label: s.label,
-      value: s.revenue,
-      in: 0,
-      out: 0,
-    })) ?? [],
-  );
+  /** Monthly movement and stock-value series from the inventory API. */
+  protected readonly stockTrendBars = computed(() => {
+    const movements = this.inventoryMovements() ?? [];
+    return movements;
+  });
+
+  protected async selectChartPeriod(period: AnalyticsInventoryMovementPeriod): Promise<void> {
+    this.chartPeriod.set(period);
+    const request = ++this.chartRequest;
+    this.chartLoading.set(true);
+    this.chartError.set(null);
+    try {
+      const movements = await this.analyticsApi.inventoryMovementTrend(period);
+      if (request === this.chartRequest) this.inventoryMovements.set(movements);
+    } catch (error) {
+      if (request === this.chartRequest) this.chartError.set(this.errorMessage(error));
+    } finally {
+      if (request === this.chartRequest) this.chartLoading.set(false);
+    }
+  }
+
+  protected toggleChartExpanded(): void {
+    this.chartExpanded.update((expanded) => !expanded);
+  }
 
   /** Stock trend series values for sparkline charts — from API series when available. */
-  protected readonly stockTrendSeries = computed(() =>
-    this.dashboardData()?.series.map((s) => s.revenue) ?? [],
-  );
-
-  /** Stock in value — not exposed by API; kept from Store moves. */
-  protected readonly stockInValue = computed(() => {
-    const cutoff = this.now - 30 * 86400000;
-    let total = 0;
-    for (const m of this.store.moves()) {
-      if (m.kind !== 'receipt' || m.at < cutoff) continue;
-      const p = this.store.productById()[m.itemId];
-      total += Math.abs(m.qty) * (p?.cost ?? 0);
-    }
-    return total;
-  });
-
-  /** Stock out value — not exposed by API; kept from Store moves. */
-  protected readonly stockOutValue = computed(() => {
-    const cutoff = this.now - 30 * 86400000;
-    let total = 0;
-    for (const m of this.store.moves()) {
-      if (m.kind !== 'sale' || m.at < cutoff) continue;
-      const p = this.store.productById()[m.itemId];
-      total += Math.abs(m.qty) * (p?.cost ?? 0);
-    }
-    return total;
-  });
-
-  protected readonly stockValueDelta = computed(() => {
-    const vals = this.dashboardData()?.series.map((s) => s.revenue) ?? this.store.months().map((m) => m.value);
-    if (vals.length < 2) return 0;
-    const first = vals[0] || 1;
-    const last = vals[vals.length - 1];
-    return Math.round(((last - first) / first) * 100);
-  });
-
-  protected readonly unitsDelta = computed(() => {
-    const vals = this.dashboardData()?.series.map((s) => s.revenue) ?? this.store.months().map((m) => m.value);
-    if (vals.length < 2) return 0;
-    const first = vals[0] || 1;
-    const last = vals[vals.length - 1];
-    return Math.round(((last - first) / first) * 100);
-  });
-
   /** Flags driven by API data where available, falling back to Store. */
   protected readonly flags = computed<OverviewPresence>(() => {
     const d = this.dashboardData();
@@ -484,10 +497,10 @@ export class DashboardOverview {
       stock: true,
       value: true,
       low: true,
-      chart: (d?.series?.length ?? this.store.months().length) > 0,
+      chart: (this.inventoryMovements()?.length ?? 0) > 0,
       gauge: true,
       activities: true,
-      alerts: this.store.alerts().length > 0,
+      alerts: this.dashboardAlerts().length > 0,
       sellers: this.dashboardBestSellers().length > 0,
       ships: this.store.shippingQueue().length > 0,
       locations: true,
@@ -496,19 +509,39 @@ export class DashboardOverview {
 
   protected readonly spans = computed(() => computeOverviewSpans(this.flags()));
 
-  protected readonly hasTrend = computed(() => (this.dashboardData()?.series?.length ?? this.store.months().length) >= 2);
-
-  protected readonly lowThumbs = computed(() =>
-    this.store
-      .lowStockProducts()
+  protected readonly lowThumbs = computed(() => {
+    const lowVariantIds = new Set(this.lowStockData()?.variants.map((item) => item.variantId) ?? []);
+    return this.store.products()
+      .filter((product) => product.variantIds?.some((variantId) => lowVariantIds.has(variantId)))
       .slice(0, 3)
-      .map((r) => ({
-        id: r.id,
-        name: r.name,
-        photo: this.store.productById()[r.id]?.photo ?? '',
-      }))
-      .filter((t) => t.photo),
-  );
+      .map((product) => ({ id: product.id, name: product.name, photo: product.photo }))
+      .filter((product) => product.photo);
+  });
+
+  protected readonly dashboardAlerts = computed(() => {
+    const data = this.lowStockData();
+    if (!data) return [];
+    const products = this.store.products();
+    return [
+      ...data.variants.map((item) => {
+        const product = products.find((candidate) =>
+          candidate.variantIds?.includes(item.variantId),
+        );
+        return {
+          id: item.variantId,
+          title: item.productName || product?.name || item.sku,
+          detail: `${item.sku} · ${item.currentQuantity} on hand · reorder at ${item.reorderThreshold}`,
+          tone: item.currentQuantity <= 0 ? 'bad' : 'warn',
+        };
+      }),
+      ...data.materials.map((item) => ({
+        id: item.id,
+        title: item.name,
+        detail: `${item.currentQuantity} on hand · reorder at ${item.reorderThreshold}`,
+        tone: item.currentQuantity <= 0 ? 'bad' : 'warn',
+      })),
+    ];
+  });
 
   protected readonly me = computed(() => {
     const stored = this.store.settings().me;
@@ -523,9 +556,15 @@ export class DashboardOverview {
 
   protected readonly stamp = computed(() => dateFull(this.now));
 
-  protected readonly outCount = computed(() => this.store.outOfStock().length);
-  protected readonly lowProducts = computed(() => this.store.lowStockProducts().length);
-  protected readonly lowMaterials = computed(() => this.store.lowStockMaterials().length);
+  protected readonly outCount = computed(() => {
+    const data = this.lowStockData();
+    return data
+      ? data.variants.filter((item) => item.currentQuantity <= 0).length +
+          data.materials.filter((item) => item.currentQuantity <= 0).length
+      : null;
+  });
+  protected readonly lowSkus = computed(() => this.lowStockData()?.variants.length ?? null);
+  protected readonly lowMaterials = computed(() => this.lowStockData()?.materials.length ?? null);
   protected readonly toShip = computed(() => this.store.ordersToShip().length);
   protected readonly unpaid = computed(() => this.store.unpaidOrders().length);
 

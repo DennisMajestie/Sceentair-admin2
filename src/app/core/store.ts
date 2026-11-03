@@ -3,9 +3,16 @@ import { CatalogueApiService, primaryProductImage, type ApiProduct } from './cat
 import { CustomersApiService, type ApiCustomer } from './customers-api.service';
 import { HelpApiService, type ApiTicket } from './help-api.service';
 import { InventoryApiService, type ApiCount } from './inventory-api.service';
-import { MaterialsApiService, type ApiMaterial } from './materials-api.service';
+import { MaterialsApiService, type ApiMaterial, type ApiPurchase } from './materials-api.service';
 import { OrdersApiService, type ApiOrder } from './orders-api.service';
 import { SuppliersApiService, type ApiSupplier } from './suppliers-api.service';
+import { ProductionApiService } from './production-api.service';
+import { ReturnsApiService } from './returns-api.service';
+import { UsersApiService } from './users-api.service';
+import { NotificationsApiService } from './notifications-api.service';
+import { AuditApiService } from './audit-api.service';
+import { AuthService } from './auth.service';
+import { BusinessApiService } from './business-api.service';
 import {
   Batch,
   CountStatus,
@@ -104,6 +111,7 @@ function mapProduct(p: ApiProduct): Product {
     bom: [],
     blurb: p.description ?? '',
     stock: {},
+    variantIds: p.variants.map((item) => item.id),
   };
 }
 
@@ -196,6 +204,155 @@ function mapCount(c: ApiCount): CycleCount {
   };
 }
 
+function mapPurchase(p: ApiPurchase): PurchaseOrder {
+  const purchasedAt = Date.parse(p.purchasedAt) || 0;
+  return {
+    id: p.id,
+    number: p.id.slice(0, 8).toUpperCase(),
+    supplierId: p.supplierName ?? '',
+    status: 'received',
+    createdAt: purchasedAt,
+    sentAt: null,
+    eta: null,
+    receivedAt: purchasedAt,
+    leadTimeDays: p.leadTimeDays ?? 0,
+    recordedBy: p.recordedBy ?? '',
+    lines: [
+      {
+        materialId: p.material.id,
+        qty: p.quantity,
+        cost: p.cost,
+        received: p.quantity,
+      },
+    ],
+    note: p.note ?? '',
+  };
+}
+
+function mapBatch(
+  b: import('./production-api.service').ApiProductionBatch,
+  products: Product[],
+): Batch {
+  const stage = b.stage.toLowerCase();
+  const status: Batch['status'] =
+    b.completedDate || stage === 'completed'
+      ? 'released'
+      : stage.includes('quality')
+        ? 'quarantine'
+        : 'hold';
+  const product = products.find((p) => (p.variantIds ?? []).includes(b.variant.id));
+  return {
+    id: b.id,
+    lot: b.barcode ?? b.id.slice(0, 8).toUpperCase(),
+    productId: product?.id ?? b.variant.id,
+    madeAt: Date.parse(b.createdAt) || 0,
+    expiresAt: 0,
+    qty: b.quantity,
+    left: b.quantity,
+    locId: b.variant.storageLocation ?? '',
+    status,
+    chemistId: b.createdBy ?? '',
+  };
+}
+
+function mapReturn(
+  r: import('./returns-api.service').ApiReturn,
+  products: Product[],
+): Return {
+  const status: Return['status'] =
+    r.status === 'requested'
+      ? 'requested'
+      : r.status === 'rejected'
+        ? 'rejected'
+        : r.restocked
+          ? 'restocked'
+          : 'refunded';
+  const product = products.find((p) => (p.variantIds ?? []).includes(r.variant.id));
+  return {
+    id: r.id,
+    number: r.id.slice(0, 8).toUpperCase(),
+    orderId: r.order.id,
+    productId: product?.id ?? r.variant.id,
+    qty: r.quantity,
+    reason: r.reason,
+    status,
+    createdAt: Date.parse(r.requestedAt) || 0,
+    refund: r.refundAmount ?? 0,
+  };
+}
+
+const ROLE_MAP: Record<string, Teammate['role']> = {
+  business_owner_admin: 'admin',
+  management: 'manager',
+  sales: 'staff',
+  inventory: 'staff',
+  production: 'staff',
+  finance_accounting: 'staff',
+  partner_investor: 'viewer',
+  wholesaler: 'viewer',
+  customer: 'viewer',
+};
+
+const ROLE_DEPT: Record<string, Teammate['team']> = {
+  business_owner_admin: 'Operations',
+  management: 'Operations',
+  sales: 'Sales',
+  inventory: 'Warehouse',
+  production: 'Lab',
+  finance_accounting: 'Finance',
+  partner_investor: 'Finance',
+  wholesaler: 'Support',
+  customer: 'Support',
+};
+
+function titleCase(value: string): string {
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function mapTeammate(u: import('./users-api.service').ApiUser): Teammate {
+  const roleName = u.role?.name ?? '';
+  return {
+    id: u.id,
+    name: u.name,
+    title: titleCase(roleName),
+    team: ROLE_DEPT[roleName] ?? 'Operations',
+    role: ROLE_MAP[roleName] ?? 'viewer',
+    email: u.email,
+    phone: u.phone ?? '',
+    locId: '',
+    tone: 'sage',
+    status: u.status,
+    since: Date.parse(u.createdAt) || 0,
+    permissions: u.role.permissions ?? [],
+  };
+}
+
+function mapNotice(n: import('./notifications-api.service').ApiNotification): Notice {
+  return {
+    id: n.id,
+    at: Date.parse(n.sentAt) || 0,
+    text: n.message,
+    href: n.relatedOrderId ? `/orders/all/${n.relatedOrderId}` : '/dashboard',
+    read: !!n.readAt,
+    kind: n.type,
+  };
+}
+
+function mapActivity(a: import('./audit-api.service').ApiAuditEntry): import('./models').ActivityEntry {
+  return {
+    id: a.id,
+    at: Date.parse(a.timestamp) || 0,
+    who: a.actorId ?? 'system',
+    kind: a.action.split('.')[0] ?? 'audit',
+    title: a.action,
+    text: a.afterState ? JSON.stringify(a.afterState).slice(0, 160) : '',
+    href: '',
+  };
+}
+
 function mapTicket(t: ApiTicket): Ticket {
   return {
     id: t.id,
@@ -275,14 +432,47 @@ export class Store {
   private readonly ordersApi = inject(OrdersApiService);
   private readonly inventoryApi = inject(InventoryApiService);
   private readonly helpApi = inject(HelpApiService);
+  private readonly productionApi = inject(ProductionApiService);
+  private readonly returnsApi = inject(ReturnsApiService);
+  private readonly usersApi = inject(UsersApiService);
+  private readonly notificationsApi = inject(NotificationsApiService);
+  private readonly auditApi = inject(AuditApiService);
+  private readonly auth = inject(AuthService);
+  private readonly businessApi = inject(BusinessApiService);
 
   private readonly state = signal<import('./models').Seed>(emptySeed());
 
   readonly data = this.state.asReadonly();
 
   /** Hydrate all entities from the API. Safe to call multiple times; failures leave prior state intact. */
+  async resolveReturn(
+    id: string,
+    input: { decision: 'resolved' | 'rejected'; resolution: string; restocked?: boolean; damaged?: boolean; trackingNumber?: string; photoUrls?: string[]; bayTag?: string },
+  ): Promise<void> {
+    await this.returnsApi.resolve(id, input);
+    await this.load();
+  }
+
+  async updateBatchStage(id: string, stage: string): Promise<void> {
+    await this.productionApi.updateStage(id, stage);
+    await this.load();
+  }
+
   async load(): Promise<void> {
     const next: import('./models').Seed = { ...emptySeed() };
+    const me = this.auth.user();
+    if (me) {
+      next.settings = {
+        ...next.settings,
+        me: {
+          id: me.id,
+          name: me.name ?? me.email,
+          email: me.email,
+          title: me.title ?? titleCase(me.role),
+          phone: me.phone ?? '',
+        },
+      };
+    }
     await Promise.all([
       this.catalogueApi
         .list({ page: 1, limit: 100 })
@@ -309,6 +499,112 @@ export class Store {
         .then((r) => (next.counts = r.data.map(mapCount)))
         .catch(() => {}),
       this.helpApi.tickets().then((r) => (next.tickets = r.data.map(mapTicket))).catch(() => {}),
+      this.materialsApi
+        .purchases(1, 100)
+        .then((r) => (next.pos = r.data.map(mapPurchase)))
+        .catch(() => {}),
+      this.usersApi
+        .list(1, 100)
+        .then((r) => (next.team = r.data.map(mapTeammate)))
+        .catch(() => {}),
+      this.notificationsApi
+        .list(1, 50)
+        .then((r) => {
+          const notices = r.data.map(mapNotice);
+          this.notices.set(notices);
+        })
+        .catch(() => {}),
+      this.auditApi
+        .list(1, 50)
+        .then((r) => (next.activity = r.data.map(mapActivity)))
+        .catch(() => {}),
+      this.businessApi
+        .getProfile()
+        .then((profile) => {
+          next.settings = {
+            ...next.settings,
+            company: {
+              name: profile.name,
+              legal: profile.legalName ?? '',
+              address: profile.address ?? '',
+              phone: profile.phone ?? '',
+              email: profile.email ?? '',
+              taxId: profile.taxId ?? '',
+              currency: profile.currency,
+              timezone: profile.timezone,
+              fiscalStart: profile.fiscalStart,
+            },
+            prefs: {
+              expiryWarnDays: profile.expiryWarnDays,
+              lowStockMode: profile.lowStockMode,
+              defaultLoc: profile.defaultLocationId ?? '',
+              weekStart: profile.weekStart,
+            },
+            goal: profile.revenueGoal,
+          };
+          next.locations = [
+            {
+              id: 'factory',
+              name: profile.factoryName ?? 'Factory',
+              kind: 'dc',
+              city: profile.factoryCity ?? '',
+              address: profile.factoryAddress ?? '',
+              capacity: profile.factoryCapacity ?? 0,
+              managerId: '',
+              hours: profile.factoryHours ?? '',
+              zones: [],
+            },
+          ];
+        })
+        .catch(() => {}),
+      this.notificationsApi
+        .getPreferences()
+        .then((prefs) => {
+          next.settings = { ...next.settings, notify: prefs };
+        })
+        .catch(() => {}),
+    ]);
+
+    await Promise.all([
+      this.productionApi
+        .list(1, 100)
+        .then((r) => (next.batches = r.data.map((batch) => mapBatch(batch, next.products))))
+        .catch(() => {}),
+      this.returnsApi
+        .list(1, 100)
+        .then((r) => (next.returns = r.data.map((item) => mapReturn(item, next.products))))
+        .catch(() => {}),
+      this.inventoryApi
+        .summary()
+        .then((items) => {
+          const byVariant = new Map(
+            items
+              .filter((i) => i.itemType === 'variant')
+              .map((i) => [i.itemId, i.currentQuantity]),
+          );
+          next.products = next.products.map((product) => ({
+            ...product,
+            stock: {
+              factory: (product.variantIds ?? []).reduce(
+                (total, variantId) => total + (byVariant.get(variantId) ?? 0),
+                0,
+              ),
+            },
+          }));
+        })
+        .catch(() => {}),
+      this.materialsApi
+        .valuation()
+        .then((rows) => {
+          const byId = new Map(rows.map((row) => [row.id, row]));
+          next.materials = next.materials.map((material) => {
+            const row = byId.get(material.id);
+            return row
+              ? { ...material, onHand: row.currentQuantity, cost: row.lastUnitCost ?? 0 }
+              : material;
+          });
+        })
+        .catch(() => {}),
     ]);
     this.state.set(next);
   }
@@ -594,6 +890,7 @@ export class Store {
 
   markNoticeRead(id: string): void {
     this.notices.update((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    void this.notificationsApi.markRead(id).catch(() => this.load());
   }
 
   markAllNoticesRead(): void {
@@ -601,70 +898,109 @@ export class Store {
   }
 
   updateMe(patch: Partial<Settings['me']>): void {
-    this.state.update((s) => {
-      const next = {
-        ...s,
-        settings: { ...s.settings, me: { ...s.settings.me, ...patch } },
-      };
-      return next;
-    });
-  }
-
-  resetDemoData(): void {
-    const reset = JSON.parse(JSON.stringify(emptySeed())) as import('./models').Seed;
-    this.state.set(reset);
-    this.notices.set([]);
+    this.state.update((s) => ({
+      ...s,
+      settings: { ...s.settings, me: { ...s.settings.me, ...patch } },
+    }));
+    void this.usersApi
+      .updateMe({
+        name: patch.name,
+        email: patch.email,
+        phone: patch.phone,
+        title: patch.title,
+      })
+      .then((user) => {
+        const me = {
+          name: user.name,
+          email: user.email,
+          phone: user.phone ?? '',
+          title: user.title ?? titleCase(user.role.name),
+        };
+        this.state.update((s) => ({
+          ...s,
+          settings: { ...s.settings, me: { ...s.settings.me, ...me } },
+        }));
+        this.auth.user.update((current) => (current ? { ...current, ...me } : current));
+      })
+      .catch(() => this.load());
   }
 
   updateCompany(patch: Partial<Settings['company']>): void {
-    this.state.update((s) => {
-      const next = {
-        ...s,
-        settings: { ...s.settings, company: { ...s.settings.company, ...patch } },
-      };
-      return next;
-    });
+    this.state.update((s) => ({
+      ...s,
+      settings: { ...s.settings, company: { ...s.settings.company, ...patch } },
+    }));
+    void this.businessApi
+      .updateProfile({
+        name: patch.name,
+        legalName: patch.legal,
+        address: patch.address,
+        phone: patch.phone,
+        email: patch.email,
+        taxId: patch.taxId,
+        currency: patch.currency,
+        timezone: patch.timezone,
+        fiscalStart: patch.fiscalStart,
+      })
+      .catch(() => this.load());
   }
 
   updatePrefs(patch: Partial<Settings['prefs']>): void {
-    this.state.update((s) => {
-      const next = {
-        ...s,
-        settings: { ...s.settings, prefs: { ...s.settings.prefs, ...patch } },
-      };
-      return next;
-    });
+    this.state.update((s) => ({
+      ...s,
+      settings: { ...s.settings, prefs: { ...s.settings.prefs, ...patch } },
+    }));
+    void this.businessApi
+      .updateProfile({
+        expiryWarnDays: patch.expiryWarnDays,
+        lowStockMode: patch.lowStockMode,
+        defaultLocationId: patch.defaultLoc,
+        weekStart: patch.weekStart,
+      })
+      .catch(() => this.load());
   }
 
   updateNotify(key: string, value: boolean): void {
-    this.state.update((s) => {
-      const next = {
-        ...s,
-        settings: { ...s.settings, notify: { ...s.settings.notify, [key]: value } },
-      };
-      return next;
-    });
+    this.state.update((s) => ({
+      ...s,
+      settings: { ...s.settings, notify: { ...s.settings.notify, [key]: value } },
+    }));
+    void this.notificationsApi
+      .updatePreferences({ [key]: value })
+      .catch(() => this.load());
   }
 
   setGoal(goal: number): void {
-    this.state.update((s) => {
-      const next = {
-        ...s,
-        settings: { ...s.settings, goal },
-      };
-      return next;
-    });
+    this.state.update((s) => ({
+      ...s,
+      settings: { ...s.settings, goal },
+    }));
+    void this.businessApi.updateProfile({ revenueGoal: goal }).catch(() => this.load());
   }
 
   /** Change a teammate's role from the Settings �?� Team screen. */
   setTeammateRole(id: string, role: Teammate['role']): void {
-    this.state.update((s) => {
-      const next = {
-        ...s,
-        team: s.team.map((t) => (t.id === id ? { ...t, role } : t)),
-      };
-      return next;
-    });
+    const apiRole =
+      role === 'admin'
+        ? 'business_owner_admin'
+        : role === 'manager'
+          ? 'management'
+          : role === 'staff'
+            ? 'sales'
+            : 'wholesaler';
+    this.state.update((s) => ({
+      ...s,
+      team: s.team.map((t) => (t.id === id ? { ...t, role } : t)),
+    }));
+    void this.usersApi
+      .updateRole(id, apiRole)
+      .then((user) =>
+        this.state.update((s) => ({
+          ...s,
+          team: s.team.map((t) => (t.id === id ? mapTeammate(user) : t)),
+        })),
+      )
+      .catch(() => this.load());
   }
 
   /** Move a transfer along: planned �+' in transit �+' received. */

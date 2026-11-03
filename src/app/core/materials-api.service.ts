@@ -43,13 +43,14 @@ export interface ApiMaterialFilters {
 
 export interface ApiPurchase {
   id: string;
-  materialId: string;
-  materialName: string;
+  material: ApiMaterial;
   quantity: number;
   cost: number;
+  note: string | null;
   supplierName: string | null;
-  purchaseDate: string;
+  leadTimeDays: number | null;
   recordedBy: string | null;
+  purchasedAt: string;
 }
 
 export interface ApiPurchaseList {

@@ -318,8 +318,6 @@ export class Sidebar {
         return this.store.openPurchaseOrders().length;
       case 'counts':
         return this.store.countStats().open;
-      case 'transfers':
-        return this.store.transfers().filter((t) => t.status !== 'received').length;
       case 'returns':
         return this.store.returns().filter((r) => r.status === 'requested').length;
       case 'batches':

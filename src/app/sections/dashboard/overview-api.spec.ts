@@ -11,6 +11,7 @@ import { Store } from '../../core/store';
 
 const DASHBOARD: AnalyticsDashboard = {
   salesToday: { orders: 12, revenue: 1450 },
+  salesMonthToDate: { orders: 18, revenue: 2400 },
   profitLoss: {},
   salesByChannel: [
     { channel: 'online', orders: 8, revenue: 960 },
@@ -22,6 +23,7 @@ const DASHBOARD: AnalyticsDashboard = {
   pendingApprovals: 2,
   inventory: {
     finishedGoodsUnits: 3840,
+    stockedVariantCount: 5,
     lowStockMaterialCount: 3,
     lowStockMaterials: [
       { id: 'm-1', name: 'Shea butter', currentQuantity: 46, reorderThreshold: 20 },
@@ -44,11 +46,68 @@ const DASHBOARD: AnalyticsDashboard = {
 };
 
 function makeAnalyticsApi(dashboardResult: AnalyticsDashboard = DASHBOARD) {
-  const api = jasmine.createSpyObj('AnalyticsApiService', ['dashboard', 'bestSellers', 'lowStock']);
+  const api = jasmine.createSpyObj('AnalyticsApiService', [
+    'dashboard',
+    'bestSellers',
+    'lowStock',
+    'inventoryValuation',
+    'inventoryMovementTrend',
+  ]);
   api.dashboard.and.returnValue(Promise.resolve(dashboardResult));
   api.bestSellers.and.returnValue(Promise.resolve([
     { variantId: 'v-1', sku: 'MF-CRB-15', productName: 'Calendula Rescue Balm', unitsSold: 42, revenue: 840 },
     { variantId: 'v-2', sku: 'MF-CLO-30', productName: 'Camellia Cleansing Oil', unitsSold: 24, revenue: 432 },
+  ]));
+  api.lowStock.and.returnValue(Promise.resolve({
+    materials: [
+      { id: 'm-1', name: 'Shea butter', currentQuantity: 0, reorderThreshold: 20 },
+      { id: 'm-2', name: 'Calendula oil', currentQuantity: 7, reorderThreshold: 10 },
+    ],
+    variants: [
+      {
+        variantId: 'v-1',
+        sku: 'SKU-1',
+        productName: 'Product 1',
+        currentQuantity: 0,
+        reorderThreshold: 10,
+      },
+      {
+        variantId: 'v-2',
+        sku: 'SKU-2',
+        productName: 'Product 2',
+        currentQuantity: 4,
+        reorderThreshold: 10,
+      },
+    ],
+    variantThreshold: 10,
+  }));
+  api.inventoryValuation.and.returnValue(Promise.resolve({
+    finishedGoodsUnits: 3840,
+    stockedVariantCount: 5,
+    totalValue: 1234,
+    unvaluedUnits: 0,
+    unvaluedVariantCount: 0,
+    method: 'latest-recorded-completed-batch-cost',
+  }));
+  api.inventoryMovementTrend.and.returnValue(Promise.resolve([
+    {
+      label: 'Oct 5',
+      stockIn: 12,
+      stockOut: 4,
+      unitsOnHand: 3832,
+      stockInValue: 1200,
+      stockOutValue: 400,
+      stockValue: 383200,
+    },
+    {
+      label: 'Oct 12',
+      stockIn: 8,
+      stockOut: 0,
+      unitsOnHand: 3840,
+      stockInValue: 800,
+      stockOutValue: 0,
+      stockValue: 384000,
+    },
   ]));
   return api;
 }
@@ -63,7 +122,16 @@ function createComponent(analyticsApi: ReturnType<typeof makeAnalyticsApi>) {
         provide: ActivatedRoute,
         useValue: { paramMap: of({ get: () => null } as unknown as ParamMap) },
       },
-      { provide: Router, useValue: { url: '', events: of(null), navigate: jasmine.createSpy('navigate') } },
+      {
+        provide: Router,
+        useValue: {
+          url: '',
+          events: of(null),
+          navigate: jasmine.createSpy('navigate'),
+          createUrlTree: jasmine.createSpy('createUrlTree').and.returnValue({}),
+          serializeUrl: jasmine.createSpy('serializeUrl').and.returnValue('/'),
+        },
+      },
     ],
   });
   return TestBed.createComponent(DashboardOverview);
@@ -83,14 +151,85 @@ describe('dashboard API response mapping', () => {
 
     // Units from API inventory.finishedGoodsUnits
     expect((component as any).units()).toBe(3840);
-    // Total sales from API metrics.revenue
-    expect((component as any).totalSales()).toBe(1450);
-    // Number of sales from API salesToday.orders
-    expect((component as any).numberOfSales()).toBe(12);
+    // Sales overview totals come from paid month-to-date API data, not today's metrics.
+    expect((component as any).totalSales()).toBe(2400);
+    expect((component as any).numberOfSales()).toBe(18);
     // Open orders from API metrics.openOrders
     expect((component as any).openOrders()).toBe(18);
-    // Low count from API inventory.lowStockMaterialCount
-    expect((component as any).lowCount()).toBe(3);
+    // Stock value, low stock and out-of-stock counts come from their dedicated APIs.
+    expect((component as any).stockValue()).toBe(1234);
+    expect((component as any).lowCount()).toBe(4);
+    expect((component as any).lowSkus()).toBe(2);
+    expect((component as any).lowMaterials()).toBe(2);
+    expect((component as any).outCount()).toBe(2);
+  });
+
+  it('uses the reference dashboard metric and chart labels', async () => {
+    const fixture = createComponent(makeAnalyticsApi());
+    await ((fixture.componentInstance as any).loadDashboard());
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Units on hand');
+    expect(fixture.nativeElement.textContent).toContain('Total stock value');
+    expect(fixture.nativeElement.textContent).toContain('Low stock items');
+    expect(fixture.nativeElement.textContent).toContain('Inventory statistics');
+    expect(fixture.nativeElement.textContent).toContain('Stock value');
+    expect(fixture.nativeElement.textContent).toContain('Weekly');
+    expect((fixture.componentInstance as any).count(1974)).toBe('1,974');
+  });
+
+  it('shows stock value as unavailable while production costs are not recorded', async () => {
+    const analyticsApi = makeAnalyticsApi();
+    analyticsApi.inventoryValuation.and.returnValue(Promise.resolve({
+      finishedGoodsUnits: 3840,
+      stockedVariantCount: 5,
+      totalValue: null,
+      unvaluedUnits: 3840,
+      unvaluedVariantCount: 5,
+      method: 'latest-recorded-completed-batch-cost',
+    }));
+    const fixture = createComponent(analyticsApi);
+    const component = fixture.componentInstance;
+
+    await (component as any).loadDashboard();
+    fixture.detectChanges();
+
+    expect((component as any).stockValue()).toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('[aria-label="Stock value unavailable"]'),
+    ).not.toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('$0.00');
+    expect(fixture.nativeElement.textContent).toContain('At cost · costs not recorded');
+  });
+
+  it('does not show a fabricated sales goal when none is configured', async () => {
+    const fixture = createComponent(makeAnalyticsApi());
+    const component = fixture.componentInstance;
+
+    await (component as any).loadDashboard();
+    fixture.detectChanges();
+
+    expect((component as any).salesGoal()).toBeNull();
+    expect((component as any).salesPctLabel()).toBe('—');
+    expect(fixture.nativeElement.textContent).toContain(
+      'Set a sales goal in settings to track progress.',
+    );
+    expect(fixture.nativeElement.textContent).not.toContain('$24,500');
+  });
+
+  it('keeps successful inventory metrics visible when one dashboard endpoint fails', async () => {
+    const analyticsApi = makeAnalyticsApi();
+    analyticsApi.inventoryValuation.and.returnValue(Promise.reject(new Error('Cost service unavailable')));
+    const fixture = createComponent(analyticsApi);
+    const component = fixture.componentInstance;
+
+    await (component as any).loadDashboard();
+    await fixture.whenStable();
+
+    expect((component as any).units()).toBe(3840);
+    expect((component as any).lowCount()).toBe(4);
+    expect((component as any).stockValue()).toBeNull();
+    expect((component as any).dashboardError()).toContain('Cost service unavailable');
   });
 
   it('maps API bestSellers to seller rows', async () => {
@@ -140,7 +279,7 @@ describe('dashboard API response mapping', () => {
     expect(bars[2]).toEqual(jasmine.objectContaining({ label: 'Studio', value: 1 }));
   });
 
-  it('maps API series to stockTrendBars', async () => {
+  it('maps weekly ledger movement data to stockTrendBars instead of sales revenue', async () => {
     const analyticsApi = makeAnalyticsApi();
     const fixture = createComponent(analyticsApi);
     const component = fixture.componentInstance;
@@ -149,31 +288,92 @@ describe('dashboard API response mapping', () => {
     await fixture.whenStable();
 
     const bars = (component as any).stockTrendBars();
-    expect(bars.length).toBe(3);
-    expect(bars[0]).toEqual(jasmine.objectContaining({ label: 'Mon', value: 120, in: 0, out: 0 }));
-    expect(bars[1]).toEqual(jasmine.objectContaining({ label: 'Tue', value: 340, in: 0, out: 0 }));
-    expect(bars[2]).toEqual(jasmine.objectContaining({ label: 'Wed', value: 990, in: 0, out: 0 }));
+    expect(bars).toEqual([
+      {
+        label: 'Oct 5',
+        stockIn: 12,
+        stockOut: 4,
+        unitsOnHand: 3832,
+        stockInValue: 1200,
+        stockOutValue: 400,
+        stockValue: 383200,
+      },
+      {
+        label: 'Oct 12',
+        stockIn: 8,
+        stockOut: 0,
+        unitsOnHand: 3840,
+        stockInValue: 800,
+        stockOutValue: 0,
+        stockValue: 384000,
+      },
+    ]);
   });
 
-  it('falls back to Store data when API data is not loaded', async () => {
+  it('requests and displays the selected inventory movement period', async () => {
+    const analyticsApi = makeAnalyticsApi();
+    const fixture = createComponent(analyticsApi);
+    const component = fixture.componentInstance;
+
+    await (component as any).loadDashboard();
+    await (component as any).selectChartPeriod('quarterly');
+    await fixture.whenStable();
+
+    expect(analyticsApi.inventoryMovementTrend).toHaveBeenCalledWith('quarterly');
+    expect((component as any).chartPeriod()).toBe('quarterly');
+    expect((component as any).chartLoading()).toBe(false);
+    expect((component as any).chartError()).toBeNull();
+  });
+
+  it('shows unit movement instead of $0 when no movement is valued', async () => {
+    const analyticsApi = makeAnalyticsApi();
+    analyticsApi.inventoryMovementTrend.and.returnValue(Promise.resolve([
+      {
+        label: 'Oct 5',
+        stockIn: 0,
+        stockOut: 0,
+        unitsOnHand: 3,
+        stockInValue: 0,
+        stockOutValue: 0,
+        stockValue: null,
+      },
+      {
+        label: 'Oct 12',
+        stockIn: 0,
+        stockOut: 0,
+        unitsOnHand: 3,
+        stockInValue: 0,
+        stockOutValue: 0,
+        stockValue: null,
+      },
+    ]));
+    const fixture = createComponent(analyticsApi);
+
+    await (fixture.componentInstance as any).loadDashboard();
+    fixture.detectChanges();
+
+    const summary = fixture.nativeElement
+      .querySelector('.bars__summary')
+      .textContent.replace(/\s+/g, ' ');
+    expect(summary).toContain('0 units in');
+    expect(summary).toContain('0 units out');
+    expect(summary).toContain('net 0 units');
+    expect(summary).not.toContain('$0');
+    expect(summary).toContain('value unavailable');
+  });
+
+  it('does not present Store data as sales while the API data is not loaded', async () => {
     const analyticsApi = makeAnalyticsApi();
     const fixture = createComponent(analyticsApi);
     const component = fixture.componentInstance;
 
     // Before loadDashboard completes
-    expect((component as any).units()).toBe((component as any).store.unitsOnHand());
-    expect((component as any).totalSales()).toBe(
-      (component as any).store.orders().reduce(
-        (total: number, o: any) =>
-          o.status === 'cancelled' ? total : total + o.lines.reduce((a: number, l: any) => a + l.qty * l.price, 0),
-        0,
-      ),
-    );
-    expect((component as any).numberOfSales()).toBe(
-      (component as any).store.orders().filter((o: any) => o.status !== 'cancelled').length,
-    );
+    expect((component as any).units()).toBeNull();
+    expect((component as any).stockValue()).toBeNull();
+    expect((component as any).lowCount()).toBeNull();
+    expect((component as any).totalSales()).toBeNull();
+    expect((component as any).numberOfSales()).toBeNull();
     expect((component as any).openOrders()).toBe((component as any).store.openOrders().length);
-    expect((component as any).lowCount()).toBe((component as any).store.lowStock().length);
     expect((component as any).sellers()).toEqual([]);
   });
 
@@ -186,13 +386,10 @@ describe('dashboard API response mapping', () => {
     await (component as any).loadDashboard();
     await fixture.whenStable();
 
-    expect((component as any).units()).toBe((component as any).store.unitsOnHand());
-    expect((component as any).totalSales()).toBe(
-      (component as any).store.orders().reduce(
-        (total: number, o: any) =>
-          o.status === 'cancelled' ? total : total + o.lines.reduce((a: number, l: any) => a + l.qty * l.price, 0),
-        0,
-      ),
-    );
+    expect((component as any).units()).toBeNull();
+    expect((component as any).stockValue()).toBe(1234);
+    expect((component as any).totalSales()).toBeNull();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Sales data unavailable');
   });
 });

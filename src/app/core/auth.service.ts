@@ -9,6 +9,8 @@ export interface AuthUser {
   email: string;
   role: string;
   name?: string;
+  phone?: string | null;
+  title?: string | null;
   access: Record<string, string>;
 }
 

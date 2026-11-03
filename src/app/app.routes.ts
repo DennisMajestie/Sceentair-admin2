@@ -106,11 +106,6 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/warehouses/counts').then((m) => m.WarehouseCounts),
   },
   {
-    path: 'warehouses/transfers',
-    loadComponent: () => import('./sections/warehouses/transfers').then((m) => m.WarehouseTransfers),
-  },
-
-  {
     path: 'analytics/overview',
     loadComponent: () => import('./sections/analytics/overview').then((m) => m.AnalyticsOverview),
   },
@@ -149,10 +144,6 @@ export const routes: Routes = [
   {
     path: 'settings/company',
     loadComponent: () => import('./sections/settings/company').then((m) => m.SettingsCompany),
-  },
-  {
-    path: 'settings/billing',
-    loadComponent: () => import('./sections/settings/billing').then((m) => m.SettingsBilling),
   },
   {
     path: 'settings/notifications',

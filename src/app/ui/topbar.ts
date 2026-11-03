@@ -86,7 +86,6 @@ import { SdSlidingIndicator } from './sliding-indicator';
             <button type="button" class="menu__item" (click)="navigate(['/orders/all'])">Order</button>
             <button type="button" class="menu__item" (click)="navigate(['/purchasing/orders'])">Purchase order</button>
             <button type="button" class="menu__item" (click)="navigate(['/products/batches'])">Batch</button>
-            <button type="button" class="menu__item" (click)="navigate(['/warehouses/transfers'])">Transfer</button>
             <button type="button" class="menu__item" (click)="navigate(['/warehouses/counts'])">Cycle count</button>
           </div>
         }
@@ -112,7 +111,6 @@ import { SdSlidingIndicator } from './sliding-indicator';
             </div>
             <button type="button" class="menu__item" (click)="navigate(['/settings/account'])">Account</button>
             <button type="button" class="menu__item" (click)="navigate(['/settings/team'])">Team</button>
-            <button type="button" class="menu__item" (click)="navigate(['/settings/billing'])">Billing</button>
             <button type="button" class="menu__item" (click)="navigate(['/help/center'])">Help center</button>
           </div>
         }
@@ -469,8 +467,6 @@ export class Topbar {
         return this.store.openPurchaseOrders().length;
       case 'counts':
         return this.store.countStats().open;
-      case 'transfers':
-        return this.store.transfers().filter((t) => t.status !== 'received').length;
       case 'returns':
         return this.store.returns().filter((r) => r.status === 'requested').length;
       case 'batches':

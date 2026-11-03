@@ -2,7 +2,7 @@
   <div class="welcome">
     <span class="welcome__date">{{ stamp() }}</span>
     <h1 class="welcome__title">Welcome back, {{ me().name.split(' ')[0] || 'there' }}!</h1>
-    <p class="welcome__lead">Here's what's moving today: <strong>{{ toShip() }} orders</strong> to dispatch and <strong>{{ lowCount() }} products</strong> running low.</p>
+    <p class="welcome__lead">Here's what's moving today: <strong>{{ toShip() }} orders</strong> to dispatch and <strong>{{ lowCount() ?? '—' }} stock items</strong> running low.</p>
     <div class="welcome__actions">
       <button type="button" class="btn btn--primary" routerLink="/orders/all">
         <app-icon name="plus" [size]="15" />
@@ -15,30 +15,30 @@
   </div>
 }
 
+@if (dashboardError(); as error) {
+  <p class="overview-empty" role="alert">Dashboard data couldn't be loaded: {{ error }}</p>
+}
+
 @if (flags().stock) {
     <article class="card kpi">
     <div class="kpi__stat">
-      <span class="kpi__label">Items in stock</span>
+      <span class="kpi__label">Units on hand</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
+          @if (units() !== null) {
           <span class="sd-num" aria-hidden="true" [attr.data-to]="units()"></span>
-          <span class="sr">{{ units() }}</span>
+          <span class="sr">{{ count(units() ?? 0) }}</span>
+          } @else {
+            <span aria-label="Inventory quantity unavailable">—</span>
+          }
         </span>
-        @if (hasTrend()) {
-          <span class="kpi__trend" [class.trend--bad]="unitsDelta() < 0">{{ unitsDelta() >= 0 ? '+' : '' }}{{ unitsDelta() }}%</span>
-        }
       </span>
     </div>
     <div class="kpi__orb">
       <app-icon name="grid" [size]="20" />
     </div>
     <div class="kpi__meta">
-      <span class="kpi__info">{{ store.activeSkus() }} products · {{ store.locations().length }} warehouses</span>
-      @if (hasTrend()) {
-        <div class="kpi__trendchart">
-          <app-sparkline [values]="stockTrendSeries()" [width]="80" [height]="30" [color]="'var(--rose)'" [showGrid]="false" />
-        </div>
-      }
+      <span class="kpi__info">{{ store.activeSkus() }} products · {{ dashboardData()?.inventory?.stockedVariantCount ?? '—' }} stocked SKUs</span>
     </div>
   </article>
 }
@@ -49,24 +49,30 @@
       <span class="kpi__label">Total stock value</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
-        <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="stockValue()"></span>
-        <span class="sr">{{ money(stockValue()) }}</span>
-        </span>
-        @if (hasTrend()) {
-          <span class="kpi__trend" [class.trend--bad]="stockValueDelta() < 0">{{ stockValueDelta() >= 0 ? '+' : '' }}{{ stockValueDelta() }}%</span>
+        @if (stockValue() !== null) {
+          <span class="sd-num" aria-hidden="true" data-kind="currency-full" [attr.data-to]="stockValue()"></span>
+          <span class="sr">{{ money(stockValue() ?? 0) }}</span>
+        } @else {
+          <span aria-label="Stock value unavailable">—</span>
         }
+        </span>
       </span>
     </div>
     <div class="kpi__orb">
       <app-icon name="diamond" [size]="20" />
     </div>
     <div class="kpi__meta">
-      <span class="kpi__info">At cost</span>
-      @if (hasTrend()) {
-        <div class="kpi__trendchart">
-          <app-sparkline [values]="stockTrendSeries()" [width]="80" [height]="30" [color]="'var(--ocean)'" [showGrid]="false" />
-        </div>
-      }
+      <span class="kpi__info">
+        @if (inventoryValuation(); as valuation) {
+          @if (valuation.totalValue === null) {
+            <span title="Record all production-cost components for the latest completed batch of each stocked SKU.">At cost · costs not recorded</span>
+          } @else {
+            <span title="Latest fully recorded completed batch cost per SKU">Latest recorded batch cost</span>
+          }
+        } @else {
+          At cost
+        }
+      </span>
     </div>
   </article>
 }
@@ -77,17 +83,24 @@
       <span class="kpi__label">Low stock items</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
-          <span class="sd-num" aria-hidden="true" [attr.data-to]="lowCount()"></span>
-          <span class="sr">{{ lowCount() }}</span>
+          @if (lowCount() !== null) {
+            <span class="sd-num" aria-hidden="true" [attr.data-to]="lowCount()"></span>
+            <span class="sr">{{ count(lowCount() ?? 0) }}</span>
+          } @else {
+            <span aria-label="Low stock count unavailable">—</span>
+          }
         </span>
-        <span class="kpi__trend trend--bad">{{ outCount() }} out of stock</span>
+        <span class="kpi__trend trend--bad">
+          <app-icon name="alert" [size]="11" />
+          {{ outCount() ?? '—' }} out
+        </span>
       </span>
     </div>
     <div class="kpi__orb">
       <app-icon name="alert" [size]="20" />
     </div>
     <div class="kpi__meta">
-      <span class="kpi__info">{{ lowProducts() }} products · {{ lowMaterials() }} materials</span>
+      <span class="kpi__info">{{ lowSkus() ?? '—' }} SKUs · {{ lowMaterials() ?? '—' }} materials</span>
       @if (lowThumbs().length > 0) {
         <div class="kpi__stack" aria-hidden="true">
           @for (t of lowThumbs(); track t.id) {
@@ -102,19 +115,42 @@
 }
 
 @if (flags().chart) {
-  <article class="card chart-card">
+  <article class="card chart-card" [class.chart-card--expanded]="chartExpanded()">
     <div class="card__head">
-      <div>
-        <h2 class="card__title">Inventory statistics</h2>
-      </div>
-      <div class="chart-legend" aria-label="Chart legend">
-        <span><i class="chart-legend__in"></i>Stock in</span>
-        <span><i class="chart-legend__out"></i>Stock out</span>
-        <span><i class="chart-legend__value"></i>Stock value</span>
+      <h2 class="card__title">Inventory statistics</h2>
+      <div class="chart-tools">
+        <div class="chart-legend" aria-label="Chart legend">
+          <span><i class="chart-legend__in"></i>Stock in</span>
+          <span><i class="chart-legend__out"></i>Stock out</span>
+          <span><i class="chart-legend__value"></i>Stock value</span>
+        </div>
+        <app-chart-period-select
+          [period]="chartPeriod()"
+          (periodChange)="selectChartPeriod($event)"
+        />
+        <button
+          class="chart-expand"
+          type="button"
+          [attr.aria-label]="chartExpanded() ? 'Collapse chart' : 'Expand chart'"
+          [attr.title]="chartExpanded() ? 'Collapse chart' : 'Expand chart'"
+          (click)="toggleChartExpanded()"
+        >
+          <app-icon
+            name="arrowUp"
+            [size]="16"
+            [style.transform]="chartExpanded() ? 'rotate(225deg)' : 'rotate(45deg)'"
+          />
+        </button>
       </div>
     </div>
     <div class="chart-content">
-      <app-bars [data]="stockTrendBars()" />
+      <app-bars
+        [data]="stockTrendBars()"
+        [expanded]="chartExpanded()"
+        [period]="chartPeriod()"
+        [loading]="chartLoading()"
+        [error]="chartError()"
+      />
     </div>
   </article>
 }
@@ -126,28 +162,44 @@
       <button class="card__more" type="button"><app-icon name="more" [size]="22" /></button>
     </div>
     <div class="sales-content">
-      <app-gauge [pct]="salesPct()" [value]="salesPctLabel()" [caption]="'Sales goal'" [size]="180" />
+      <app-gauge [pct]="salesPct()" [value]="salesPctLabel()" [caption]="'Sales goal'" [size]="300" />
       <div class="sales-stats">
         <div class="stat-row">
           <span class="stat-label">Number of sales</span>
           <span class="stat-value num">
-            <span class="sd-num" aria-hidden="true" [attr.data-to]="numberOfSales()"></span>
-            <span class="sr">{{ numberOfSales() }}</span>
+            @if (numberOfSales() !== null) {
+              <span class="sd-num" aria-hidden="true" [attr.data-to]="numberOfSales()"></span>
+              <span class="sr">{{ numberOfSales() }}</span>
+            } @else {
+              <span aria-label="Sales data unavailable">—</span>
+            }
           </span>
         </div>
         <div class="stat-row">
           <span class="stat-label">Total sales</span>
           <span class="stat-value num">
-            <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="totalSales()"></span>
-            <span class="sr">{{ money(totalSales()) }}</span>
+            @if (totalSales() !== null) {
+              <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="totalSales()"></span>
+              <span class="sr">{{ money(totalSales()!) }}</span>
+            } @else {
+              <span aria-label="Sales data unavailable">—</span>
+            }
           </span>
         </div>
       </div>
-      <div class="sales-goal">
-        <app-icon name="arrowUp" [size]="18" />
-        <strong>{{ money(remainingGoal()) }}</strong>
-        to the <strong>{{ money(salesGoal()) }}</strong> goal, {{ daysLeftInMonth() }} days left.
-      </div>
+      @if (salesGoal(); as goal) {
+        @if (remainingGoal(); as remaining) {
+          <div class="sales-goal">
+            <app-icon name="arrowUp" [size]="18" />
+            <strong>{{ money(remaining) }}</strong>
+            to the <strong>{{ money(goal) }}</strong> goal, {{ daysLeftInMonth() }} days left.
+          </div>
+        }
+      } @else if (totalSales() !== null) {
+        <div class="sales-goal">Set a sales goal in settings to track progress.</div>
+      } @else {
+        <div class="sales-goal">Sales data unavailable</div>
+      }
     </div>
   </article>
 }
@@ -181,7 +233,7 @@
       <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
     </div>
     <ul class="rows">
-      @for (row of store.alerts().slice(0, 5); track row.id) {
+      @for (row of dashboardAlerts().slice(0, 5); track row.id) {
         <li class="row-item">
           <div class="row-item__tile" [style.background-color]="row.tone === 'bad' ? 'var(--rose)' : 'var(--ochre)'"></div>
           <div class="row-item__text">

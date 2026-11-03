@@ -34,7 +34,7 @@ const ITEMS: NotifyItem[] = [
       <div class="head__text">
         <span class="head__eyebrow">What reaches you, and how</span>
         <h1 class="head__title">Notifications</h1>
-        <p class="head__lead">Choose saved notification preferences. Email and push delivery are not connected in this demo.</p>
+        <p class="head__lead">Choose which notifications reach you.</p>
       </div>
     </div>
 
@@ -44,7 +44,7 @@ const ITEMS: NotifyItem[] = [
           <div class="card__head">
             <div>
               <h2 class="card__title">{{ group.name }}</h2>
-              <p class="card__sub">{{ group.items.length }} saved preferences</p>
+              <p class="card__sub">{{ group.items.length }} preferences</p>
             </div>
           </div>
           <ul class="rows notify">

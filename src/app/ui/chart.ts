@@ -313,12 +313,23 @@ export class Donut {
   selector: 'app-bars',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="bars" role="group" aria-label="Monthly inventory statistics">
+    <div
+      class="bars"
+      [class.bars--expanded]="expanded()"
+      [class.bars--loading]="loading()"
+      role="group"
+      [attr.aria-label]="periodLabel() + ' inventory statistics'"
+      [attr.aria-busy]="loading()"
+    >
       <div class="bars__plot">
-        @for (tick of ticks(); track tick.position) {
-          <div class="bars__grid" [style.bottom.%]="tick.position">
-            <span>{{ tick.label }}</span>
-            <i></i>
+        @if (hasValuedData()) {
+          <div class="bars__axis" aria-hidden="true">
+            @for (tick of ticks(); track tick.position) {
+              <div class="bars__grid" [style.top.%]="100 - tick.position">
+                <span>{{ tick.label }}</span>
+                <i></i>
+              </div>
+            }
           </div>
         }
         <div class="bars__months">
@@ -326,65 +337,126 @@ export class Donut {
             <button
               class="bars__col"
               type="button"
-              [class.is-selected]="m.label === selectedMonth()"
-              [attr.aria-pressed]="m.label === selectedMonth()"
-              [attr.aria-label]="m.label + ': stock in ' + formatValue(m.stockIn) + ', stock out ' + formatValue(m.stockOut) + ', stock value ' + formatValue(m.value)"
+              [class.is-selected]="m.label === selectedLabel()"
+              [attr.aria-pressed]="m.label === selectedLabel()"
+              [attr.aria-label]="m.label + ': stock in ' + formatValue(m.stockInValue) + ', stock out ' + formatValue(m.stockOutValue) + ', stock value ' + formatValue(m.stockValue)"
               (mouseenter)="selectMonth(m.label)"
               (focus)="selectMonth(m.label)"
               (click)="selectMonth(m.label)"
             >
               <div class="bars__track">
                 <div class="bars__highlight" aria-hidden="true"></div>
-                <div class="bars__bar bars__bar--in" [style.height.%]="m.in"></div>
-                <div class="bars__bar bars__bar--out" [style.height.%]="m.out"></div>
-                <div class="bars__bar bars__bar--val" [style.height.%]="m.val"></div>
+                @if (m.in !== null) {
+                  <div class="bars__bar bars__bar--in" [style.height.%]="m.in"></div>
+                }
+                @if (m.out !== null) {
+                  <div class="bars__bar bars__bar--out" [style.height.%]="m.out"></div>
+                }
+                @if (m.val !== null) {
+                  <div class="bars__bar bars__bar--val" [style.height.%]="m.val"></div>
+                }
               </div>
               <span class="bars__lab">{{ m.label }}</span>
             </button>
           }
         </div>
-        @if (selected(); as month) {
-          <aside class="bars__tooltip" aria-live="polite">
+        @if (hasValuedData() && selected(); as month) {
+          <aside class="bars__tooltip" [style.left.%]="month.tipPosition" aria-live="polite">
             <strong>{{ month.label }}</strong>
-            <span><i class="bars__key bars__key--in"></i>Stock in <b>{{ formatValue(month.stockIn) }}</b></span>
-            <span><i class="bars__key bars__key--out"></i>Stock out <b>{{ formatValue(month.stockOut) }}</b></span>
-            <span><i class="bars__key bars__key--val"></i>Stock value <b>{{ formatValue(month.value) }}</b></span>
+            <span><i class="bars__key bars__key--in"></i>Stock in <b>{{ formatValue(month.stockInValue) }}</b></span>
+            <span><i class="bars__key bars__key--out"></i>Stock out <b>{{ formatValue(month.stockOutValue) }}</b></span>
+            <span><i class="bars__key bars__key--val"></i>Stock value <b>{{ formatValue(month.stockValue) }}</b></span>
           </aside>
+        } @else {
+          <p class="bars__empty">
+            {{ error() || 'Historical stock value is unavailable until finished-goods costs are recorded.' }}
+          </p>
         }
       </div>
+      <p class="bars__summary" aria-live="polite">
+        @if (error()) {
+          <span class="bars__error">Chart update failed: {{ error() }}</span>
+        } @else if (loading()) {
+          Updating {{ periodLabel().toLowerCase() }} data…
+        } @else if (summary(); as value) {
+          {{ summaryLead() }}:
+          @if (value.showMoney) {
+            <strong>{{ formatValue(value.stockInValue) }} in</strong>,
+            <strong>{{ formatValue(value.stockOutValue) }} out</strong>
+            — net <strong [class.bars__positive]="value.netValue >= 0" [class.bars__negative]="value.netValue < 0">
+              {{ value.netValue > 0 ? '+' : value.netValue < 0 ? '−' : '' }}{{ formatValue(abs(value.netValue)) }}
+            </strong>
+          } @else {
+            <strong>{{ value.stockIn }} {{ unitLabel(value.stockIn) }} in</strong>,
+            <strong>{{ value.stockOut }} {{ unitLabel(value.stockOut) }} out</strong>
+            — net <strong [class.bars__positive]="value.netUnits >= 0" [class.bars__negative]="value.netUnits < 0">
+              {{ value.netUnits > 0 ? '+' : value.netUnits < 0 ? '−' : '' }}{{ abs(value.netUnits) }} {{ unitLabel(value.netUnits) }}
+            </strong>
+          }
+          · value
+          @if (value.valueChangePercent !== null) {
+            <strong [class.bars__positive]="value.valueChangePercent >= 0" [class.bars__negative]="value.valueChangePercent < 0">
+              {{ value.valueChangePercent >= 0 ? '↗' : '↘' }}
+              {{ abs(value.valueChangePercent).toFixed(1) }}%
+            </strong>
+            on last {{ periodLabel().toLowerCase() }}
+          } @else {
+            <strong>unavailable</strong>
+          }
+        } @else if (error()) {
+          <span class="bars__error">Chart data unavailable: {{ error() }}</span>
+        }
+      </p>
     </div>
   `,
   styles: `
     .bars {
-      height: 190px;
+      height: 218px;
       position: relative;
+    }
+    .bars--loading { opacity: 0.72; }
+    .bars__summary {
+      min-height: 20px;
+      margin: 8px 0 0;
+      color: var(--faint);
+      font-size: 10px;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+    }
+    .bars__summary strong { color: var(--text); }
+    .bars__positive { color: var(--good) !important; }
+    .bars__negative, .bars__error { color: var(--bad) !important; }
+    .bars--expanded {
+      height: calc(100vh - 140px);
     }
     .bars__plot {
       position: relative;
-      display: grid;
-      grid-template-columns: 44px minmax(0, 1fr);
-      grid-template-rows: minmax(0, 1fr) 28px;
       height: 100%;
     }
+    .bars__axis {
+      position: absolute;
+      inset: 0 0 28px 44px;
+      z-index: 0;
+    }
     .bars__months {
-      grid-column: 2;
-      grid-row: 1 / 3;
+      position: absolute;
+      inset: 0;
       display: flex;
       align-items: stretch;
       min-width: 0;
     }
     .bars__grid {
       position: absolute;
-      left: 0;
+      left: -44px;
       right: 0;
       height: 0;
       display: flex;
       align-items: center;
       gap: 8px;
-      transform: translateY(50%);
+      transform: translateY(-50%);
       pointer-events: none;
       color: var(--faint);
-      font-size: 11px;
+      font-size: 10px;
       font-variant-numeric: tabular-nums;
     }
     .bars__grid span {
@@ -394,7 +466,7 @@ export class Donut {
     }
     .bars__grid i {
       flex: 1;
-      border-top: 1px dashed var(--line-2);
+      border-top: 1px dashed var(--line);
     }
     .bars__col {
       position: relative;
@@ -417,10 +489,11 @@ export class Donut {
       position: relative;
       display: flex;
       align-items: flex-end;
-      gap: 4px;
+      justify-content: center;
+      gap: 2px;
       width: 100%;
       min-height: 0;
-      padding: 0 4px;
+      padding: 0 2px;
     }
     .bars__highlight {
       position: absolute;
@@ -433,16 +506,25 @@ export class Donut {
       background: color-mix(in srgb, var(--ochre) 12%, transparent);
     }
     .bars__bar {
-      flex: 1;
+      flex: 0 0 7px;
       position: relative;
       z-index: 1;
-      border-radius: 5px 5px 0 0;
+      border-radius: 2px 2px 0 0;
       min-height: 2px;
       transition: height 0.6s var(--ease);
     }
-    .bars__bar--in { background: var(--ochre); }
-    .bars__bar--out { background: var(--sd-darkink); }
-    .bars__bar--val { background: var(--sky); }
+    .bars__bar--in {
+      border-inline: 1px solid color-mix(in srgb, var(--good) 28%, transparent);
+      background: linear-gradient(to bottom, var(--good) 0 3px, color-mix(in srgb, var(--good) 14%, var(--sd-card)) 3px);
+    }
+    .bars__bar--out {
+      border-inline: 1px solid color-mix(in srgb, var(--bad) 28%, transparent);
+      background: linear-gradient(to bottom, var(--bad) 0 3px, color-mix(in srgb, var(--bad) 14%, var(--sd-card)) 3px);
+    }
+    .bars__bar--val {
+      border-inline: 1px solid color-mix(in srgb, var(--sky) 28%, transparent);
+      background: linear-gradient(to bottom, var(--sky) 0 3px, color-mix(in srgb, var(--sky) 14%, var(--sd-card)) 3px);
+    }
     .bars__lab {
       position: relative;
       z-index: 1;
@@ -461,16 +543,16 @@ export class Donut {
       position: absolute;
       z-index: 3;
       top: 0;
-      right: 0;
-      width: 190px;
+      width: 140px;
       display: grid;
-      gap: 4px;
-      padding: 12px 14px;
+      gap: 5px;
+      padding: 10px 12px;
       border: 1px solid var(--line-2);
-      border-radius: 16px;
+      border-radius: 12px;
       background: var(--sd-card);
       box-shadow: var(--sd-shadow);
-      font-size: 12px;
+      font-size: 8px;
+      transform: translateX(-50%);
     }
     .bars__tooltip strong {
       margin-bottom: 2px;
@@ -493,40 +575,124 @@ export class Donut {
       background: var(--ochre);
       flex: none;
     }
-    .bars__key--out { background: var(--sd-darkink); }
+    .bars__key--out { background: var(--bad); }
     .bars__key--val { background: var(--sky); }
+    .bars__empty {
+      position: absolute;
+      inset: 0 0 28px 44px;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      color: var(--faint);
+      font-size: var(--fs-xs);
+      text-align: center;
+    }
     @media (max-width: 640px) {
-      .bars { height: 260px; }
-      .bars__plot { grid-template-columns: 38px minmax(0, 1fr); }
-      .bars__track { gap: 2px; padding-inline: 2px; }
-      .bars__tooltip { width: 160px; }
+      .bars { height: 280px; }
+      .bars--expanded { height: calc(100vh - 140px); }
+      .bars__axis { left: 38px; }
+      .bars__grid { left: -38px; }
+      .bars__track { gap: 1px; padding-inline: 1px; }
+      .bars__tooltip { width: 132px; }
+      .bars__empty { left: 38px; }
     }
   `,
 })
 export class Bars {
-  readonly data = input.required<{ label: string; value: number; in?: number; out?: number }[]>();
-  protected readonly selectedMonth = signal('Jun');
+  readonly expanded = input(false);
+  readonly loading = input(false);
+  readonly error = input<string | null>(null);
+  readonly period = input<'weekly' | 'monthly' | 'quarterly'>('monthly');
+  readonly data = input.required<{
+    label: string;
+    stockIn: number;
+    stockOut: number;
+    unitsOnHand: number;
+    stockInValue: number | null;
+    stockOutValue: number | null;
+    stockValue: number | null;
+  }[]>();
+  protected readonly selectedMonth = signal('');
+
+  protected readonly periodLabel = computed(() => this.period().slice(0, -2));
+  protected readonly summaryLead = computed(() =>
+    this.period() === 'weekly'
+      ? 'This week so far'
+      : this.period() === 'monthly'
+        ? 'This month so far'
+        : 'This quarter so far',
+  );
+  protected readonly summary = computed(() => {
+    const rows = this.data();
+    const current = rows.at(-1);
+    const previous = rows.at(-2);
+    if (!current || !previous) return null;
+    const showMoney =
+      current.stockInValue !== null &&
+      current.stockOutValue !== null &&
+      (current.stockIn > 0 || current.stockOut > 0 || current.stockValue !== null);
+    const valueChangePercent =
+      current.stockValue === null ||
+      previous.stockValue === null ||
+      previous.stockValue === 0
+        ? null
+        : ((current.stockValue - previous.stockValue) / previous.stockValue) * 100;
+    return {
+      showMoney,
+      stockIn: current.stockIn,
+      stockOut: current.stockOut,
+      stockInValue: current.stockInValue,
+      stockOutValue: current.stockOutValue,
+      netValue:
+        current.stockInValue !== null && current.stockOutValue !== null
+          ? current.stockInValue - current.stockOutValue
+          : 0,
+      netUnits: current.stockIn - current.stockOut,
+      valueChangePercent,
+    };
+  });
+
+  protected abs(value: number): number {
+    return Math.abs(value);
+  }
+
+  protected unitLabel(value: number): string {
+    return Math.abs(value) === 1 ? 'unit' : 'units';
+  }
+
+  protected readonly hasValuedData = computed(() =>
+    this.data().some((month) =>
+      month.stockValue !== null ||
+      (month.stockIn > 0 && month.stockInValue !== null) ||
+      (month.stockOut > 0 && month.stockOutValue !== null),
+    ),
+  );
 
   protected readonly months = computed(() => {
     const rows = this.data();
-    const allVals = rows.flatMap((r) => [r.value, r.in ?? 0, r.out ?? 0]);
+    const allVals = rows.flatMap((r) => [r.stockInValue, r.stockOutValue, r.stockValue])
+      .filter((value): value is number => value !== null);
     const max = this.scaleMax(allVals);
-    return rows.map((r) => ({
+    return rows.map((r, index) => ({
       label: r.label,
-      value: r.value,
-      stockIn: r.in ?? 0,
-      stockOut: r.out ?? 0,
-      val: (r.value / max) * 100,
-      in: ((r.in ?? 0) / max) * 100,
-      out: ((r.out ?? 0) / max) * 100,
+      stockInValue: r.stockInValue,
+      stockOutValue: r.stockOutValue,
+      stockValue: r.stockValue,
+      in: r.stockInValue === null ? null : (r.stockInValue / max) * 100,
+      out: r.stockOutValue === null ? null : (r.stockOutValue / max) * 100,
+      val: r.stockValue === null ? null : (r.stockValue / max) * 100,
+      tipPosition: Math.max(14, Math.min(86, ((index + 0.5) / rows.length) * 100)),
     }));
   });
 
   protected readonly ticks = computed(() => {
     const rows = this.data();
-    const max = this.scaleMax(rows.flatMap((row) => [row.value, row.in ?? 0, row.out ?? 0]));
+    const values = rows.flatMap((row) => [row.stockInValue, row.stockOutValue, row.stockValue])
+      .filter((value): value is number => value !== null);
+    if (values.length === 0) return [];
+    const max = this.scaleMax(values);
     return Array.from({ length: 6 }, (_, index) => ({
-      label: this.formatValue((max * index) / 5),
+      label: this.formatAxisValue((max * index) / 5),
       position: (index / 5) * 100,
     }));
   });
@@ -534,19 +700,31 @@ export class Bars {
   protected readonly selected = computed(
     () => this.months().find((month) => month.label === this.selectedMonth()) ?? this.months().at(-1),
   );
+  protected readonly selectedLabel = computed(
+    () => this.selectedMonth() || this.months().at(-1)?.label || '',
+  );
+
+  protected formatValue(value: number | null): string {
+    return value === null
+      ? 'Not recorded'
+      : new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 0,
+        }).format(value);
+  }
+
+  protected formatAxisValue(value: number): string {
+    if (value >= 1000) return `$${Math.round(value / 1000)}k`;
+    return `$${Math.round(value)}`;
+  }
 
   protected selectMonth(month: string): void {
     this.selectedMonth.set(month);
   }
 
-  protected formatValue(value: number): string {
-    if (value >= 1_000_000) return `₦${Math.round(value / 1_000_000)}M`;
-    if (value >= 1_000) return `₦${Math.round(value / 1_000)}K`;
-    return `₦${Math.round(value)}`;
-  }
-
   private scaleMax(values: number[]): number {
-    const maxValue = Math.max(...values, 1);
+    const maxValue = Math.max(...values, 1000);
     const roughStep = maxValue / 5;
     const magnitude = 10 ** Math.floor(Math.log10(roughStep));
     const normalized = roughStep / magnitude;
@@ -591,13 +769,13 @@ export class Bars {
       stroke: var(--ochre);
     }
     .gauge__val {
-      font-size: 38px;
+      font-size: 26px;
       font-weight: 500;
       fill: var(--text);
       letter-spacing: -0.02em;
     }
     .gauge__lab {
-      font-size: 12px;
+      font-size: 11px;
       fill: var(--faint);
       font-weight: 500;
     }
@@ -614,13 +792,13 @@ export class Gauge {
     const total = 84;
     const active = Math.round((Math.max(0, Math.min(this.pct(), 100)) / 100) * total);
     const pts = [];
-    const r1 = 96;
+    const r1 = 88;
     const r2 = 140;
     const cx = 165;
     const cy = 165;
 
     for (let i = 0; i < total; i++) {
-      const angle = -115 + (i / (total - 1)) * 230;
+      const angle = -90 + (i / (total - 1)) * 180;
       const rad = (angle * Math.PI) / 180;
       pts.push({
         i,

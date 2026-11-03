@@ -26,7 +26,7 @@ import { ACCENTS, ThemeMode, ThemeService } from '../../core/theme';
           <span class="av av--lg av--pine">{{ initials() }}</span>
           <div class="ident__text">
             <strong>{{ draft().name }}</strong>
-            <span>{{ draft().title }} · Admin</span>
+            <span>{{ draft().title }}</span>
           </div>
         </div>
         <div class="fields">
@@ -52,7 +52,7 @@ import { ACCENTS, ThemeMode, ThemeService } from '../../core/theme';
         @if (dirty()) {
           <span class="badge badge--warn">Unsaved changes</span>
         } @else {
-          <span class="hint">Saved to this browser only.</span>
+          <span class="hint">Saved to your account.</span>
         }
         <div class="card__foot__actions">
           @if (dirty()) {
@@ -67,11 +67,11 @@ import { ACCENTS, ThemeMode, ThemeService } from '../../core/theme';
       <div class="card__head">
         <div>
           <h2 class="card__title">Sign-in security</h2>
-          <p class="card__sub">Authentication is not connected in this local demo</p>
+          <p class="card__sub">Two-factor authentication and session management are not available on this screen</p>
         </div>
       </div>
       <div class="card__body">
-        <p class="hint">Password changes and session management require an authentication service and are unavailable here.</p>
+        <p class="hint">Password changes and active-session controls are handled by the authentication service.</p>
       </div>
     </article>
 

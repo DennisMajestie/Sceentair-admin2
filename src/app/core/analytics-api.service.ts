@@ -7,6 +7,7 @@ export type AnalyticsRange = 'today' | '7d' | '30d' | 'custom';
 
 export interface AnalyticsDashboard {
   salesToday: { orders: number; revenue: number };
+  salesMonthToDate: { orders: number; revenue: number };
   profitLoss: unknown;
   salesByChannel: Array<{ channel: string; orders: number; revenue: number }>;
   marketingSourcePerformance: Array<{ source: string; orders: number; revenue: number }>;
@@ -14,6 +15,7 @@ export interface AnalyticsDashboard {
   pendingApprovals: number;
   inventory: {
     finishedGoodsUnits: number;
+    stockedVariantCount: number;
     lowStockMaterialCount: number;
     lowStockMaterials: Array<{ id: string; name: string; currentQuantity: number; reorderThreshold: number }>;
   };
@@ -33,10 +35,37 @@ export interface AnalyticsBestSeller {
 }
 
 export interface AnalyticsLowStock {
-  materials: unknown[];
-  variants: Array<{ variantId: string; currentQuantity: number }>;
+  materials: Array<{ id: string; name: string; currentQuantity: number; reorderThreshold: number }>;
+  variants: Array<{
+    variantId: string;
+    sku: string;
+    productName: string;
+    currentQuantity: number;
+    reorderThreshold: number;
+  }>;
   variantThreshold: number;
 }
+
+export interface AnalyticsInventoryValuation {
+  finishedGoodsUnits: number;
+  stockedVariantCount: number;
+  totalValue: number | null;
+  unvaluedUnits: number;
+  unvaluedVariantCount: number;
+  method: 'latest-recorded-completed-batch-cost';
+}
+
+export interface AnalyticsInventoryMovementMonth {
+  label: string;
+  stockIn: number;
+  stockOut: number;
+  unitsOnHand: number;
+  stockInValue: number | null;
+  stockOutValue: number | null;
+  stockValue: number | null;
+}
+
+export type AnalyticsInventoryMovementPeriod = 'weekly' | 'monthly' | 'quarterly';
 
 export interface AnalyticsFilters {
   range?: AnalyticsRange;
@@ -72,6 +101,26 @@ export class AnalyticsApiService {
     let params = new HttpParams().set('variantThreshold', variantThreshold);
     return firstValueFrom(
       this.http.get<AnalyticsLowStock>(apiUrl(this.baseUrl, 'analytics/low-stock'), { params }),
+    );
+  }
+
+  inventoryValuation(): Promise<AnalyticsInventoryValuation> {
+    return firstValueFrom(
+      this.http.get<AnalyticsInventoryValuation>(
+        apiUrl(this.baseUrl, 'analytics/inventory-valuation'),
+      ),
+    );
+  }
+
+  inventoryMovementTrend(
+    period: AnalyticsInventoryMovementPeriod = 'monthly',
+  ): Promise<AnalyticsInventoryMovementMonth[]> {
+    const params = new HttpParams().set('period', period);
+    return firstValueFrom(
+      this.http.get<AnalyticsInventoryMovementMonth[]>(
+        apiUrl(this.baseUrl, 'analytics/inventory-movement-trend'),
+        { params },
+      ),
     );
   }
 }

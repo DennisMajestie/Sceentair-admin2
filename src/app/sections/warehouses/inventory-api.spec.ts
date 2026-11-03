@@ -11,20 +11,20 @@ import { WarehouseLocations } from './locations';
 import { ToastService } from '../../core/toast';
 
 const VARIANT_ITEM: ApiInventorySummaryItem = {
-  itemType: 'VARIANT',
+  itemType: 'variant',
   itemId: 'v-crb15-15',
   currentQuantity: 612,
   byMovementType: { PURCHASE: 700, SALE: -88 },
 };
 
 const MATERIAL_ITEM: ApiInventorySummaryItem = {
-  itemType: 'MATERIAL',
+  itemType: 'material',
   itemId: 'm-shea',
   currentQuantity: 46,
   byMovementType: { PURCHASE: 60, PRODUCTION: -14 },
 };
 
-function makeInventoryApi(listResult: { data: ApiInventorySummaryItem[]; total: number } = { data: [], total: 0 }) {
+function makeInventoryApi(listResult: ApiInventorySummaryItem[] = []) {
   const api = jasmine.createSpyObj('InventoryApiService', ['summary', 'digest', 'movements', 'counts', 'recordCount']);
   api.summary.and.returnValue(Promise.resolve(listResult));
   api.counts.and.returnValue(Promise.resolve({ data: [], total: 0 }));
@@ -53,7 +53,7 @@ function createComponent(inventoryApi: ReturnType<typeof makeInventoryApi>) {
 
 describe('warehouses locations response mapping', () => {
   it('maps api inventory summary fields verbatim to row fields', async () => {
-    const inventoryApi = makeInventoryApi({ data: [VARIANT_ITEM, MATERIAL_ITEM], total: 2 });
+    const inventoryApi = makeInventoryApi([VARIANT_ITEM, MATERIAL_ITEM]);
     const fixture = createComponent(inventoryApi);
     const component = fixture.componentInstance;
 
@@ -62,17 +62,17 @@ describe('warehouses locations response mapping', () => {
 
     const rows = (component as any).rows();
     expect(rows).toHaveSize(2);
-    expect(rows[0].itemType).toBe('VARIANT');
+    expect(rows[0].itemType).toBe('variant');
     expect(rows[0].itemId).toBe('v-crb15-15');
     expect(rows[0].currentQuantity).toBe(612);
     expect(rows[0].byMovementType).toEqual({ PURCHASE: 700, SALE: -88 });
-    expect(rows[1].itemType).toBe('MATERIAL');
+    expect(rows[1].itemType).toBe('material');
     expect(rows[1].itemId).toBe('m-shea');
     expect(rows[1].currentQuantity).toBe(46);
   });
 
   it('computes total units and per-kind units from API data', async () => {
-    const inventoryApi = makeInventoryApi({ data: [VARIANT_ITEM, MATERIAL_ITEM], total: 2 });
+    const inventoryApi = makeInventoryApi([VARIANT_ITEM, MATERIAL_ITEM]);
     const fixture = createComponent(inventoryApi);
     const component = fixture.componentInstance;
 
@@ -85,20 +85,20 @@ describe('warehouses locations response mapping', () => {
   });
 
   it('maps item type to readable label', async () => {
-    const inventoryApi = makeInventoryApi({ data: [VARIANT_ITEM], total: 1 });
+    const inventoryApi = makeInventoryApi([VARIANT_ITEM]);
     const fixture = createComponent(inventoryApi);
     const component = fixture.componentInstance;
 
     await (component as any).loadInventory();
     await fixture.whenStable();
 
-    expect((component as any).kindLabel('VARIANT')).toBe('Finished goods');
-    expect((component as any).kindLabel('MATERIAL')).toBe('Raw materials');
+    expect((component as any).kindLabel('variant')).toBe('Finished goods');
+    expect((component as any).kindLabel('material')).toBe('Raw materials');
     expect((component as any).kindLabel('UNKNOWN')).toBe('UNKNOWN');
   });
 
   it('does not fabricate fields the API lacks (no name, city, address, hours, manager, zones, bins, capacity)', async () => {
-    const inventoryApi = makeInventoryApi({ data: [VARIANT_ITEM], total: 1 });
+    const inventoryApi = makeInventoryApi([VARIANT_ITEM]);
     const fixture = createComponent(inventoryApi);
     const component = fixture.componentInstance;
 
@@ -127,7 +127,7 @@ describe('warehouses locations response mapping', () => {
       ],
       createdAt: '2026-01-15T10:00:00Z',
     };
-    const inventoryApi = makeInventoryApi({ data: [], total: 0 });
+    const inventoryApi = makeInventoryApi([]);
     inventoryApi.counts.and.returnValue(Promise.resolve({ data: [count], total: 1 }));
     const fixture = createComponent(inventoryApi);
     const component = fixture.componentInstance;

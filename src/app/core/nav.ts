@@ -65,7 +65,6 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Locations', path: '/warehouses/locations' },
       { label: 'Cycle counts', path: '/warehouses/counts', badge: 'counts' },
-      { label: 'Transfers', path: '/warehouses/transfers', badge: 'transfers' },
     ],
   },
   {
@@ -98,7 +97,6 @@ export const NAV: NavSection[] = [
       { label: 'Account', path: '/settings/account' },
       { label: 'Company', path: '/settings/company' },
       { label: 'Team & roles', path: '/settings/team' },
-      { label: 'Billing', path: '/settings/billing' },
       { label: 'Notifications', path: '/settings/notifications' },
     ],
   },

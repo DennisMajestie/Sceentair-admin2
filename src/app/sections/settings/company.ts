@@ -1,9 +1,10 @@
-﻿import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { Settings } from '../../core/models';
 
 const CURRENCIES = [
+  { id: 'NGN', label: 'Naira (NGN)' },
   { id: 'USD', label: 'US dollar (USD)' },
   { id: 'CAD', label: 'Canadian dollar (CAD)' },
   { id: 'EUR', label: 'Euro (EUR)' },
@@ -11,6 +12,7 @@ const CURRENCIES = [
 ];
 
 const ZONES = [
+  { id: 'Africa/Lagos', label: 'West Africa (Lagos)' },
   { id: 'America/New_York', label: 'Eastern (New York)' },
   { id: 'America/Chicago', label: 'Central (Chicago)' },
   { id: 'America/Denver', label: 'Mountain (Denver)' },
@@ -38,7 +40,7 @@ const MONTHS = [
       <div class="card__head">
         <div>
           <h2 class="card__title">Business details</h2>
-          <p class="card__sub">Saved to this browser; generated business documents are not connected in this demo.</p>
+          <p class="card__sub">Used across orders, reports and generated documents.</p>
         </div>
       </div>
       <div class="card__body fields">
@@ -90,13 +92,13 @@ const MONTHS = [
             }
           </select>
         </label>
-        <p class="field__hint field--wide">Reports use this financial year start for year-to-date totals. Currency and time-zone values are saved as company details; report amounts and dates remain USD and browser-local in this demo.</p>
+        <p class="field__hint field--wide">Reports use this financial year start for year-to-date totals, the company currency for amounts and the company time zone for dates.</p>
       </div>
       <div class="card__foot">
         @if (dirty()) {
           <span class="badge badge--warn">Unsaved changes</span>
         } @else {
-          <span class="hint">Saved to this browser only.</span>
+          <span class="hint">Saved to the business profile.</span>
         }
         <div class="card__foot__actions">
           @if (dirty()) {
@@ -111,7 +113,7 @@ const MONTHS = [
       <div class="card__head">
         <div>
           <h2 class="card__title">Your data</h2>
-          <p class="card__sub">Export local demo records as CSV</p>
+          <p class="card__sub">Export current records as CSV</p>
         </div>
       </div>
       <div class="card__body">
@@ -132,13 +134,6 @@ const MONTHS = [
             <button type="button" class="btn btn--xs btn--ghost" (click)="downloadMoves()">Download CSV</button>
           </li>
         </ul>
-        <div class="reset">
-          <div class="reset__text">
-            <strong>Reset demo data</strong>
-            <span>Restores seeded records and settings. Your saved theme stays.</span>
-          </div>
-          <button type="button" class="btn btn--ghost" (click)="resetData()">Reset data</button>
-        </div>
       </div>
     </article>
 
@@ -146,7 +141,7 @@ const MONTHS = [
       <div class="card__head">
         <div>
           <h2 class="card__title">Stock preferences</h2>
-          <p class="card__sub">Saved in this browser; not all preferences are applied across demo workflows.</p>
+          <p class="card__sub">Applied across stock alerts and reports.</p>
         </div>
       </div>
       <div class="card__body prefs">
@@ -169,7 +164,7 @@ const MONTHS = [
 
         <div class="pref">
           <span class="field__label">Low stock is judged by</span>
-          <span class="field__hint">Saved as a preference; stock thresholds currently use each product's reorder point.</span>
+          <span class="field__hint">Saved as a preference for stock reports and alerts.</span>
           <div class="pref__row">
             <div class="seg" role="group" aria-label="Low stock mode">
               <button type="button" class="seg__btn" [class.is-on]="prefs().lowStockMode === 'reorder'" [attr.aria-pressed]="prefs().lowStockMode === 'reorder'" (click)="setLowStockMode('reorder')">
@@ -390,13 +385,6 @@ export class SettingsCompany {
     downloadCsv('vessa-stock-ledger.csv', rows);
   }
 
-  protected resetData(): void {
-    if (!window.confirm('Reset demo records and settings to the original seed data? Your theme will stay.')) {
-      return;
-    }
-    this.store.resetDemoData();
-    this.draft.set({ ...this.store.settings().company });
-  }
 }
 
 function downloadCsv(name: string, rows: (string | number)[][]): void {

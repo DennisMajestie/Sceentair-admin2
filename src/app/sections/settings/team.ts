@@ -34,7 +34,15 @@ export interface TeamMemberRow {
   isMe: boolean;
   initials: string;
   avatarTone: string;
+  permissions?: Array<{ module: string; accessLevel: string }>;
 }
+
+export interface TeamPermissionRow {
+  module: string;
+  access: Partial<Record<TeamRole, string>>;
+}
+
+export type TeamPermissionOverrides = Record<string, Partial<Record<TeamRole, boolean>>>;
 
 export interface SeatUsage {
   used: number;
@@ -52,6 +60,16 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 
 const ROLE_ORDER: TeamRole[] = ['admin', 'manager', 'staff', 'viewer'];
 const AVATAR_TONES = ['pine', 'ochre', 'teal', 'ocean', 'sky', 'rose', 'sage', 'slate'];
+const ROLE_PERMISSION_GUIDE: TeamPermissionRow[] = [
+  { module: 'View stock, orders and reports', access: { admin: 'full', manager: 'full', staff: 'full', viewer: 'view' } },
+  { module: 'Pick, pack and ship orders', access: { admin: 'full', manager: 'full', staff: 'full' } },
+  { module: 'Adjust stock and run counts', access: { admin: 'full', manager: 'full', staff: 'full' } },
+  { module: 'Release batches from QA', access: { admin: 'full', manager: 'full' } },
+  { module: 'Create and send purchase orders', access: { admin: 'full', manager: 'full' } },
+  { module: 'Change prices and costs', access: { admin: 'full' } },
+  { module: 'Invite people and change roles', access: { admin: 'full' } },
+  { module: 'Billing and plan', access: { admin: 'full' } },
+];
 
 export function filterTeamMembers(
   rows: readonly TeamMemberRow[],
@@ -76,6 +94,46 @@ export function teamRoleCounts(
     label: ROLE_LABELS[role],
     count: rows.filter((member) => member.role === role).length,
   }));
+}
+
+export function teamStatusCounts(rows: readonly TeamMemberRow[]): { active: number; pending: number } {
+  return {
+    active: rows.filter((member) => member.status.toLowerCase() === 'active').length,
+    pending: rows.filter((member) => ['invited', 'pending'].includes(member.status.toLowerCase())).length,
+  };
+}
+
+export function teamPermissionRows(rows: readonly TeamMemberRow[]): TeamPermissionRow[] {
+  const permissions = new Map<string, Partial<Record<TeamRole, string>>>();
+  for (const member of rows) {
+    for (const permission of member.permissions ?? []) {
+      const access = permissions.get(permission.module) ?? {};
+      access[member.role] ??= permission.accessLevel;
+      permissions.set(permission.module, access);
+    }
+  }
+  return [...permissions]
+    .map(([module, access]) => ({ module, access }))
+    .sort((a, b) => a.module.localeCompare(b.module));
+}
+
+export function hasRoleAccess(accessLevel: string | undefined): boolean {
+  return !!accessLevel && !['none', 'no access', 'denied', '-', '—'].includes(accessLevel.toLowerCase());
+}
+
+export function applyTeamPermissionOverrides(
+  rows: readonly TeamPermissionRow[],
+  overrides: TeamPermissionOverrides,
+): TeamPermissionRow[] {
+  return rows.map((row) => {
+    const access = { ...row.access };
+    for (const role of ROLE_ORDER) {
+      const override = overrides[row.module]?.[role];
+      if (override === true) access[role] = 'full';
+      if (override === false) delete access[role];
+    }
+    return { ...row, access };
+  });
 }
 
 export function teamStatusTone(status: string): TeamMemberRow['statusTone'] {
@@ -121,6 +179,7 @@ function avatarToneForId(id: string): string {
       <div class="head__text">
         <span class="head__eyebrow">Team access and membership</span>
         <h1 class="head__title">Team &amp; roles</h1>
+        <p class="head__sub">Who works in Vessa and what they can do</p>
       </div>
     </div>
 
@@ -129,9 +188,16 @@ function avatarToneForId(id: string): string {
         <span class="kpi__icon"><app-icon name="users" [size]="18" /></span>
         <span class="stat__label">Members</span>
         <span class="kpi__value">{{ count(rows().length) }}</span>
-        @if (sites() > 0) {
-          <span class="kpi__meta">across {{ count(sites()) }} sites</span>
-        }
+      </article>
+      <article class="card kpi">
+        <span class="kpi__icon kpi__icon--good"><app-icon name="check" [size]="18" /></span>
+        <span class="stat__label">Active members</span>
+        <span class="kpi__value">{{ count(statusCounts().active) }}</span>
+      </article>
+      <article class="card kpi">
+        <span class="kpi__icon kpi__icon--info"><app-icon name="mail" [size]="18" /></span>
+        <span class="stat__label">Pending invites</span>
+        <span class="kpi__value">{{ count(statusCounts().pending) }}</span>
       </article>
       @if (seatUsage(); as seats) {
         <article class="card kpi">
@@ -225,7 +291,18 @@ function avatarToneForId(id: string): string {
                 @if (hasLocations()) {
                   <td data-label="Works at">{{ member.location }}</td>
                 }
-                <td data-label="Role"><span class="badge">{{ member.roleLabel }}</span></td>
+                <td data-label="Role">
+                  <select
+                    class="role-select"
+                    [value]="member.role"
+                    [attr.aria-label]="'Change role for ' + member.name"
+                    (change)="setMemberRole(member.id, $any($event.target).value)"
+                  >
+                    @for (item of permissionRoles; track item.id) {
+                      <option [value]="item.id">{{ item.label }}</option>
+                    }
+                  </select>
+                </td>
                 <td data-label="Status">
                   <span class="badge" [class]="'badge badge--' + member.statusTone">
                     <span [class]="'status-dot status--' + member.statusTone" aria-hidden="true"></span>
@@ -252,36 +329,85 @@ function avatarToneForId(id: string): string {
       </div>
     </article>
 
-    @if (seatUsage(); as seats) {
-      <article class="card seats-card" aria-labelledby="seats-heading">
+    <div class="team-details team-details--permissions">
+      <article class="card permissions-card" aria-labelledby="permissions-heading">
         <div class="card__head">
           <div>
-            <h2 class="card__title" id="seats-heading">Seats</h2>
-            <p class="card__sub">{{ billing().plan }} plan · {{ count(seats.limit) }}-seat limit</p>
+            <h2 class="card__title" id="permissions-heading">What each role can do</h2>
+            <p class="card__sub">
+              @if (configuredPermissionRows().length > 0) {
+                API permissions · edits are preview-only
+              } @else {
+                Baseline role guide · edits are preview-only
+              }
+            </p>
           </div>
         </div>
-        <div class="seats-content">
-          <p class="seats__line">
-            <strong>{{ count(seats.used) }}</strong>
-            <span>of {{ count(seats.limit) }} seats in use</span>
-          </p>
-          <div
-            class="seat-meter"
-            role="progressbar"
-            aria-label="Seats in use"
-            aria-valuemin="0"
-            [attr.aria-valuemax]="seats.limit"
-            [attr.aria-valuenow]="seats.used"
-          >
-            <span class="seat-meter__fill" [attr.data-progress]="seats.percent / 100"></span>
-          </div>
-          <p class="hint">
-            Seat totals reflect the workspace settings saved in this browser.
-          </p>
-          <a class="btn btn--ghost billing-link" routerLink="/settings/billing">Manage billing</a>
+        <div class="permission-table-wrap">
+          <table class="permission-table">
+            <caption class="sr">Access levels by role and module</caption>
+            <thead>
+              <tr>
+                <th scope="col">Permission</th>
+                @for (item of permissionRoles; track item.id) {
+                  <th scope="col">
+                    {{ item.label }}
+                    <small>{{ count(roleCount(item.id)) }}</small>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (permission of permissionRows(); track permission.module) {
+                <tr>
+                  <th scope="row">{{ permission.module }}</th>
+                  @for (item of permissionRoles; track item.id) {
+                    <td>
+                      <input
+                        class="permission-toggle"
+                        type="checkbox"
+                        [checked]="hasRoleAccess(permission.access[item.id])"
+                        [attr.aria-label]="permission.module + ' access for ' + item.label"
+                        (change)="setPermission(permission.module, item.id, $any($event.target).checked)"
+                      />
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
       </article>
-    }
+
+      @if (seatUsage(); as seats) {
+        <article class="card seats-card" aria-labelledby="seats-heading">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title" id="seats-heading">Seats</h2>
+              <p class="card__sub">{{ billing().plan }} plan · up to {{ count(seats.limit) }} seats</p>
+            </div>
+          </div>
+          <div class="seats-content">
+            <p class="seats__line">
+              <strong>{{ count(seats.used) }}</strong>
+              <span>of {{ count(seats.limit) }} seats in use</span>
+            </p>
+            <div
+              class="seat-meter"
+              role="progressbar"
+              aria-label="Seats in use"
+              aria-valuemin="0"
+              [attr.aria-valuemax]="seats.limit"
+              [attr.aria-valuenow]="seats.used"
+            >
+              <span class="seat-meter__fill" [attr.data-progress]="seats.percent / 100"></span>
+            </div>
+            <p class="hint">Seat use is based on the team members returned by the API.</p>
+            <a class="btn btn--ghost billing-link" [routerLink]="['/settings/billing']">Manage billing</a>
+          </div>
+        </article>
+      }
+    </div>
   `,
   styles: `
     .kpis {
@@ -556,6 +682,7 @@ export class SettingsTeam {
   private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   protected readonly store = inject(Store);
+  private readonly permissionOverrides = signal<TeamPermissionOverrides>({});
 
   protected readonly count = fmtCount;
   protected readonly role = signal<RoleFilter>('all');
@@ -587,10 +714,21 @@ export class SettingsTeam {
         .map((part) => part[0]?.toUpperCase() ?? '')
         .join(''),
       avatarTone: avatarToneForId(member.id),
+      permissions: member.permissions,
     })),
   );
 
   protected readonly roleFilters = computed(() => teamRoleCounts(this.rows()));
+  protected readonly statusCounts = computed(() => teamStatusCounts(this.rows()));
+  protected readonly configuredPermissionRows = computed(() => teamPermissionRows(this.rows()));
+  protected readonly permissionRows = computed(() =>
+    applyTeamPermissionOverrides(
+      this.configuredPermissionRows().length ? this.configuredPermissionRows() : ROLE_PERMISSION_GUIDE,
+      this.permissionOverrides(),
+    ),
+  );
+  protected readonly permissionRoles = ROLE_ORDER.map((id) => ({ id, label: ROLE_LABELS[id] }));
+  protected readonly hasRoleAccess = hasRoleAccess;
   protected readonly visible = computed(() =>
     filterTeamMembers(this.rows(), this.role(), this.searchQuery()),
   );
@@ -613,6 +751,19 @@ export class SettingsTeam {
 
   protected roleCount(role: TeamRole): number {
     return this.rows().filter((member) => member.role === role).length;
+  }
+
+  protected setMemberRole(id: string, value: string): void {
+    if (ROLE_ORDER.includes(value as TeamRole)) {
+      this.store.setTeammateRole(id, value as TeamRole);
+    }
+  }
+
+  protected setPermission(module: string, role: TeamRole, allowed: boolean): void {
+    this.permissionOverrides.update((overrides) => ({
+      ...overrides,
+      [module]: { ...overrides[module], [role]: allowed },
+    }));
   }
 
   protected setRole(role: RoleFilter): void {

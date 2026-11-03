@@ -84,13 +84,6 @@ const API_FLOW: ApiOrderStatus[] = [
           </button>
         }
       </div>
-      <select class="select" [value]="channel()" (change)="setChannel($any($event.target).value)" aria-label="Channel">
-        <option value="all">All channels</option>
-        <option value="retail">Retail</option>
-        <option value="wholesale">Wholesale</option>
-        <option value="custom">Custom</option>
-        <option value="in_store">In store</option>
-      </select>
       <div class="toolbar__spacer"></div>
       <label class="search">
         <app-icon name="search" [size]="14" />
@@ -128,6 +121,8 @@ const API_FLOW: ApiOrderStatus[] = [
                 </span>
               }
             </span>
+          } @else {
+            <span class="order-progress order-progress--placeholder" aria-hidden="true"></span>
           }
 
           <span class="order-lines">
@@ -144,7 +139,7 @@ const API_FLOW: ApiOrderStatus[] = [
 
           <span class="order-card__bottom">
             <span class="order-card__meta">
-              <small>{{ row.units }} {{ row.units === 1 ? 'unit' : 'units' }} · {{ row.channelLabel }}</small>
+              <small>{{ row.units }} {{ row.units === 1 ? 'unit' : 'units' }}</small>
               <small>{{ row.paymentStatusLabel }}</small>
             </span>
             <span class="order-card__total">
@@ -159,7 +154,7 @@ const API_FLOW: ApiOrderStatus[] = [
       @if (!loading() && visible().length === 0 && !error()) {
         <div class="order-empty">
           <strong>No orders match.</strong>
-          <span>Try a different status, channel, or search.</span>
+          <span>Try a different status or search.</span>
         </div>
       }
     </div>
@@ -185,7 +180,7 @@ const API_FLOW: ApiOrderStatus[] = [
             <span class="dhead__avatar" aria-hidden="true">{{ initials(o.customer) }}</span>
             <span class="dhead__text">
               <strong class="mono">Order {{ o.id }}</strong>
-              <span>{{ o.customer }} · {{ o.channelLabel }}</span>
+              <span>{{ o.customer }}</span>
             </span>
           </div>
         }
@@ -475,7 +470,6 @@ export class OrdersAll {
   };
 
   protected readonly status = signal<ApiOrderStatus | 'all'>('all');
-  protected readonly channel = signal<ApiOrderChannel | 'all'>('all');
   protected readonly query = signal('');
   protected readonly now = Date.now();
   protected readonly date = fmtDate;
@@ -546,15 +540,6 @@ export class OrdersAll {
     return value === 'all' ? this.rows().length : this.rows().filter((row) => row.status === value).length;
   }
 
-  protected setChannel(value: string): void {
-    if (value === 'all' || value === 'retail' || value === 'wholesale' || value === 'custom' || value === 'in_store') {
-      this.channel.set(value);
-    } else {
-      return;
-    }
-    void this.loadOrders(true);
-  }
-
   protected setQuery(value: string): void {
     this.query.set(value);
   }
@@ -570,8 +555,6 @@ export class OrdersAll {
       id: order.id,
       customer,
       customerContact: order.customer?.email || order.customer?.phone || order.guestEmail || 'Contact unavailable',
-      channelLabel: this.channelName(order.channel),
-      channel: order.channel,
       status: order.status,
       tone: statusTone(order.status),
       label: this.labelFor(order.status),
@@ -692,7 +675,6 @@ export class OrdersAll {
       const result = await this.api.list({
         page,
         limit: this.pageSize,
-        ...(this.channel() === 'all' ? {} : { channel: this.channel() as ApiOrderChannel }),
         ...(this.status() === 'all' ? {} : { status: this.status() as ApiOrderStatus }),
       });
       if (requestId !== this.listRequestId) return;
@@ -739,8 +721,6 @@ export class OrdersAll {
       shortId: order.id.slice(0, 8),
       customer,
       customerContact: order.customer?.email || order.guestEmail || '',
-      channel: order.channel,
-      channelLabel: this.channelName(order.channel),
       status: order.status,
       createdAt: Date.parse(order.createdAt),
       units: items.reduce((sum, item) => sum + item.quantity, 0),
@@ -758,15 +738,6 @@ export class OrdersAll {
         price: item.unitPrice,
       })),
     };
-  }
-
-  private channelName(channel: ApiOrderChannel): string {
-    return {
-      retail: 'Retail',
-      wholesale: 'Wholesale',
-      custom: 'Custom',
-      in_store: 'In store',
-    }[channel];
   }
 
   private labelFor(value: string): string {

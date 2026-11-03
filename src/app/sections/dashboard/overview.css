@@ -147,7 +147,7 @@
 }
 
 .kpi {
-  min-height: 100px;
+  min-height: 138px;
   justify-content: space-between;
 }
 
@@ -155,8 +155,8 @@
   position: absolute;
   top: 16px;
   right: 16px;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.2), transparent);
   background-color: var(--well);
@@ -171,7 +171,7 @@
 }
 
 .kpi__label {
-  font-size: 14px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 500;
 }
@@ -184,7 +184,7 @@
 }
 
 .kpi__value {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
@@ -192,7 +192,10 @@
 }
 
 .kpi__trend {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--good);
   white-space: nowrap;
@@ -213,7 +216,7 @@
 }
 
 .kpi__info {
-  font-size: var(--fs-xs);
+  font-size: 10px;
   color: var(--faint);
   min-width: 0;
   overflow: hidden;
@@ -255,6 +258,19 @@
   min-height: 260px;
 }
 
+.chart-card--expanded {
+  position: fixed;
+  inset: 16px;
+  z-index: 1000;
+  min-height: 0;
+  overflow: auto;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 28%);
+}
+
+.chart-card--expanded .chart-content {
+  flex: 1;
+}
+
 .sales-card {
   min-height: 280px;
 }
@@ -267,27 +283,56 @@
 .chart-legend {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   color: var(--faint);
-  font-size: var(--fs-xs);
+  font-size: 10px;
   white-space: nowrap;
+}
+
+.chart-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .chart-legend span {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .chart-legend i {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
 }
 
-.chart-legend__in { background: var(--ochre); }
-.chart-legend__out { background: var(--sd-darkink); }
+.chart-legend__in { background: var(--good); }
+.chart-legend__out { background: var(--bad); }
 .chart-legend__value { background: var(--sky); }
+
+.chart-expand {
+  height: 28px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--sd-r-pill);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.chart-expand {
+  width: 28px;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.chart-expand:hover {
+  background: var(--well);
+}
 
 .sales-content {
   display: grid;
@@ -550,6 +595,18 @@
   .chart-legend {
     gap: 8px;
     font-size: 10px;
+  }
+
+  .chart-card > .card__head {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .chart-tools {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
   }
 
   .sales-goal {

@@ -24,9 +24,9 @@ import {
   CatalogueApiService,
   primaryProductImage,
 } from '../../core/catalogue-api.service';
+import { ApiInventorySummaryItem, InventoryApiService } from '../../core/inventory-api.service';
 import { Icon } from '../../ui/icon';
 import { ProductShot } from '../../ui/product-shot';
-import { SdSlidingIndicator } from '../../ui/sliding-indicator';
 import { moneyNgn } from '../customers/cs-data';
 
 interface KvRow {
@@ -40,7 +40,7 @@ interface KvRow {
 @Component({
   selector: 'app-product-item',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, ProductShot, SdSlidingIndicator],
+  imports: [RouterLink, Icon, ProductShot],
   template: `
     @if (product(); as p) {
       <div #root class="sd-item">
@@ -140,33 +140,40 @@ interface KvRow {
             <article class="card sd-stock">
               <div class="sd-cardhead">
                 <div>
-                  <h2 class="sd-cardhead__title">Availability</h2>
-                  <p class="sd-cardhead__sub">Variant stock status from the catalogue</p>
+                  <h2 class="sd-cardhead__title">Stock</h2>
+                  <p class="sd-cardhead__sub">Finished units on hand, by variant</p>
                 </div>
               </div>
-              <div class="sd-stats" style="grid-template-columns: 1fr;">
+              <div class="sd-stats sd-stats--inventory">
+                <div class="sd-stat">
+                  <span class="sd-stat__label">On hand</span>
+                  <span class="sd-stat__value">{{ onHand() === null ? '—' : count(onHand()!) }}</span>
+                  <span class="sd-stat__cap">finished units</span>
+                </div>
                 <div class="sd-stat">
                   <span class="sd-stat__label">Variants</span>
-                  <span class="sd-stat__value sd-num" data-kind="plain" [attr.data-to]="p.variants.length">—</span>
-                  <span class="sd-stat__cap">product variants</span>
+                  <span class="sd-stat__value">{{ count(p.variants.length) }}</span>
+                  <span class="sd-stat__cap">product SKUs</span>
                 </div>
-                @for (v of p.variants; track v.id) {
-                  <div class="sd-stat">
-                    <span class="sd-stat__label">{{ v.sku }}</span>
-                    <span class="sd-stat__value">
-                      @switch (v.availabilityStatus) {
-                        @case ('in_stock') { In stock }
-                        @case ('out_of_stock') { Out of stock }
-                        @case ('made_to_order') { Made to order }
-                      }
-                    </span>
-                    <span class="sd-stat__cap">{{ v.size ?? '' }} {{ v.colour ?? '' }}</span>
-                  </div>
-                }
+                <div class="sd-stat">
+                  <span class="sd-stat__label">In stock</span>
+                  <span class="sd-stat__value">{{ stockedVariants() === null ? '—' : count(stockedVariants()!) }}</span>
+                  <span class="sd-stat__cap">variants with units</span>
+                </div>
+                <div class="sd-stat">
+                  <span class="sd-stat__label">Out of stock</span>
+                  <span class="sd-stat__value">{{ emptyVariants() === null ? '—' : count(emptyVariants()!) }}</span>
+                  <span class="sd-stat__cap">variants at zero</span>
+                </div>
               </div>
-              @if (p.variants.length > 0) {
+              @if (inventoryError(); as error) {
+                <p class="sd-inline-error" role="alert">Stock data could not be loaded: {{ error }}</p>
+              } @else if (inventorySummary() === null) {
+                <p class="sd-stock-empty" aria-live="polite">Loading stock ledger…</p>
+              } @else if (p.variants.length > 0) {
                 <ul class="sd-locs">
                   @for (v of p.variants; track v.id) {
+                    @let quantity = variantQuantity(v.id);
                     <li class="sd-loc">
                       <span class="sd-loc__ic" [style.--tint]="'var(--primary)'">
                         <app-icon name="warehouses" [size]="14" aria-hidden="true" />
@@ -175,12 +182,10 @@ interface KvRow {
                         <b>{{ v.sku }}</b>
                         <small>{{ v.size ?? '' }}{{ v.colour ? ' · ' + v.colour : '' }}</small>
                       </span>
-                      <span [class]="'sd-loc__chip badge badge--' + variantTone(v.availabilityStatus)">
-                        {{ v.availabilityStatus.replace('_', ' ') }}
+                      <span class="sd-loc__bar" aria-hidden="true">
+                        <i [style.width.%]="quantityPercent(quantity)"></i>
                       </span>
-                      @if (v.storageLocation) {
-                        <span class="sd-loc__qty">{{ v.storageLocation }}</span>
-                      }
+                      <span class="sd-loc__qty">{{ count(quantity) }} on hand</span>
                     </li>
                   }
                 </ul>
@@ -197,12 +202,12 @@ interface KvRow {
               <div class="sd-stats" style="grid-template-columns: 1fr;">
                 <div class="sd-stat">
                   <span class="sd-stat__label">Buyers</span>
-                  <span class="sd-stat__value sd-num" data-kind="plain" [attr.data-to]="p.soldCount ?? 0">—</span>
+                  <span class="sd-stat__value">{{ p.soldCount === undefined ? '—' : count(p.soldCount) }}</span>
                   <span class="sd-stat__cap">distinct paid orders</span>
                 </div>
               </div>
               <p class="sd-nosales">
-                Sales velocity, cover days and location stock are not exposed by the public catalogue.
+                Sales velocity, reserved stock, warehouse locations and cover days are not available from the current product APIs.
               </p>
             </article>
           </div>
@@ -282,13 +287,14 @@ interface KvRow {
     .sd-cardhead__title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
     .sd-cardhead__sub { font-size: 12px; color: var(--muted); }
     .sd-stats { display: grid; gap: 8px; }
+    .sd-stats--inventory { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .sd-stat { padding: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface-2); }
     .sd-stat__label { display: block; font-size: 12px; color: var(--muted); }
     .sd-stat__value { display: block; margin-top: 2px; font-size: 22px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
     .sd-stat__cap { display: block; font-size: 12px; color: var(--muted); }
     .sd-locs { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
     .sd-loc {
-      display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px;
+      display: grid; grid-template-columns: 32px minmax(0, 1fr) minmax(80px, 1fr) auto; align-items: center; gap: 10px; padding: 12px;
       border-radius: 16px; background: var(--surface-2);
     }
     .sd-loc__ic {
@@ -299,16 +305,26 @@ interface KvRow {
     .sd-loc__txt { display: grid; line-height: 1.3; min-width: 0; }
     .sd-loc__txt b { font-size: 13px; font-weight: 600; }
     .sd-loc__txt small { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sd-loc__chip {
-      display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 999px;
-      font-size: 11px; font-weight: 600;
+    .sd-loc__qty { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .sd-loc__bar { height: 7px; overflow: hidden; border-radius: 999px; background: var(--line); }
+    .sd-loc__bar i { display: block; height: 100%; border-radius: inherit; background: var(--primary); }
+    .sd-inline-error, .sd-stock-empty { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
+    .sd-inline-error { color: var(--bad); }
+    .sd-nosales { font-size: 12px; color: var(--muted); padding: 12px; }
+    @media (max-width: 900px) { .sd-stats--inventory { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 640px) {
+      .sd-grid { grid-template-columns: minmax(0, 1fr); }
+      .sd-left { max-width: 420px; width: 100%; justify-self: center; }
+      .sd-loc { grid-template-columns: 32px minmax(0, 1fr) auto; }
+      .sd-loc__bar { grid-column: 2 / -1; grid-row: 2; }
+      .sd-loc__qty { grid-column: 3; grid-row: 1; }
     }
-    .sd-loc__qty { font-size: 12px; color: var(--muted); }
-    .sd-nosales { font-size: 12px; color: var(--muted); padding: 12px; text-align: center; }
   `,
 })
 export class ProductItem {
   private readonly catalogueApi = inject(CatalogueApiService);
+  private readonly inventoryApi = inject(InventoryApiService);
+  private readonly injector = inject(Injector);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly zone = inject(NgZone);
@@ -327,6 +343,8 @@ export class ProductItem {
   private readonly titleEl = viewChild<ElementRef<HTMLElement>>('titleEl');
 
   private readonly products = signal<ApiProduct[]>([]);
+  protected readonly inventorySummary = signal<ApiInventorySummaryItem[] | null>(null);
+  protected readonly inventoryError = signal<string | null>(null);
 
   protected readonly product = computed(() => {
     const pid = this.id();
@@ -334,6 +352,40 @@ export class ProductItem {
   });
 
   protected readonly money = moneyNgn;
+  protected readonly count = new Intl.NumberFormat('en-US').format;
+
+  protected readonly productVariantStock = computed(() => {
+    const product = this.product();
+    const inventory = this.inventorySummary();
+    if (!product || !inventory) return [];
+    const byId = new Map(
+      inventory
+        .filter((item) => item.itemType.toLowerCase() === 'variant')
+        .map((item) => [item.itemId, item.currentQuantity]),
+    );
+    return product.variants.map((variant) => ({
+      id: variant.id,
+      quantity: byId.get(variant.id) ?? 0,
+    }));
+  });
+  protected readonly onHand = computed(() =>
+    this.inventorySummary() === null
+      ? null
+      : this.productVariantStock().reduce((sum, item) => sum + item.quantity, 0),
+  );
+  protected readonly stockedVariants = computed(() =>
+    this.inventorySummary() === null
+      ? null
+      : this.productVariantStock().filter((item) => item.quantity > 0).length,
+  );
+  protected readonly emptyVariants = computed(() =>
+    this.inventorySummary() === null
+      ? null
+      : this.productVariantStock().filter((item) => item.quantity <= 0).length,
+  );
+  private readonly maxVariantQuantity = computed(() =>
+    Math.max(0, ...this.productVariantStock().map((item) => item.quantity)),
+  );
 
   private ctxOnce?: { ids: readonly string[] };
   private ctxLoaded = false;
@@ -360,10 +412,11 @@ export class ProductItem {
 
   constructor() {
     void this.loadCatalog();
+    void this.loadInventory();
 
     effect(() => {
       void this.product();
-      afterNextRender(() => this.onData(), { injector: inject(Injector) });
+      afterNextRender(() => this.onData(), { injector: this.injector });
     });
     this.destroyRef.onDestroy(() => {
       if (this.animationFrame) cancelAnimationFrame(this.animationFrame);
@@ -387,17 +440,26 @@ export class ProductItem {
     }
   }
 
-  protected readonly primaryPhoto = (p: ApiProduct): string =>
-    primaryProductImage(p) ?? '';
-
-  protected variantTone(status: string): string {
-    switch (status) {
-      case 'in_stock': return 'good';
-      case 'out_of_stock': return 'bad';
-      case 'made_to_order': return 'warn';
-      default: return '';
+  private async loadInventory(): Promise<void> {
+    this.inventoryError.set(null);
+    try {
+      this.inventorySummary.set(await this.inventoryApi.summary());
+    } catch (error) {
+      this.inventoryError.set(error instanceof Error ? error.message : 'Unknown error');
     }
   }
+
+  protected variantQuantity(variantId: string): number {
+    return this.productVariantStock().find((item) => item.id === variantId)?.quantity ?? 0;
+  }
+
+  protected quantityPercent(quantity: number): number {
+    const max = this.maxVariantQuantity();
+    return max > 0 ? Math.max(0, Math.min(100, (quantity / max) * 100)) : 0;
+  }
+
+  protected readonly primaryPhoto = (p: ApiProduct): string =>
+    primaryProductImage(p) ?? '';
 
   protected readonly kvRows = computed<KvRow[]>(() => {
     const p = this.product();

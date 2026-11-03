@@ -10,8 +10,8 @@ import {
 } from '../../core/inventory-api.service';
 
 const KIND_LABEL: Record<string, string> = {
-  VARIANT: 'Finished goods',
-  MATERIAL: 'Raw materials',
+  variant: 'Finished goods',
+  material: 'Raw materials',
 };
 
 @Component({
@@ -122,8 +122,7 @@ export class WarehouseLocations {
     this.loading.set(true);
     this.error.set(null);
     try {
-      const result = await this.inventoryApi.summary({ page: 1, limit: 100 });
-      this.items.set(result.data);
+      this.items.set(await this.inventoryApi.summary());
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not load inventory summary.');
     } finally {
@@ -134,10 +133,10 @@ export class WarehouseLocations {
   protected readonly rows = computed<ApiInventorySummaryItem[]>(() => this.items());
 
   protected readonly finishedGoodsUnits = computed(() =>
-    this.items().filter((i) => i.itemType === 'VARIANT').reduce((a, i) => a + i.currentQuantity, 0),
+    this.items().filter((i) => i.itemType.toLowerCase() === 'variant').reduce((a, i) => a + i.currentQuantity, 0),
   );
   protected readonly rawMaterialUnits = computed(() =>
-    this.items().filter((i) => i.itemType === 'MATERIAL').reduce((a, i) => a + i.currentQuantity, 0),
+    this.items().filter((i) => i.itemType.toLowerCase() === 'material').reduce((a, i) => a + i.currentQuantity, 0),
   );
   protected readonly totalUnits = computed(() =>
     this.items().reduce((a, i) => a + i.currentQuantity, 0),
@@ -146,6 +145,6 @@ export class WarehouseLocations {
   protected readonly visible = computed(() => this.rows());
 
   protected kindLabel(itemType: string): string {
-    return KIND_LABEL[itemType] ?? itemType;
+    return KIND_LABEL[itemType.toLowerCase()] ?? itemType;
   }
 }

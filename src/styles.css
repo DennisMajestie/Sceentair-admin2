@@ -7,6 +7,132 @@
 @import './app/sections/products/prod-detail.css';
 @import './app/sections/orders/orders-all.css';
 
+app-settings-team .head__sub {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+app-settings-team .kpi__icon--good {
+  color: var(--good);
+  background: color-mix(in srgb, var(--good) 14%, var(--surface));
+}
+
+app-settings-team .kpi__icon--info {
+  color: var(--info);
+  background: color-mix(in srgb, var(--info) 14%, var(--surface));
+}
+
+app-settings-team .permissions-card {
+  margin-bottom: 16px;
+  padding: 20px;
+  border-radius: 26px;
+}
+
+app-settings-team .team-details {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+app-settings-team .team-details--permissions {
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
+  align-items: start;
+}
+
+app-settings-team .team-details .seats-card,
+app-settings-team .team-details .permissions-card {
+  min-width: 0;
+}
+
+app-settings-team .role-select {
+  min-width: 104px;
+  min-height: 34px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+app-settings-team .role-select:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+app-settings-team .permission-table-wrap {
+  overflow-x: auto;
+}
+
+app-settings-team .permission-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+app-settings-team .permission-table th,
+app-settings-team .permission-table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  white-space: nowrap;
+}
+
+app-settings-team .permission-table thead th {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+app-settings-team .permission-table thead th:not(:first-child),
+app-settings-team .permission-table td {
+  text-align: center;
+}
+
+app-settings-team .permission-table thead small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+app-settings-team .permission-table tbody th {
+  font-weight: 500;
+}
+
+app-settings-team .permission-check {
+  display: inline-grid;
+  width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--good) 14%, var(--surface));
+  color: var(--good);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+app-settings-team .permission-none {
+  color: var(--muted);
+}
+
+app-settings-team .permission-toggle {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--good);
+  cursor: pointer;
+}
+
+@media (max-width: 1000px) {
+  app-settings-team .team-details--permissions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 :root {
   --bg: #eef0ec;
   --surface: #fcfdfc;
