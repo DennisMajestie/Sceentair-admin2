@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/app/browser",
+  "framework": null,
+  "routes": [
+    { "src": "/assets/(.*)", "dest": "/assets/$1" },
+    { "src": "/(.*\\.(js|css|ico|png|jpg|svg|woff|woff2))", "dest": "/$1" },
+    { "src": "/.*", "dest": "/index.html" }
+  ]
+}
