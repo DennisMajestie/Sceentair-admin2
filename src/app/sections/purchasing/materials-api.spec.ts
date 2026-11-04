@@ -148,13 +148,14 @@ describe('purchasing materials response mapping', () => {
   it('maps api purchase history fields verbatim', async () => {
     const purchase: ApiPurchase = {
       id: 'p-1',
-      materialId: 'm-shea',
-      materialName: 'Unrefined shea butter',
+      material: MATERIAL,
       quantity: 60,
       cost: 852,
+      note: null,
       supplierName: 'Nkuru Shea Collective',
-      purchaseDate: '2026-01-15T10:00:00Z',
+      leadTimeDays: 7,
       recordedBy: 'm-menon',
+      purchasedAt: '2026-01-15T10:00:00Z',
     };
     const materialsApi = makeMaterialsApi({ data: [MATERIAL], total: 1 });
     materialsApi.purchases.and.returnValue(Promise.resolve({ data: [purchase], total: 1 }));
@@ -164,12 +165,12 @@ describe('purchasing materials response mapping', () => {
     const result = await (component as any).materialsApi.purchases();
     expect(result.data).toHaveSize(1);
     expect(result.data[0].id).toBe('p-1');
-    expect(result.data[0].materialId).toBe('m-shea');
-    expect(result.data[0].materialName).toBe('Unrefined shea butter');
+    expect(result.data[0].material.id).toBe('m-shea');
+    expect(result.data[0].material.name).toBe('Unrefined shea butter');
     expect(result.data[0].quantity).toBe(60);
     expect(result.data[0].cost).toBe(852);
     expect(result.data[0].supplierName).toBe('Nkuru Shea Collective');
-    expect(result.data[0].purchaseDate).toBe('2026-01-15T10:00:00Z');
+    expect(result.data[0].purchasedAt).toBe('2026-01-15T10:00:00Z');
     expect(result.data[0].recordedBy).toBe('m-menon');
   });
 });

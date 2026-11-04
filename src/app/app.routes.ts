@@ -88,6 +88,101 @@ export const routes: Routes = [
     path: 'purchasing/suppliers/:id',
     loadComponent: () => import('./sections/purchasing/suppliers').then((m) => m.PurchasingSuppliers),
   },
+  {
+    path: 'accounting/ledger',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/accounting/ledger').then((m) => m.AccountingLedger),
+  },
+  {
+    path: 'accounting/ledger/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/accounting/ledger').then((m) => m.AccountingLedger),
+  },
+  {
+    path: 'approvals',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/approvals/pending').then((m) => m.ApprovalsPending),
+  },
+  {
+    path: 'approvals/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/approvals/pending').then((m) => m.ApprovalsPending),
+  },
+  {
+    path: 'audit/log',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/audit/log').then((m) => m.AuditLog),
+  },
+  {
+    path: 'audit/log/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/audit/log').then((m) => m.AuditLog),
+  },
+  {
+    path: 'coupons/wallet',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/coupons/wallet').then((m) => m.CouponsWallet),
+  },
+  {
+    path: 'deliveries',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/deliveries/list').then((m) => m.DeliveriesList),
+  },
+  {
+    path: 'deliveries/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/deliveries/list').then((m) => m.DeliveriesList),
+  },
+  {
+    path: 'media',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/media/library').then((m) => m.MediaLibrary),
+  },
+  {
+    path: 'media/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/media/library').then((m) => m.MediaLibrary),
+  },
+  {
+    path: 'marketing/campaigns',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/marketing/campaigns').then((m) => m.MarketingCampaigns),
+  },
+  {
+    path: 'marketing/campaigns/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/marketing/campaigns').then((m) => m.MarketingCampaigns),
+  },
+  {
+    path: 'partners',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/partners/list').then((m) => m.PartnersList),
+  },
+  {
+    path: 'partners/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/partners/list').then((m) => m.PartnersList),
+  },
+  {
+    path: 'wholesale/accounts',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/wholesale/accounts').then((m) => m.WholesaleAccounts),
+  },
+  {
+    path: 'wholesale/accounts/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/wholesale/accounts').then((m) => m.WholesaleAccounts),
+  },
+  {
+    path: 'wholesale/tiers',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/wholesale/tiers').then((m) => m.WholesaleTiers),
+  },
+  {
+    path: 'wholesale/tiers/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/wholesale/tiers').then((m) => m.WholesaleTiers),
+  },
 
   {
     path: 'warehouses/locations',

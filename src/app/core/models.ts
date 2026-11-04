@@ -164,10 +164,30 @@ export interface PurchaseOrder {
   sentAt: number | null;
   eta: number | null;
   receivedAt: number | null;
-  leadTimeDays: number;
-  recordedBy: string;
   lines: PoLine[];
   note: string;
+}
+
+export interface LedgerEntry {
+  id: string;
+  type: 'sale' | 'investment' | 'expense' | 'purchase' | 'payroll' | 'tax';
+  amount: number;
+  category: string | null;
+  referenceId: string | null;
+  recordedBy: string | null;
+  entryAt: number;
+}
+
+export interface Approval {
+  id: string;
+  actionType: 'purchasing' | 'production_start' | 'price_change' | 'fund_movement' | 'stock_disposal';
+  payload: Record<string, unknown> | null;
+  requestedBy: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  approvedBy: string | null;
+  justification: string | null;
+  decidedAt: number | null;
+  createdAt: number;
 }
 
 export interface Return {
@@ -180,6 +200,14 @@ export interface Return {
   status: ReturnStatus;
   createdAt: number;
   refund: number;
+  trackingNumber: string | null;
+  bayTag: string | null;
+  damaged: boolean;
+  restocked: boolean;
+  resolution: string | null;
+  resolvedAt: number | null;
+  resolvedBy: string | null;
+  photoUrls: string[];
 }
 
 export interface TransferLine {
@@ -234,6 +262,7 @@ export interface Teammate {
   title: string;
   team: TeamDept;
   role: TeamRole;
+  apiRoleName?: string;
   email: string;
   phone: string;
   locId: string;
@@ -331,5 +360,7 @@ export interface Seed {
   tickets: Ticket[];
   months: SeriesPoint[];
   weeks: SeriesPoint[];
+  ledgerEntries: LedgerEntry[];
+  approvals: Approval[];
   settings: Settings;
 }

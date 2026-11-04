@@ -58,6 +58,26 @@ export interface ApiPurchaseList {
   total: number;
 }
 
+export interface RecordPurchaseInput {
+  materialId: string;
+  quantity: number;
+  cost: number;
+  supplierName?: string | null;
+  leadTimeDays?: number | null;
+  note?: string | null;
+  recordedBy?: string | null;
+  purchasedAt?: string | null;
+}
+
+export interface RecordUsageInput {
+  materialId: string;
+  quantity: number;
+  note?: string | null;
+  recordedBy?: string | null;
+  usedAt?: string | null;
+  batchId?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MaterialsApiService {
   private readonly http = inject(HttpClient);
@@ -96,6 +116,24 @@ export class MaterialsApiService {
   detail(id: string): Promise<ApiMaterial> {
     return firstValueFrom(
       this.http.get<ApiMaterial>(apiUrl(this.baseUrl, `materials/${encodeURIComponent(id)}`)),
+    );
+  }
+
+  purchase(input: RecordPurchaseInput): Promise<ApiPurchase> {
+    return firstValueFrom(
+      this.http.post<ApiPurchase>(
+        apiUrl(this.baseUrl, `materials/${encodeURIComponent(input.materialId)}/purchase`),
+        input,
+      ),
+    );
+  }
+
+  usage(input: RecordUsageInput): Promise<ApiMaterial> {
+    return firstValueFrom(
+      this.http.post<ApiMaterial>(
+        apiUrl(this.baseUrl, `materials/${encodeURIComponent(input.materialId)}/usage`),
+        input,
+      ),
     );
   }
 }

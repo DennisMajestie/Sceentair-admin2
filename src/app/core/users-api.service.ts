@@ -6,7 +6,18 @@ import { API_BASE_URL, apiUrl } from './api-config';
 export interface ApiRole {
   id: string;
   name: string;
-  permissions?: Array<{ module: string; accessLevel: string }>;
+  permissions?: ApiRolePermission[];
+}
+
+export interface ApiRolePermission {
+  module: string;
+  accessLevel: string;
+}
+
+export interface ApiRoleMatrixRow {
+  id: string;
+  name: string;
+  permissions: ApiRolePermission[];
 }
 
 export interface ApiUser {
@@ -36,6 +47,21 @@ export class UsersApiService {
   list(page = 1, limit = 100): Promise<ApiUserList> {
     const params = new HttpParams().set('page', page).set('limit', limit);
     return firstValueFrom(this.http.get<ApiUserList>(apiUrl(this.baseUrl, 'users'), { params }));
+  }
+
+  rolesMatrix(): Promise<ApiRoleMatrixRow[]> {
+    return firstValueFrom(
+      this.http.get<ApiRoleMatrixRow[]>(apiUrl(this.baseUrl, 'users/roles')),
+    );
+  }
+
+  updateRolePermissions(roleName: string, permissions: ApiRolePermission[]): Promise<unknown> {
+    return firstValueFrom(
+      this.http.put(
+        apiUrl(this.baseUrl, `users/roles/${encodeURIComponent(roleName)}/permissions`),
+        { permissions },
+      ),
+    );
   }
 
   updateRole(id: string, role: string): Promise<ApiUser> {

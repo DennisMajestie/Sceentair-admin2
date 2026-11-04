@@ -58,6 +58,51 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    id: 'accounting',
+    label: 'Accounting',
+    icon: 'dollar',
+    path: '/accounting/ledger',
+    pages: [
+      { label: 'Ledger', path: '/accounting/ledger' },
+    ],
+  },
+  {
+    id: 'approvals',
+    label: 'Approvals',
+    icon: 'check',
+    path: '/approvals',
+    pages: [
+      { label: 'Approval queue', path: '/approvals' },
+    ],
+  },
+  {
+    id: 'audit',
+    label: 'Audit',
+    icon: 'alert',
+    path: '/audit/log',
+    pages: [
+      { label: 'Audit log', path: '/audit/log' },
+    ],
+  },
+  {
+    id: 'coupons',
+    label: 'Coupons',
+    icon: 'ticket',
+    path: '/coupons/wallet',
+    pages: [
+      { label: 'Wallet', path: '/coupons/wallet' },
+    ],
+  },
+  {
+    id: 'logistics',
+    label: 'Logistics',
+    icon: 'truck',
+    path: '/deliveries',
+    pages: [
+      { label: 'Deliveries', path: '/deliveries' },
+    ],
+  },
+  {
     id: 'warehouses',
     label: 'Warehouses',
     icon: 'warehouses',
@@ -86,6 +131,43 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Shoppers', path: '/customers/shoppers' },
       { label: 'Stockists', path: '/customers/stockists' },
+    ],
+  },
+  {
+    id: 'wholesale',
+    label: 'Wholesale',
+    icon: 'store',
+    path: '/wholesale/accounts',
+    pages: [
+      { label: 'Accounts', path: '/wholesale/accounts' },
+      { label: 'Tiers', path: '/wholesale/tiers' },
+    ],
+  },
+  {
+    id: 'media',
+    label: 'Media',
+    icon: 'card',
+    path: '/media',
+    pages: [
+      { label: 'Library', path: '/media' },
+    ],
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: 'chart',
+    path: '/marketing/campaigns',
+    pages: [
+      { label: 'Campaigns', path: '/marketing/campaigns' },
+    ],
+  },
+  {
+    id: 'partners',
+    label: 'Partners',
+    icon: 'users',
+    path: '/partners',
+    pages: [
+      { label: 'Partners', path: '/partners' },
     ],
   },
   {

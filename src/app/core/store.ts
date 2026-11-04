@@ -10,6 +10,8 @@ import { ProductionApiService } from './production-api.service';
 import { ReturnsApiService } from './returns-api.service';
 import { UsersApiService } from './users-api.service';
 import { NotificationsApiService } from './notifications-api.service';
+import { AccountingApiService, type ApiLedgerEntry, type ApiLedgerList } from './accounting-api.service';
+import { ApprovalsApiService } from './approvals-api.service';
 import { AuditApiService } from './audit-api.service';
 import { AuthService } from './auth.service';
 import { BusinessApiService } from './business-api.service';
@@ -33,6 +35,8 @@ import {
   Ticket,
   TicketStatus,
   Transfer,
+  LedgerEntry,
+  Approval,
 } from './models';
 import { canAdvanceOrder } from './order-flow';
 
@@ -57,6 +61,8 @@ function emptySeed(): import('./models').Seed {
     tickets: [],
     months: [],
     weeks: [],
+    ledgerEntries: [],
+    approvals: [],
     settings: {
       me: { id: '', name: '', email: '', title: '', phone: '' },
       company: {
@@ -215,8 +221,6 @@ function mapPurchase(p: ApiPurchase): PurchaseOrder {
     sentAt: null,
     eta: null,
     receivedAt: purchasedAt,
-    leadTimeDays: p.leadTimeDays ?? 0,
-    recordedBy: p.recordedBy ?? '',
     lines: [
       {
         materialId: p.material.id,
@@ -278,6 +282,14 @@ function mapReturn(
     status,
     createdAt: Date.parse(r.requestedAt) || 0,
     refund: r.refundAmount ?? 0,
+    trackingNumber: r.trackingNumber ?? null,
+    bayTag: r.bayTag ?? null,
+    damaged: r.damaged,
+    restocked: r.restocked,
+    resolution: r.resolution ?? null,
+    resolvedAt: Date.parse(r.resolvedAt ?? '') || null,
+    resolvedBy: r.resolvedBy ?? null,
+    photoUrls: r.photoUrls ?? [],
   };
 }
 
@@ -320,6 +332,7 @@ function mapTeammate(u: import('./users-api.service').ApiUser): Teammate {
     title: titleCase(roleName),
     team: ROLE_DEPT[roleName] ?? 'Operations',
     role: ROLE_MAP[roleName] ?? 'viewer',
+    apiRoleName: roleName,
     email: u.email,
     phone: u.phone ?? '',
     locId: '',
@@ -338,6 +351,32 @@ function mapNotice(n: import('./notifications-api.service').ApiNotification): No
     href: n.relatedOrderId ? `/orders/all/${n.relatedOrderId}` : '/dashboard',
     read: !!n.readAt,
     kind: n.type,
+  };
+}
+
+function mapLedgerEntry(e: ApiLedgerEntry): LedgerEntry {
+  return {
+    id: e.id,
+    type: e.type,
+    amount: e.amount,
+    category: e.category,
+    referenceId: e.referenceId,
+    recordedBy: e.recordedBy,
+    entryAt: Date.parse(e.entryAt) || 0,
+  };
+}
+
+function mapApproval(a: import('./approvals-api.service').ApiApproval): Approval {
+  return {
+    id: a.id,
+    actionType: a.actionType,
+    payload: a.payload,
+    requestedBy: a.requestedBy,
+    status: a.status,
+    approvedBy: a.approvedBy,
+    justification: a.justification,
+    decidedAt: Date.parse(a.decidedAt ?? '') || null,
+    createdAt: Date.parse(a.createdAt) || 0,
   };
 }
 
@@ -436,6 +475,8 @@ export class Store {
   private readonly returnsApi = inject(ReturnsApiService);
   private readonly usersApi = inject(UsersApiService);
   private readonly notificationsApi = inject(NotificationsApiService);
+  private readonly accountingApi = inject(AccountingApiService);
+  private readonly approvalsApi = inject(ApprovalsApiService);
   private readonly auditApi = inject(AuditApiService);
   private readonly auth = inject(AuthService);
   private readonly businessApi = inject(BusinessApiService);
@@ -563,6 +604,19 @@ export class Store {
           next.settings = { ...next.settings, notify: prefs };
         })
         .catch(() => {}),
+      this.accountingApi
+        .list({ page: 1, limit: 100 })
+        .then((r: ApiLedgerList) => (next.ledgerEntries = r.data.map(mapLedgerEntry)))
+        .catch(() => {}),
+      this.approvalsApi
+        .list({ page: 1, limit: 100 })
+        .then((r) => {
+          this.state.update((s) => ({
+            ...s,
+            approvals: r.data.map(mapApproval),
+          }));
+        })
+        .catch(() => {}),
     ]);
 
     await Promise.all([
@@ -616,6 +670,8 @@ export class Store {
   readonly locations = computed(() => this.data().locations);
   readonly customers = computed(() => this.data().customers);
   readonly orders = computed(() => this.data().orders);
+  readonly ledgerEntries = computed(() => this.data().ledgerEntries);
+  readonly approvals = computed(() => this.data().approvals);
   readonly batches = computed(() => this.data().batches);
   readonly pos = computed(() => this.data().pos);
   readonly returns = computed(() => this.data().returns);

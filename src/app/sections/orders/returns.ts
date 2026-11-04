@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Store } from '../../core/store';
@@ -7,17 +8,31 @@ import { date as fmtDate, money as fmtMoney, statusLabel, statusTone } from '../
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { ProductShot } from '../../ui/product-shot';
+import { ReturnsApiService, type ResolveReturnInput } from '../../core/returns-api.service';
+
+type ReturnStatus = 'requested' | 'received' | 'restocked' | 'refunded' | 'rejected';
+
+const STATUS_LABELS: Record<ReturnStatus, string> = {
+  requested: 'Requested',
+  received: 'Received',
+  restocked: 'Restocked',
+  refunded: 'Refunded',
+  rejected: 'Rejected',
+};
 
 @Component({
   selector: 'app-orders-returns',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Drawer, ProductShot, RouterLink],
+  imports: [Drawer, ProductShot, RouterLink, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
         <span class="head__eyebrow">Orders</span>
         <h1 class="head__title">Returns</h1>
         <p class="head__lead">{{ store.returns().length }} returns logged · {{ pending() }} awaiting a decision.</p>
+      </div>
+      <div class="head__actions">
+        <a class="btn btn--ghost" (click)="load()">Refresh</a>
       </div>
     </div>
 
@@ -92,9 +107,51 @@ import { ProductShot } from '../../ui/product-shot';
             <div><dt>Refund</dt><dd class="num">{{ money(r.refund) }}</dd></div>
             <div><dt>Raised</dt><dd>{{ date(r.createdAt) }}</dd></div>
             <div><dt>Reason</dt><dd>{{ r.reason }}</dd></div>
+            <div><dt>Tracking</dt><dd>{{ r.trackingNumber ?? '—' }}</dd></div>
+            <div><dt>Bay tag</dt><dd>{{ r.bayTag ?? '—' }}</dd></div>
           </dl>
 
           <div class="dmeta">{{ r.customer }}</div>
+
+          @if (r.status === 'requested') {
+            <h3 class="dlabel">Resolve return</h3>
+            <div class="resolve-form">
+              <label class="resolve-label">
+                <span>Decision</span>
+                <select class="resolve-select" [(ngModel)]="resolveDecision">
+                  <option value="resolved">Resolved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+              <label class="resolve-label">
+                <span>Resolution notes</span>
+                <textarea class="resolve-textarea" [(ngModel)]="resolveResolution" placeholder="e.g. Inspected and restocked"></textarea>
+              </label>
+              <label class="resolve-label">
+                <span>Restocked</span>
+                <input type="checkbox" class="resolve-checkbox" [(ngModel)]="resolveRestocked" />
+              </label>
+              <label class="resolve-label">
+                <span>Damaged</span>
+                <input type="checkbox" class="resolve-checkbox" [(ngModel)]="resolveDamaged" />
+              </label>
+              <label class="resolve-label">
+                <span>Tracking number</span>
+                <input type="text" class="resolve-input" [(ngModel)]="resolveTrackingNumber" placeholder="e.g. TRK123456" />
+              </label>
+              <label class="resolve-label">
+                <span>Bay tag</span>
+                <input type="text" class="resolve-input" [(ngModel)]="resolveBayTag" placeholder="e.g. BAY-001" />
+              </label>
+              <div class="resolve-actions">
+                <button type="button" class="btn btn--ghost" (click)="clearResolve()">Clear</button>
+                <button type="button" class="btn" [disabled]="!resolveResolution()?.trim()" (click)="submitResolve(r.id)">Submit decision</button>
+              </div>
+              @if (resolveError()) {
+                <p class="resolve-error">{{ resolveError() }}</p>
+              }
+            </div>
+          }
         </div>
       }
     </app-drawer>
@@ -114,16 +171,34 @@ import { ProductShot } from '../../ui/product-shot';
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dmeta { font-size: var(--fs-sm); color: var(--muted); }
+    .resolve-form { display: grid; gap: 10px; margin-top: 12px; }
+    .resolve-label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--faint); font-weight: 600; }
+    .resolve-select, .resolve-textarea, .resolve-input { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); color: var(--text); font-size: var(--fs-sm); }
+    .resolve-textarea { min-height: 80px; resize: vertical; }
+    .resolve-checkbox { width: 16px; height: 16px; }
+    .resolve-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .resolve-error { color: var(--bad); font-size: var(--fs-xs); margin-top: 8px; }
+    @media (max-width: 700px) { .resolve-actions { flex-direction: column; } }
   `,
 })
 export class OrdersReturns {
   protected readonly store = inject(Store);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly returnsApi = inject(ReturnsApiService);
 
   protected readonly date = fmtDate;
   protected readonly money = fmtMoney;
   protected readonly filter = signal('all');
+  protected readonly resolveDecision = signal<'resolved' | 'rejected'>('resolved');
+  protected readonly resolveResolution = signal('');
+  protected readonly resolveRestocked = signal(false);
+  protected readonly resolveDamaged = signal(false);
+  protected readonly resolveTrackingNumber = signal('');
+  protected readonly resolveBayTag = signal('');
+  protected readonly resolveError = signal<string | null>(null);
+  protected readonly resolveLoading = signal(false);
+
   protected readonly filters = [
     { id: 'all', label: 'All' },
     { id: 'requested', label: 'Requested' },
@@ -157,6 +232,8 @@ export class OrdersReturns {
         refund: r.refund,
         createdAt: r.createdAt,
         customer: this.store.customer(o?.customerId ?? '')?.name ?? '',
+        trackingNumber: r.trackingNumber,
+        bayTag: r.bayTag,
       };
     }),
   );
@@ -176,5 +253,40 @@ export class OrdersReturns {
 
   protected close(): void {
     this.router.navigate(['/orders/returns']);
+  }
+
+  public async load(): Promise<void> {
+    // Returns are loaded via store.load(); no separate refresh endpoint exposed.
+  }
+
+  protected clearResolve(): void {
+    this.resolveDecision.set('resolved');
+    this.resolveResolution.set('');
+    this.resolveRestocked.set(false);
+    this.resolveDamaged.set(false);
+    this.resolveTrackingNumber.set('');
+    this.resolveBayTag.set('');
+    this.resolveError.set(null);
+  }
+
+  protected async submitResolve(id: string): Promise<void> {
+    this.resolveError.set(null);
+    this.resolveLoading.set(true);
+    try {
+      const input: ResolveReturnInput = {
+        decision: this.resolveDecision(),
+        resolution: this.resolveResolution(),
+        restocked: this.resolveRestocked(),
+        damaged: this.resolveDamaged(),
+        trackingNumber: this.resolveTrackingNumber() || undefined,
+        bayTag: this.resolveBayTag() || undefined,
+      };
+      await this.store.resolveReturn(id, input);
+      this.close();
+    } catch (err) {
+      this.resolveError.set(err instanceof Error ? err.message : 'Resolve failed. Please try again.');
+    } finally {
+      this.resolveLoading.set(false);
+    }
   }
 }

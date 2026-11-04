@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
 import { Icon } from '../../ui/icon';
 import { HelpApiService } from '../../core/help-api.service';
 import { ToastService } from '../../core/toast';
@@ -25,7 +24,7 @@ const POPULAR = ['expiry', 'transfer', 'count', 'return', 'shortcuts'];
 @Component({
   selector: 'app-help-center',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [Icon],
   template: `
     <div class="hero">
       <span class="hero__eyebrow">Help</span>
@@ -106,7 +105,7 @@ const POPULAR = ['expiry', 'transfer', 'count', 'return', 'shortcuts'];
                 @if (a.source) {
                   <span class="q__help">Source: {{ a.source }}</span>
                 }
-                <span class="chip chip--quiet">{{ topicTitle(a.keywords[0] ?? 'general') }}</span>
+                <span class="chip chip--quiet">{{ topicTitle(a.keywords[0] || 'general') }}</span>
               </div>
             </div>
           }
