@@ -114,6 +114,12 @@ export class AuthService {
     }
   }
 
+  async resetPassword(email: string): Promise<void> {
+    return firstValueFrom(
+      this.http.post(apiUrl(this.baseUrl, 'auth/reset-password'), { email }, { withCredentials: true }),
+    );
+  }
+
   private async restore(): Promise<boolean> {
     this.error.set(null);
     try {

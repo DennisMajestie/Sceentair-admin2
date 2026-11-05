@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { requireAuth } from './core/auth.guard';
 
 export const routes: Routes = [
+  { path: 'signin', loadComponent: () => import('./sections/login/login').then((m) => m.LoginPage) },
   { path: '', pathMatch: 'full', redirectTo: 'dashboard/overview' },
 
   {
