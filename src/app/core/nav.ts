@@ -33,6 +33,7 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Catalog', path: '/products/catalog' },
       { label: 'Batches', path: '/products/batches', badge: 'batches' },
+      { label: 'Reviews', path: '/products/reviews' },
     ],
   },
   {
@@ -45,6 +46,7 @@ export const NAV: NavSection[] = [
       { label: 'Board', path: '/orders/board' },
       { label: 'Returns', path: '/orders/returns', badge: 'returns' },
       { label: 'Deliveries', path: '/deliveries' },
+      { label: 'Custom orders', path: '/orders/custom' },
     ],
   },
   {
@@ -56,6 +58,17 @@ export const NAV: NavSection[] = [
       { label: 'Purchase orders', path: '/purchasing/orders', badge: 'pos' },
       { label: 'Materials', path: '/purchasing/materials' },
       { label: 'Suppliers', path: '/purchasing/suppliers' },
+    ],
+  },
+  {
+    id: 'production',
+    label: 'Production',
+    icon: 'cube',
+    path: '/production',
+    pages: [
+      { label: 'Queue', path: '/production' },
+      { label: 'Tech packs', path: '/production/tech-packs' },
+      { label: 'Floor kiosk', path: '/production/kiosk' },
     ],
   },
   {
@@ -124,6 +137,7 @@ export const NAV: NavSection[] = [
       { label: 'Company', path: '/settings/company' },
       { label: 'Team & roles', path: '/settings/team' },
       { label: 'Notifications', path: '/settings/notifications' },
+      { label: 'Security', path: '/settings/security' },
     ],
   },
   {

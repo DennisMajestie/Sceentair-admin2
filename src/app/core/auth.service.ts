@@ -12,6 +12,7 @@ export interface AuthUser {
   phone?: string | null;
   title?: string | null;
   access: Record<string, string>;
+  totpEnabled?: boolean;
 }
 
 interface TokenResponse {
@@ -24,6 +25,13 @@ interface TwoFactorChallenge {
 }
 
 export type LoginResult = { requires2fa: true } | { requires2fa: false };
+
+export interface ApiAuthSession {
+  id: string;
+  createdAt: string;
+  userAgent?: string | null;
+  ip?: string | null;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -117,6 +125,49 @@ export class AuthService {
   async resetPassword(email: string): Promise<void> {
     await firstValueFrom(
       this.http.post(apiUrl(this.baseUrl, 'auth/reset-password'), { email }, { withCredentials: true }),
+    );
+  }
+
+  async listSessions(): Promise<ApiAuthSession[]> {
+    const result = await firstValueFrom(
+      this.http.get<ApiAuthSession[]>(apiUrl(this.baseUrl, 'auth/sessions')),
+    );
+    return Array.isArray(result) ? result : [];
+  }
+
+  async revokeSession(id: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete(apiUrl(this.baseUrl, `auth/sessions/${id}`)),
+    );
+  }
+
+  async setup2fa(): Promise<{ secret: string; otpauthUrl: string }> {
+    return firstValueFrom(
+      this.http.post<{ secret: string; otpauthUrl: string }>(
+        apiUrl(this.baseUrl, 'auth/2fa/setup'),
+        {},
+        { withCredentials: true },
+      ),
+    );
+  }
+
+  async enable2fa(code: string): Promise<{ enabled: boolean }> {
+    return firstValueFrom(
+      this.http.post<{ enabled: boolean }>(
+        apiUrl(this.baseUrl, 'auth/2fa/enable'),
+        { code },
+        { withCredentials: true },
+      ),
+    );
+  }
+
+  async disable2fa(code: string): Promise<{ enabled: boolean }> {
+    return firstValueFrom(
+      this.http.post<{ enabled: boolean }>(
+        apiUrl(this.baseUrl, 'auth/2fa/disable'),
+        { code },
+        { withCredentials: true },
+      ),
     );
   }
 

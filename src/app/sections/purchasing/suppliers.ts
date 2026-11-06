@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
+import { FormsModule } from '@angular/forms';
 import { monthYear, money as fmtMoney, date as fmtDate } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
@@ -29,7 +30,7 @@ interface SupplierRow {
 @Component({
   selector: 'app-purchasing-suppliers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [RouterLink, Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
@@ -39,6 +40,7 @@ interface SupplierRow {
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" routerLink="/purchasing/materials">Materials</a>
+        <button class="btn btn--primary" type="button" (click)="openCreate()">+ New supplier</button>
       </div>
     </div>
 
@@ -124,6 +126,36 @@ interface SupplierRow {
       <div class="notice notice--error" role="alert">{{ error() }}</div>
     }
 
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New supplier">
+      <ng-container drawerTitle><div class="dtitle"><strong>New supplier</strong></div></ng-container>
+      <form class="supplier-form" (ngSubmit)="createSupplier()">
+        <div class="cost-grid">
+          <label class="field"><span class="field-label">Name</span><input type="text" [(ngModel)]="createForm.name" name="newname" required /></label>
+          <label class="field"><span class="field-label">Category</span>
+            <select [(ngModel)]="createForm.category" name="newcategory">
+              <option value="">Not set</option>
+              <option value="fabrics">Fabrics</option>
+              <option value="trims_hardware">Trims & hardware</option>
+              <option value="thread">Thread</option>
+              <option value="packaging">Packaging</option>
+              <option value="printing">Printing</option>
+              <option value="labels">Labels</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Location</span><input type="text" [(ngModel)]="createForm.location" name="newlocation" placeholder="Lagos, Nigeria" /></label>
+          <label class="field"><span class="field-label">SLA score (0–100)</span><input type="number" min="0" max="100" step="0.5" [(ngModel)]="createForm.slaScore" name="newslaScore" /></label>
+          <label class="field"><span class="field-label">Quota units</span><input type="number" min="0" step="1" [(ngModel)]="createForm.quotaUnits" name="newquotaUnits" /></label>
+          <label class="field field--check"><span class="field-label">Certified</span><input type="checkbox" [(ngModel)]="createForm.certified" name="newcertified" /></label>
+        </div>
+        <label class="field"><span class="field-label">Compliance notes</span><textarea rows="3" [(ngModel)]="createForm.complianceNotes" name="newnotes"></textarea></label>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit" [disabled]="busy() || !createForm.name.trim()">{{ busy() ? 'Creating…' : 'Create supplier' }}</button>
+          <button class="btn btn--ghost" type="button" (click)="closeCreate()">Cancel</button>
+        </div>
+      </form>
+    </app-drawer>
+
     <app-drawer [open]="!!selected()" (close)="close()" label="Supplier detail">
       <ng-container drawerTitle>
         @if (selected(); as s) {
@@ -135,19 +167,47 @@ interface SupplierRow {
       </ng-container>
       @if (selected(); as s) {
         <div class="dbody">
-          <dl class="facts">
-            <div><dt>ID</dt><dd class="mono">{{ s.id }}</dd></div>
-            <div><dt>Category</dt><dd>{{ s.category ?? 'Not set' }}</dd></div>
-            <div><dt>Location</dt><dd>{{ s.location ?? 'Not set' }}</dd></div>
-            <div><dt>Certified</dt><dd>{{ s.certified ? 'Yes' : 'No' }}</dd></div>
-            <div><dt>SLA score</dt><dd>{{ s.slaScore ?? 'Not set' }}</dd></div>
-            <div><dt>Quota units</dt><dd>{{ s.quotaUnits ?? 'Not set' }}</dd></div>
-            <div><dt>Compliance notes</dt><dd>{{ s.complianceNotes ?? 'None' }}</dd></div>
-            <div><dt>Added</dt><dd>{{ s.formattedCreatedAt }}</dd></div>
-          </dl>
-
-          <h3 class="dlabel">Notes</h3>
-          <p class="dnote">{{ s.complianceNotes ?? 'No compliance notes on file.' }}</p>
+          @if (!editing()) {
+            <dl class="facts">
+              <div><dt>ID</dt><dd class="mono">{{ s.id }}</dd></div>
+              <div><dt>Category</dt><dd>{{ s.category ?? 'Not set' }}</dd></div>
+              <div><dt>Location</dt><dd>{{ s.location ?? 'Not set' }}</dd></div>
+              <div><dt>Certified</dt><dd>{{ s.certified ? 'Yes' : 'No' }}</dd></div>
+              <div><dt>SLA score</dt><dd>{{ s.slaScore ?? 'Not set' }}</dd></div>
+              <div><dt>Quota units</dt><dd>{{ s.quotaUnits ?? 'Not set' }}</dd></div>
+              <div><dt>Added</dt><dd>{{ s.formattedCreatedAt }}</dd></div>
+            </dl>
+            <h3 class="dlabel">Notes</h3>
+            <p class="dnote">{{ s.complianceNotes ?? 'No compliance notes on file.' }}</p>
+            <button class="btn btn--ghost" type="button" (click)="editSelected()">Edit terms</button>
+          } @else {
+            <form class="supplier-form" (ngSubmit)="saveEdit()">
+              <div class="cost-grid">
+                <label class="field"><span class="field-label">Name</span><input type="text" [(ngModel)]="editForm.name" name="name" required /></label>
+                <label class="field"><span class="field-label">Category</span>
+                  <select [(ngModel)]="editForm.category" name="category">
+                    <option value="">Not set</option>
+                    <option value="fabrics">Fabrics</option>
+                    <option value="trims_hardware">Trims & hardware</option>
+                    <option value="thread">Thread</option>
+                    <option value="packaging">Packaging</option>
+                    <option value="printing">Printing</option>
+                    <option value="labels">Labels</option>
+                    <option value="other">Other</option>
+                  </select>
+                </label>
+                <label class="field"><span class="field-label">Location</span><input type="text" [(ngModel)]="editForm.location" name="location" /></label>
+                <label class="field"><span class="field-label">SLA score (0–100)</span><input type="number" min="0" max="100" step="0.5" [(ngModel)]="editForm.slaScore" name="slaScore" /></label>
+                <label class="field"><span class="field-label">Quota units</span><input type="number" min="0" step="1" [(ngModel)]="editForm.quotaUnits" name="quotaUnits" /></label>
+                <label class="field field--check"><span class="field-label">Certified</span><input type="checkbox" [(ngModel)]="editForm.certified" name="certified" /></label>
+              </div>
+              <label class="field"><span class="field-label">Compliance notes</span><textarea rows="3" [(ngModel)]="editForm.complianceNotes" name="complianceNotes"></textarea></label>
+              <div class="form-actions">
+                <button class="btn btn--primary" type="submit" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Save terms' }}</button>
+                <button class="btn btn--ghost" type="button" (click)="editing.set(false)">Cancel</button>
+              </div>
+            </form>
+          }
         </div>
       }
     </app-drawer>
@@ -166,6 +226,16 @@ interface SupplierRow {
     .dtitle { display: flex; align-items: center; gap: 9px; }
     .dtitle strong { font-size: var(--fs-lg); }
     .dbody { display: grid; gap: 16px; }
+    .supplier-form, .cost-grid { display: grid; gap: 12px; }
+    .cost-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .field { display: grid; gap: 5px; }
+    .field input[type="text"], .field input[type="number"], .field select, .field textarea { height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); font-family: inherit; }
+    .field textarea { height: auto; padding: 10px 12px; resize: vertical; }
+    .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--primary); }
+    .field--check { justify-items: start; }
+    .field--check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
+    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+    .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
     .facts div { display: grid; gap: 2px; }
@@ -190,6 +260,11 @@ export class PurchasingSuppliers {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly suppliers = signal<ApiSupplier[]>([]);
+  protected readonly busy = signal(false);
+  protected readonly creating = signal(false);
+  protected readonly editing = signal(false);
+  protected readonly editForm = { name: '', category: '', location: '', slaScore: 0, quotaUnits: 0, certified: false, complianceNotes: '' };
+  protected readonly createForm = { name: '', category: '', location: '', slaScore: 0, quotaUnits: 0, certified: false, complianceNotes: '' };
 
   protected readonly filter = signal('all');
   protected readonly query = signal('');
@@ -276,10 +351,86 @@ export class PurchasingSuppliers {
   }
 
   protected open(id: string): void {
+    this.editing.set(false);
     this.router.navigate(['/purchasing/suppliers', id]);
   }
 
   protected close(): void {
+    this.editing.set(false);
     this.router.navigate(['/purchasing/suppliers']);
+  }
+
+  protected openCreate(): void {
+    this.createForm.name = '';
+    this.createForm.category = '';
+    this.createForm.location = '';
+    this.createForm.slaScore = 0;
+    this.createForm.quotaUnits = 0;
+    this.createForm.certified = false;
+    this.createForm.complianceNotes = '';
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected editSelected(): void {
+    const current = this.selected();
+    if (!current) return;
+    this.editForm.name = current.name;
+    this.editForm.category = current.category ?? '';
+    this.editForm.location = current.location ?? '';
+    this.editForm.slaScore = current.slaScore ?? 0;
+    this.editForm.quotaUnits = current.quotaUnits ?? 0;
+    this.editForm.certified = current.certified;
+    this.editForm.complianceNotes = current.complianceNotes ?? '';
+    this.editing.set(true);
+  }
+
+  protected async createSupplier(): Promise<void> {
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      await this.suppliersApi.create({
+        name: this.createForm.name.trim(),
+        category: this.createForm.category || null,
+        location: this.createForm.location.trim() || null,
+        certified: this.createForm.certified,
+        slaScore: this.createForm.slaScore || null,
+        quotaUnits: this.createForm.quotaUnits || null,
+        complianceNotes: this.createForm.complianceNotes.trim() || null,
+      });
+      this.creating.set(false);
+      await this.loadSuppliers();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not create the supplier.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected async saveEdit(): Promise<void> {
+    const current = this.selected();
+    if (!current) return;
+    this.busy.set(true);
+    this.error.set(null);
+    try {
+      await this.suppliersApi.update(current.id, {
+        name: this.editForm.name.trim(),
+        category: this.editForm.category || null,
+        location: this.editForm.location.trim() || null,
+        certified: this.editForm.certified,
+        slaScore: this.editForm.slaScore || null,
+        quotaUnits: this.editForm.quotaUnits || null,
+        complianceNotes: this.editForm.complianceNotes.trim() || null,
+      });
+      this.editing.set(false);
+      await this.loadSuppliers();
+    } catch (err) {
+      this.error.set(err instanceof Error ? err.message : 'Could not save the supplier.');
+    } finally {
+      this.busy.set(false);
+    }
   }
 }

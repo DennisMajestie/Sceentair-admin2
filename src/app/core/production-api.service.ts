@@ -77,6 +77,35 @@ export interface ApiBatchBomRow {
   consumedQuantity: number;
 }
 
+export interface CreateBatchInput {
+  variantId: string;
+  quantity: number;
+  plannedDate?: string;
+  approvalRequestId: string;
+}
+
+export interface RecordCostInput {
+  materialCost?: number;
+  sewingCost?: number;
+  brandingCost?: number;
+  packagingCost?: number;
+}
+
+export type QcDisposition = 'burned' | 'repaired_restocked';
+
+export interface RecordQcRejectionInput {
+  quantity?: number;
+  reason: string;
+  disposition: QcDisposition;
+  inspectorId?: string;
+}
+
+export interface RecordScanInput {
+  eventType: string;
+  scannedQty?: number;
+  operatorId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ProductionApiService {
   private readonly http = inject(HttpClient);
@@ -145,6 +174,48 @@ export class ProductionApiService {
       this.http.patch<ApiProductionBatch>(
         apiUrl(this.baseUrl, `production-batches/${encodeURIComponent(id)}/stage`),
         { stage },
+      ),
+    );
+  }
+
+  createBatch(input: CreateBatchInput): Promise<ApiProductionBatch> {
+    return firstValueFrom(
+      this.http.post<ApiProductionBatch>(apiUrl(this.baseUrl, 'production-batches'), input),
+    );
+  }
+
+  recordCost(id: string, input: RecordCostInput): Promise<ApiProductionCost> {
+    return firstValueFrom(
+      this.http.post<ApiProductionCost>(
+        apiUrl(this.baseUrl, `production-batches/${encodeURIComponent(id)}/cost`),
+        input,
+      ),
+    );
+  }
+
+  registerBarcode(id: string, barcode: string): Promise<void> {
+    return firstValueFrom(
+      this.http.post(
+        apiUrl(this.baseUrl, `production-batches/${encodeURIComponent(id)}/barcode`),
+        { barcode },
+      ),
+    ).then(() => undefined);
+  }
+
+  recordScan(id: string, input: RecordScanInput): Promise<void> {
+    return firstValueFrom(
+      this.http.post(
+        apiUrl(this.baseUrl, `production-batches/${encodeURIComponent(id)}/scans`),
+        input,
+      ),
+    ).then(() => undefined);
+  }
+
+  recordQcRejection(id: string, input: RecordQcRejectionInput): Promise<ApiQCRejection> {
+    return firstValueFrom(
+      this.http.post<ApiQCRejection>(
+        apiUrl(this.baseUrl, `production-batches/${encodeURIComponent(id)}/qc-rejection`),
+        input,
       ),
     );
   }

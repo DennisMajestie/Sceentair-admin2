@@ -30,6 +30,11 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/products/item').then((m) => m.ProductItem),
   },
   {
+    path: 'products/reviews',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/products/reviews').then((m) => m.ProductsReviews),
+  },
+  {
     path: 'products/batches',
     loadComponent: () => import('./sections/products/batches').then((m) => m.ProductBatches),
   },
@@ -65,6 +70,41 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/orders/returns').then((m) => m.OrdersReturns),
   },
 
+  {
+    path: 'production',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/queue').then((m) => m.ProductionQueue),
+  },
+  {
+    path: 'production/tech-packs',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/tech-packs').then((m) => m.ProductionTechPacks),
+  },
+  {
+    path: 'production/tech-packs/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/tech-packs').then((m) => m.ProductionTechPacks),
+  },
+  {
+    path: 'production/kiosk',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/kiosk').then((m) => m.FloorKiosk),
+  },
+  {
+    path: 'production/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/queue').then((m) => m.ProductionQueue),
+  },
+  {
+    path: 'orders/custom',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/orders/custom').then((m) => m.OrdersCustom),
+  },
+  {
+    path: 'orders/custom/:id',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/orders/custom').then((m) => m.OrdersCustom),
+  },
   {
     path: 'purchasing/orders',
     loadComponent: () => import('./sections/purchasing/orders').then((m) => m.PurchasingOrders),
@@ -248,6 +288,11 @@ export const routes: Routes = [
   {
     path: 'settings/team',
     loadComponent: () => import('./sections/settings/team').then((m) => m.SettingsTeam),
+  },
+  {
+    path: 'settings/security',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/settings/security').then((m) => m.SettingsSecurity),
   },
 
   {
