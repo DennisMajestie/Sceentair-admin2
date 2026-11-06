@@ -20,11 +20,11 @@ import { ThemeService } from '../../core/theme';
             <button
               class="theme-toggle login-theme-toggle"
               type="button"
-              [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-              [attr.title]="theme.theme() === 'dark' ? 'Light mode' : 'Dark mode'"
-              (click)="theme.toggle()"
+              [attr.aria-label]="isDarkMode() ? 'Switch to light mode' : 'Switch to dark mode'"
+              [attr.title]="isDarkMode() ? 'Light mode' : 'Dark mode'"
+              (click)="theme.cycleMode()"
             >
-              @if (theme.theme() === 'dark') {
+              @if (isDarkMode()) {
                 <svg
                   viewBox="0 0 24 24"
                   fill="none"
@@ -143,7 +143,7 @@ import { ThemeService } from '../../core/theme';
                   <label class="field">
                     <span class="field-label">New password</span>
                     <input
-                      [type]="showPassword ? 'text' : 'password'"
+                      [type]="showPassword() ? 'text' : 'password'"
                       [(ngModel)]="newPassword"
                       name="rpass"
                       placeholder="at least 8 characters"
@@ -154,7 +154,7 @@ import { ThemeService } from '../../core/theme';
                   <label class="field">
                     <span class="field-label">Confirm new password</span>
                     <input
-                      [type]="showPassword ? 'text' : 'password'"
+                      [type]="showPassword() ? 'text' : 'password'"
                       [(ngModel)]="newPassword2"
                       name="rpass2"
                       placeholder="repeat it"
@@ -206,7 +206,7 @@ import { ThemeService } from '../../core/theme';
                     <button type="button" class="forgot" (click)="forgot()">Forgot?</button>
                   </span>
                   <span class="pw-wrap">
-                      <input
+                    <input
                       [type]="showPassword() ? 'text' : 'password'"
                       [(ngModel)]="password"
                       name="password"
@@ -509,7 +509,6 @@ import { ThemeService } from '../../core/theme';
         position: absolute;
         right: 14px;
         top: 50%;
-        transform: translateY(-50%);
         width: 36px;
         height: 36px;
         padding: 0;
@@ -621,7 +620,7 @@ export class LoginPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
-  private readonly theme = inject(ThemeService);
+  protected readonly theme = inject(ThemeService);
 
   protected readonly email = signal('');
   protected readonly password = signal('');
@@ -645,6 +644,8 @@ export class LoginPage {
   protected readonly isDesktop = signal(window.matchMedia('(min-width: 900px)').matches);
 
   protected readonly scrolled = signal(false);
+
+  protected readonly isDarkMode = computed(() => this.theme.resolved() === 'dark');
 
   constructor() {
     void this.init();

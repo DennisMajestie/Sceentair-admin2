@@ -28,6 +28,10 @@ export class App {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
         this.isSignin.set(e.urlAfterRedirects.startsWith('/signin'));
+        // Every page load starts at the top of the document. Skip fragment links.
+        if (typeof window !== 'undefined' && !e.urlAfterRedirects.includes('#')) {
+          window.scrollTo(0, 0);
+        }
       }
       if (!(e instanceof NavigationStart)) return;
       const seg = (u: string) => (u || '').split('?')[0].split('/')[1] ?? '';

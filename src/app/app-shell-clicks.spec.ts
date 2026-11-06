@@ -2,8 +2,11 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { filter, firstValueFrom } from 'rxjs';
 import { NavigationEnd, provideRouter, Router } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { App } from './app';
 import { routes } from './app.routes';
+import { AuthService } from './core/auth.service';
+import { NAV } from './core/nav';
 import { SdShellStateService } from './core/sd-shell-state.service';
 
 describe('App shell sidebar interaction (full app, real router)', () => {
@@ -15,7 +18,22 @@ describe('App shell sidebar interaction (full app, real router)', () => {
     localStorage.removeItem('sd-rail');
     await TestBed.configureTestingModule({
       imports: [App, HttpClientTestingModule],
-      providers: [provideRouter(routes)],
+      providers: [
+        provideRouter(routes),
+        {
+          provide: AuthService,
+          useValue: {
+            user: signal({
+              id: 'user-admin',
+              email: 'admin@example.test',
+              name: 'Admin',
+              role: 'business_owner_admin',
+              access: {},
+            }),
+            restoreSession: () => Promise.resolve(true),
+          },
+        },
+      ],
     }).compileComponents();
     fixture = TestBed.createComponent(App);
     router = TestBed.inject(Router);
@@ -43,7 +61,7 @@ describe('App shell sidebar interaction (full app, real router)', () => {
 
   it('parent group links navigate to their landing pages and keep navigating', async () => {
     const groups = () => el.querySelectorAll<HTMLButtonElement>('app-sidebar .ri-group');
-    expect(groups().length).toBe(9);
+    expect(groups().length).toBe(NAV.length);
 
     const first = navDone();
     groups()[1].click(); // Products → /products/catalog

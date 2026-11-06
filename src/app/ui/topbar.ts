@@ -3,7 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '../core/store';
 import { ThemeService } from '../core/theme';
-import { NAV, type NavSection } from '../core/nav';
+import { matchSection } from '../core/nav';
 import { relative as relativeTime } from '../core/format';
 import { Icon } from './icon';
 import { SdSlidingIndicator } from './sliding-indicator';
@@ -423,21 +423,15 @@ export class Topbar {
   protected readonly createOpen = signal(false);
   protected readonly accountOpen = signal(false);
 
-  protected readonly sectionId = signal(this.segOf(this.router.url));
+  protected readonly section = signal(matchSection(this.router.url));
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
-      if (e instanceof NavigationEnd) this.sectionId.set(this.segOf(e.urlAfterRedirects));
+      if (e instanceof NavigationEnd) this.section.set(matchSection(e.urlAfterRedirects));
     });
   }
-
-  protected readonly section = computed<NavSection>(() => NAV.find((s) => s.id === this.sectionId()) ?? NAV[0]);
   protected readonly me = computed(() => this.store.settings().me);
   protected readonly unread = computed(() => this.store.notices().filter((n) => !n.read).length);
-
-  protected segOf(url: string): string {
-    return (url || '').split('?')[0].split('/')[1] ?? 'dashboard';
-  }
 
   protected greeting(): string {
     const h = new Date().getHours();

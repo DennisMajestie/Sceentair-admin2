@@ -115,7 +115,7 @@ export class AuthService {
   }
 
   async resetPassword(email: string): Promise<void> {
-    return firstValueFrom(
+    await firstValueFrom(
       this.http.post(apiUrl(this.baseUrl, 'auth/reset-password'), { email }, { withCredentials: true }),
     );
   }

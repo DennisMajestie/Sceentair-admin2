@@ -12,7 +12,6 @@ import {
   signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { RouterLink } from '@angular/router';
 import { gsap } from 'gsap';
 import { AuthService } from '../../core/auth.service';
 import { Store } from '../../core/store';
@@ -166,7 +165,7 @@ function avatarToneForId(id: string): string {
 @Component({
   selector: 'app-settings-team',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, RouterLink],
+  imports: [Icon],
   template: `
     <div class="head">
       <div class="head__text">
@@ -440,7 +439,6 @@ function avatarToneForId(id: string): string {
               <span class="seat-meter__fill" [attr.data-progress]="seats.percent / 100"></span>
             </div>
             <p class="hint">Seat use is based on the team members returned by the API.</p>
-            <a class="btn btn--ghost billing-link" [routerLink]="['/settings/billing']">Manage billing</a>
           </div>
         </article>
       }

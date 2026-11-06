@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NAV } from '../core/nav';
+import { NAV, matchSection } from '../core/nav';
 import { Store } from '../core/store';
 import { ThemeService } from '../core/theme';
 import { ToastService } from '../core/toast';
@@ -288,10 +288,7 @@ export class Sidebar {
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (!(e instanceof NavigationEnd)) return;
-      const url = (e.urlAfterRedirects || '').split('?')[0];
-      const active = this.nav.find(
-        (s) => s.path === url || s.pages.some((p) => p.path === url),
-      );
+      const active = matchSection(e.urlAfterRedirects || '');
       this.activeSectionId.set(active?.id ?? null);
     });
 

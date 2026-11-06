@@ -8,18 +8,22 @@ import { CustomerDetailDrawerComponent } from '../sections/customers/customer-de
 import { CustomerShoppers } from '../sections/customers/shoppers';
 import {
   ApiCustomer,
-  ApiCustomerList,
   CustomersApiService,
 } from './customers-api.service';
-import {
-  ApiOrder,
-  OrdersApiService,
-} from './orders-api.service';
+import { OrdersApiService } from './orders-api.service';
 import { CatalogueApiService, type ApiProduct } from './catalogue-api.service';
-import { MaterialsApiService, type ApiMaterial } from './materials-api.service';
-import { SuppliersApiService, type ApiSupplier } from './suppliers-api.service';
-import { InventoryApiService, type ApiCount } from './inventory-api.service';
-import { HelpApiService, type ApiTicket } from './help-api.service';
+import { MaterialsApiService } from './materials-api.service';
+import { SuppliersApiService } from './suppliers-api.service';
+import { InventoryApiService } from './inventory-api.service';
+import { HelpApiService } from './help-api.service';
+import { UsersApiService } from './users-api.service';
+import { NotificationsApiService } from './notifications-api.service';
+import { AuditApiService } from './audit-api.service';
+import { BusinessApiService } from './business-api.service';
+import { AccountingApiService } from './accounting-api.service';
+import { ApprovalsApiService } from './approvals-api.service';
+import { ProductionApiService } from './production-api.service';
+import { ReturnsApiService } from './returns-api.service';
 import { ToastService } from './toast';
 
 const TEST_PRODUCT: ApiProduct = {
@@ -52,12 +56,66 @@ const TEST_CUSTOMER: ApiCustomer = {
 };
 
 const catalogueApi = jasmine.createSpyObj('CatalogueApiService', ['list']);
-const materialsApi = jasmine.createSpyObj('MaterialsApiService', ['list']);
+const materialsApi = jasmine.createSpyObj('MaterialsApiService', ['list', 'purchases', 'valuation']);
 const suppliersApi = jasmine.createSpyObj('SuppliersApiService', ['list']);
 const customersApi = jasmine.createSpyObj('CustomersApiService', ['list']);
 const ordersApi = jasmine.createSpyObj('OrdersApiService', ['list']);
-const inventoryApi = jasmine.createSpyObj('InventoryApiService', ['counts']);
+const inventoryApi = jasmine.createSpyObj('InventoryApiService', ['counts', 'summary']);
 const helpApi = jasmine.createSpyObj('HelpApiService', ['tickets']);
+const usersApi = jasmine.createSpyObj('UsersApiService', ['list']);
+const notificationsApi = jasmine.createSpyObj('NotificationsApiService', ['list', 'getPreferences']);
+const auditApi = jasmine.createSpyObj('AuditApiService', ['list']);
+const businessApi = jasmine.createSpyObj('BusinessApiService', ['getProfile']);
+const accountingApi = jasmine.createSpyObj('AccountingApiService', ['list']);
+const approvalsApi = jasmine.createSpyObj('ApprovalsApiService', ['list']);
+const productionApi = jasmine.createSpyObj('ProductionApiService', ['list']);
+const returnsApi = jasmine.createSpyObj('ReturnsApiService', ['list']);
+
+function primeLoadMocks(): void {
+  catalogueApi.list.and.returnValue(Promise.resolve({ data: [TEST_PRODUCT], total: 1 }));
+  materialsApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  materialsApi.purchases.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  materialsApi.valuation.and.returnValue(Promise.resolve([]));
+  suppliersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  customersApi.list.and.returnValue(Promise.resolve({ data: [TEST_CUSTOMER], total: 1 }));
+  ordersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  inventoryApi.counts.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  inventoryApi.summary.and.returnValue(Promise.resolve([]));
+  helpApi.tickets.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  usersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  notificationsApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  notificationsApi.getPreferences.and.returnValue(Promise.resolve({}));
+  auditApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  businessApi.getProfile.and.returnValue(
+    Promise.resolve({
+      id: 1,
+      name: 'Test Co',
+      legalName: null,
+      address: null,
+      phone: null,
+      email: null,
+      taxId: null,
+      currency: 'GBP',
+      timezone: 'Europe/London',
+      fiscalStart: '04-01',
+      factoryName: null,
+      factoryCity: null,
+      factoryAddress: null,
+      factoryCapacity: null,
+      factoryHours: null,
+      expiryWarnDays: 30,
+      lowStockMode: 'threshold',
+      defaultLocationId: null,
+      weekStart: 'monday',
+      revenueGoal: 0,
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    }),
+  );
+  accountingApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  approvalsApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  productionApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+  returnsApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+}
 
 describe('customer detail data', () => {
   beforeEach(() =>
@@ -72,6 +130,14 @@ describe('customer detail data', () => {
         { provide: OrdersApiService, useValue: ordersApi },
         { provide: InventoryApiService, useValue: inventoryApi },
         { provide: HelpApiService, useValue: helpApi },
+        { provide: UsersApiService, useValue: usersApi },
+        { provide: NotificationsApiService, useValue: notificationsApi },
+        { provide: AuditApiService, useValue: auditApi },
+        { provide: BusinessApiService, useValue: businessApi },
+        { provide: AccountingApiService, useValue: accountingApi },
+        { provide: ApprovalsApiService, useValue: approvalsApi },
+        { provide: ProductionApiService, useValue: productionApi },
+        { provide: ReturnsApiService, useValue: returnsApi },
       ],
     }),
   );
@@ -123,13 +189,7 @@ describe('customer detail data', () => {
   });
 
   it('returns no customer detail for unknown ids and derives the drawer from the store', async () => {
-    catalogueApi.list.and.returnValue(Promise.resolve({ data: [TEST_PRODUCT], total: 1 }));
-    customersApi.list.and.returnValue(Promise.resolve({ data: [TEST_CUSTOMER], total: 1 }));
-    materialsApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    suppliersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    ordersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    inventoryApi.counts.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    helpApi.tickets.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+    primeLoadMocks();
     const store = TestBed.inject(Store);
     await store.load();
     expect(buildCustomerDetail(store, 'unknown-customer')).toBeNull();
@@ -144,13 +204,7 @@ describe('customer detail data', () => {
   });
 
   it('omits contact, spend, and footer content when their fields have no data', async () => {
-    catalogueApi.list.and.returnValue(Promise.resolve({ data: [TEST_PRODUCT], total: 1 }));
-    customersApi.list.and.returnValue(Promise.resolve({ data: [TEST_CUSTOMER], total: 1 }));
-    materialsApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    suppliersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    ordersApi.list.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    inventoryApi.counts.and.returnValue(Promise.resolve({ data: [], total: 0 }));
-    helpApi.tickets.and.returnValue(Promise.resolve({ data: [], total: 0 }));
+    primeLoadMocks();
     const store = TestBed.inject(Store);
     await store.load();
     const customer = store.customers()[0];

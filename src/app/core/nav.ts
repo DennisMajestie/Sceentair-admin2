@@ -44,6 +44,7 @@ export const NAV: NavSection[] = [
       { label: 'All orders', path: '/orders/all' },
       { label: 'Board', path: '/orders/board' },
       { label: 'Returns', path: '/orders/returns', badge: 'returns' },
+      { label: 'Deliveries', path: '/deliveries' },
     ],
   },
   {
@@ -58,51 +59,6 @@ export const NAV: NavSection[] = [
     ],
   },
   {
-    id: 'accounting',
-    label: 'Accounting',
-    icon: 'dollar',
-    path: '/accounting/ledger',
-    pages: [
-      { label: 'Ledger', path: '/accounting/ledger' },
-    ],
-  },
-  {
-    id: 'approvals',
-    label: 'Approvals',
-    icon: 'check',
-    path: '/approvals',
-    pages: [
-      { label: 'Approval queue', path: '/approvals' },
-    ],
-  },
-  {
-    id: 'audit',
-    label: 'Audit',
-    icon: 'alert',
-    path: '/audit/log',
-    pages: [
-      { label: 'Audit log', path: '/audit/log' },
-    ],
-  },
-  {
-    id: 'coupons',
-    label: 'Coupons',
-    icon: 'ticket',
-    path: '/coupons/wallet',
-    pages: [
-      { label: 'Wallet', path: '/coupons/wallet' },
-    ],
-  },
-  {
-    id: 'logistics',
-    label: 'Logistics',
-    icon: 'truck',
-    path: '/deliveries',
-    pages: [
-      { label: 'Deliveries', path: '/deliveries' },
-    ],
-  },
-  {
     id: 'warehouses',
     label: 'Warehouses',
     icon: 'warehouses',
@@ -110,6 +66,41 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Locations', path: '/warehouses/locations' },
       { label: 'Cycle counts', path: '/warehouses/counts', badge: 'counts' },
+    ],
+  },
+  {
+    id: 'customers',
+    label: 'Customers',
+    icon: 'customers',
+    path: '/customers/shoppers',
+    pages: [
+      { label: 'Shoppers', path: '/customers/shoppers' },
+      { label: 'Stockists', path: '/customers/stockists' },
+      { label: 'Wholesale accounts', path: '/wholesale/accounts' },
+      { label: 'Wholesale tiers', path: '/wholesale/tiers' },
+    ],
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing',
+    icon: 'chart',
+    path: '/marketing/campaigns',
+    pages: [
+      { label: 'Campaigns', path: '/marketing/campaigns' },
+      { label: 'Coupon wallet', path: '/coupons/wallet' },
+      { label: 'Media library', path: '/media' },
+    ],
+  },
+  {
+    id: 'finance',
+    label: 'Finance',
+    icon: 'dollar',
+    path: '/accounting/ledger',
+    pages: [
+      { label: 'Ledger', path: '/accounting/ledger' },
+      { label: 'Approval queue', path: '/approvals' },
+      { label: 'Audit log', path: '/audit/log' },
+      { label: 'Partners', path: '/partners' },
     ],
   },
   {
@@ -121,53 +112,6 @@ export const NAV: NavSection[] = [
       { label: 'Overview', path: '/analytics/overview' },
       { label: 'Sales', path: '/analytics/sales' },
       { label: 'Stock', path: '/analytics/stock' },
-    ],
-  },
-  {
-    id: 'customers',
-    label: 'Customers',
-    icon: 'customers',
-    path: '/customers/shoppers',
-    pages: [
-      { label: 'Shoppers', path: '/customers/shoppers' },
-      { label: 'Stockists', path: '/customers/stockists' },
-    ],
-  },
-  {
-    id: 'wholesale',
-    label: 'Wholesale',
-    icon: 'store',
-    path: '/wholesale/accounts',
-    pages: [
-      { label: 'Accounts', path: '/wholesale/accounts' },
-      { label: 'Tiers', path: '/wholesale/tiers' },
-    ],
-  },
-  {
-    id: 'media',
-    label: 'Media',
-    icon: 'card',
-    path: '/media',
-    pages: [
-      { label: 'Library', path: '/media' },
-    ],
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    icon: 'chart',
-    path: '/marketing/campaigns',
-    pages: [
-      { label: 'Campaigns', path: '/marketing/campaigns' },
-    ],
-  },
-  {
-    id: 'partners',
-    label: 'Partners',
-    icon: 'users',
-    path: '/partners',
-    pages: [
-      { label: 'Partners', path: '/partners' },
     ],
   },
   {
@@ -193,3 +137,15 @@ export const NAV: NavSection[] = [
     ],
   },
 ];
+
+/** Resolve the section for a URL: exact id match first, then by page path prefix. Falls back to dashboard. */
+export function matchSection(url: string): NavSection {
+  const path = (url || '').split('?')[0];
+  const segment = path.split('/')[1] ?? 'dashboard';
+  const byId = NAV.find((s) => s.id === segment);
+  if (byId) return byId;
+  const byPage = NAV.find((s) =>
+    s.pages.some((p) => path === p.path || path.startsWith(`${p.path}/`)),
+  );
+  return byPage ?? NAV[0];
+}

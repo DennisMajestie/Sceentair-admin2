@@ -164,6 +164,9 @@ export interface PurchaseOrder {
   sentAt: number | null;
   eta: number | null;
   receivedAt: number | null;
+  leadTimeDays: number | null;
+  recordedBy: string | null;
+  readAt: number | null;
   lines: PoLine[];
   note: string;
 }

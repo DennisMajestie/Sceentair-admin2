@@ -4,6 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
+    "inject:api:url": "node scripts/inject-api-url.js",
+    "prebuild": "npm run inject:api:url",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"

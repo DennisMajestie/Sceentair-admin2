@@ -221,6 +221,9 @@ function mapPurchase(p: ApiPurchase): PurchaseOrder {
     sentAt: null,
     eta: null,
     receivedAt: purchasedAt,
+    leadTimeDays: p.leadTimeDays,
+    recordedBy: p.recordedBy,
+    readAt: null,
     lines: [
       {
         materialId: p.material.id,
