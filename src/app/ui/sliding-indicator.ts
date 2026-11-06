@@ -11,8 +11,11 @@ import {
 } from '@angular/core';
 import { gsap } from 'gsap';
 
-export const SD_INDICATOR_FEEL: 'spring' | 'stretch' = 'spring';
+export const SD_INDICATOR_FEEL: 'spring' | 'stretch' = 'stretch';
 const INDICATOR_DURATION = 2.8;
+/** Droplet timing: tip accelerates toward the item, then contracts onto it. */
+const STRETCH_REACH = 0.26;
+const STRETCH_SETTLE = 0.52;
 
 export interface IndicatorBox {
   x: number;
@@ -237,12 +240,12 @@ export class SdSlidingIndicator implements AfterViewInit {
         .to(this.indicator, {
           ...union,
           opacity: 1,
-          duration: INDICATOR_DURATION * 0.3,
-          ease: 'power2.in',
+          duration: STRETCH_REACH,
+          ease: 'power3.in',
         })
         .to(this.indicator, {
           ...target,
-          duration: INDICATOR_DURATION * 0.7,
+          duration: STRETCH_SETTLE,
           ease: 'power3.out',
         });
     }
