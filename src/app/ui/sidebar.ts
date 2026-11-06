@@ -114,7 +114,7 @@ import { Icon } from './icon';
       flex-direction: column;
       gap: 6px;
       box-shadow: var(--sd-shadow);
-      width: 90%;
+      width: 100%;
     }
     .railbox--row {
       flex-direction: row;
@@ -177,7 +177,7 @@ import { Icon } from './icon';
     }
     .ri__count {
       position: absolute;
-      top: 5px;
+      top: 20px;
       right: 10px;
       min-width: 18px;
       height: 18px;
@@ -191,8 +191,8 @@ import { Icon } from './icon';
       place-items: center;
     }
     .ri.is-on .ri__count {
-      background: var(--on-primary);
-      color: var(--primary);
+      // background: var(--on-primary);
+      color: var(--raised);
     }
     /* Navigation list */
     .nav-list {
