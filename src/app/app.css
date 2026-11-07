@@ -31,6 +31,16 @@
   margin-top: var(--sd-island-gap);
   align-items: start;
 }
+
+.realtime-status {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
 .layout.sd-collapsed {
   grid-template-columns: 76px minmax(0, 1fr);
 }

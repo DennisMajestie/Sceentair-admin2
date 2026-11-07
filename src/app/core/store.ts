@@ -641,10 +641,7 @@ export class Store {
       this.approvalsApi
         .list({ page: 1, limit: 100 })
         .then((r) => {
-          this.state.update((s) => ({
-            ...s,
-            approvals: r.data.map(mapApproval),
-          }));
+          next.approvals = r.data.map(mapApproval);
         })
         .catch(() => {}),
     ]);

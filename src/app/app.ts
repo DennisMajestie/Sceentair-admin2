@@ -1,11 +1,15 @@
-import { ChangeDetectionStrategy, Component, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { auditTime } from 'rxjs';
 import { Topbar } from './ui/topbar';
 import { Sidebar } from './ui/sidebar';
 import { Palette } from './ui/palette';
 import { ToastHost } from './ui/toast-host';
 import { SdShellStateService } from './core/sd-shell-state.service';
+import { ApiSession } from './core/api-session';
+import { RealtimeService } from './core/realtime.service';
+import { Store } from './core/store';
 
 @Component({
   selector: 'app-root',
@@ -17,14 +21,23 @@ import { SdShellStateService } from './core/sd-shell-state.service';
 export class App {
   private readonly router = inject(Router);
   private readonly state = inject(SdShellStateService);
+  private readonly session = inject(ApiSession);
+  private readonly realtime = inject(RealtimeService);
+  private readonly store = inject(Store);
   private readonly paletteRef = viewChild(Palette);
   protected readonly mobileNav = signal(false);
   protected readonly layoutAnimated = signal(false);
   protected readonly isSignin = signal(this.router.url.startsWith('/signin'));
 
   protected readonly collapsed = this.state.collapsed;
+  protected readonly realtimeStatus = this.realtime.status;
 
   constructor() {
+    effect(() => this.realtime.connect(this.session.accessToken()));
+    this.realtime.adminDataChanged
+      .pipe(auditTime(250), takeUntilDestroyed())
+      .subscribe(() => void this.store.load());
+
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
         this.isSignin.set(e.urlAfterRedirects.startsWith('/signin'));
