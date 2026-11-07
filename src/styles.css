@@ -35,10 +35,10 @@ app-settings-team .team-details {
   gap: 16px;
 }
 
-app-settings-team .team-details--permissions {
+/* app-settings-team .team-details--permissions {
   grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
   align-items: start;
-}
+} */
 
 app-settings-team .team-details .seats-card,
 app-settings-team .team-details .permissions-card {
