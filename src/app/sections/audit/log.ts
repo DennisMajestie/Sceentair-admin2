@@ -5,18 +5,94 @@ import { map } from 'rxjs';
 import { AuditApiService, type ApiAuditEntry, type ApiAuditVerify } from '../../core/audit-api.service';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
-import { date as fmtDate } from '../../core/format';
+import { date as fmtDate, money } from '../../core/format';
+
+interface AuditChange {
+  label: string;
+  value: string;
+}
 
 interface AuditRow {
   id: string;
   at: number;
-  who: string;
+  actorId: string;
   whoName: string;
   action: string;
   text: string;
-  href: string;
   beforeState: unknown;
   afterState: unknown;
+  orderNumber: string;
+  customerName: string;
+  orderTotal: string;
+  itemSummary: string;
+  changes: AuditChange[];
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+}
+
+function isStockRefund(action: string): boolean {
+  return /\/orders\/[^/]+\/stock-exception\/refund\/?$/.test(action);
+}
+
+function stockRefundChanges(state: Record<string, unknown>): AuditChange[] {
+  const changes: AuditChange[] = [];
+  if (state['status'] === 'cancelled') {
+    changes.push({ label: 'Order status', value: 'Cancelled' });
+  }
+  if (state['paymentStatus'] === 'refunded') {
+    changes.push({ label: 'Payment', value: 'Refunded' });
+  }
+  const items = state['items'];
+  if (Array.isArray(items)) {
+    const unavailable = items.reduce((total, item) => {
+      const shortfall = asRecord(item)?.['shortfall'];
+      return total + (typeof shortfall === 'number' ? shortfall : 0);
+    }, 0);
+    if (unavailable > 0) {
+      changes.push({
+        label: 'Stock issue',
+        value: `${unavailable} ${unavailable === 1 ? 'item was' : 'items were'} unavailable`,
+      });
+    }
+  }
+  return changes;
+}
+
+function describeAction(action: string, stockRefund: boolean): string {
+  if (stockRefund) return 'Refunded an order after a stock shortage';
+  const route = action.replace(/^(GET|POST|PUT|PATCH|DELETE)\s+/i, '').replace(/^\/api\/v\d+\//, '');
+  const readable = route
+    .split('/')
+    .filter((part) => part && !/^(:id|\d+|[0-9a-f]{8}-[0-9a-f-]{27,})$/i.test(part))
+    .map((part) => part.replace(/[-_]/g, ' '))
+    .join(' ')
+    .trim();
+  return readable ? `Updated ${readable}` : 'Updated a record';
+}
+
+function describeRefund(state: Record<string, unknown>): string {
+  const orderNumber = stringValue(state['orderNumber']);
+  const customerName = stringValue(state['guestName']);
+  const items = Array.isArray(state['items']) ? state['items'] : [];
+  const unavailable = items.reduce((total, item) => {
+    const shortfall = asRecord(item)?.['shortfall'];
+    return total + (typeof shortfall === 'number' ? shortfall : 0);
+  }, 0);
+  const order = orderNumber ? `Order #${orderNumber}` : 'The order';
+  const customer = customerName ? ` for ${customerName}` : '';
+  const stockIssue =
+    unavailable > 0
+      ? ` ${unavailable} ${unavailable === 1 ? 'item was' : 'items were'} unavailable.`
+      : '';
+  return `${order}${customer} was cancelled and the payment was refunded.${stockIssue}`;
 }
 
 @Component({
@@ -81,18 +157,14 @@ interface AuditRow {
       @for (row of visible(); track row.id) {
         <button type="button" class="audit-card" (click)="open(row.id)" [attr.aria-label]="'Audit entry ' + row.id + ' ' + row.action">
           <span class="audit-card__top">
-            <span class="mono audit-card__id">{{ row.id }}</span>
+            <span class="audit-card__id">{{ row.action }}</span>
             <span class="audit-card__at">{{ date(row.at) }}</span>
           </span>
           <span class="audit-card__actor">
             <span>{{ row.whoName }}</span>
-            <span class="audit-card__action">{{ row.action }}</span>
           </span>
           <span class="audit-card__text">
-            {{ row.text ?? '—' }}
-          </span>
-          <span class="audit-card__href">
-            {{ row.href ?? '—' }}
+            {{ row.text }}
           </span>
         </button>
       }
@@ -108,25 +180,52 @@ interface AuditRow {
       <ng-container drawerTitle>
         @if (selected(); as e) {
           <div class="dtitle">
-            <strong class="mono">{{ e.id }}</strong>
-            <span>{{ e.action }}</span>
+            <strong>{{ e.action }}</strong>
+            <span>{{ date(e.at) }}</span>
           </div>
         }
       </ng-container>
       @if (selected(); as e) {
         <div class="dbody">
           <dl class="facts">
-            <div><dt>Action</dt><dd>{{ e.action }}</dd></div>
-            <div><dt>Actor</dt><dd>{{ e.whoName }}</dd></div>
-            <div><dt>At</dt><dd>{{ date(e.at) }}</dd></div>
-            <div><dt>Href</dt><dd>{{ e.href ?? '—' }}</dd></div>
+            <div><dt>Recorded by</dt><dd>{{ e.whoName }}</dd></div>
+            @if (e.orderNumber) {
+              <div><dt>Order</dt><dd>#{{ e.orderNumber }}</dd></div>
+            }
+            @if (e.customerName) {
+              <div><dt>Customer</dt><dd>{{ e.customerName }}</dd></div>
+            }
+            @if (e.orderTotal) {
+              <div><dt>Order total</dt><dd>{{ e.orderTotal }}</dd></div>
+            }
+            @if (e.itemSummary) {
+              <div><dt>Items</dt><dd>{{ e.itemSummary }}</dd></div>
+            }
           </dl>
 
-          <h3 class="dlabel">Before state</h3>
-          <pre class="dpayload">{{ payloadText(e.beforeState) }}</pre>
+          <section class="change-summary" aria-label="What changed">
+            <h3 class="dlabel">What changed</h3>
+            @if (e.changes.length) {
+              <ul class="change-list">
+                @for (change of e.changes; track change.label) {
+                  <li><strong>{{ change.label }}</strong><span>{{ change.value }}</span></li>
+                }
+              </ul>
+            } @else {
+              <p>{{ e.text }}</p>
+            }
+          </section>
 
-          <h3 class="dlabel">After state</h3>
-          <pre class="dpayload">{{ payloadText(e.afterState) }}</pre>
+          <details class="technical-record">
+            <summary>Technical record</summary>
+            <p>Audit entry ID: {{ e.id }}</p>
+            <p>Team member ID: {{ e.actorId }}</p>
+            <p>Recorded action: {{ e.action }}</p>
+            <h3 class="dlabel">Before</h3>
+            <pre class="dpayload">{{ payloadText(e.beforeState) }}</pre>
+            <h3 class="dlabel">Recorded data</h3>
+            <pre class="dpayload">{{ payloadText(e.afterState) }}</pre>
+          </details>
         </div>
       }
     </app-drawer>
@@ -139,7 +238,7 @@ interface AuditRow {
     .audit-card__top, .audit-card__actor { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .audit-card__id { font-size: var(--fs-sm); font-weight: 750; }
     .audit-card__at { color: var(--muted); font-size: var(--fs-sm); }
-    .audit-card__actor { gap: 10px; }
+    .audit-card__actor { justify-content: flex-start; gap: 10px; color: var(--muted); font-size: var(--fs-sm); }
     .audit-card__action { color: var(--muted); font-size: var(--fs-xs); }
     .audit-card__text { color: var(--text); font-size: var(--fs-sm); white-space: pre-wrap; }
     .audit-card__href { color: var(--faint); font-size: var(--fs-xs); }
@@ -156,6 +255,13 @@ interface AuditRow {
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dpayload { font-family: var(--fs-mono, monospace); font-size: var(--fs-2xs); white-space: pre-wrap; word-break: break-all; background: var(--well); border: 1px solid var(--line); border-radius: var(--r-card); padding: 10px; color: var(--muted); margin: 8px 0; }
+    .change-summary p { margin: 0; color: var(--text); }
+    .change-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .change-list li { display: flex; justify-content: space-between; gap: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-card); }
+    .change-list li span { text-align: right; }
+    .technical-record { color: var(--muted); font-size: var(--fs-sm); }
+    .technical-record summary { cursor: pointer; color: var(--muted); }
+    .technical-record p { overflow-wrap: anywhere; }
     .is-bad { color: var(--bad); }
     .mono { font-family: var(--fs-mono, monospace); }
   `,
@@ -188,17 +294,28 @@ export class AuditLog {
       this.auditApi.verify(),
     ]);
     this.entries.set(
-      entriesResult.data.map((e) => ({
-        id: e.id,
-        at: Date.parse(e.timestamp) || 0,
-        who: e.actorId ?? 'system',
-        whoName: e.actorId ?? 'system',
-        action: e.action,
-        text: '',
-        href: '',
-        beforeState: e.beforeState,
-        afterState: e.afterState,
-      })),
+      entriesResult.data.map((e) => {
+        const stockRefund = isStockRefund(e.action);
+        const state = asRecord(e.afterState);
+        const items = Array.isArray(state?.['items']) ? state['items'] : [];
+        const totalAmount = state?.['totalAmount'];
+        const action = describeAction(e.action, stockRefund);
+        return {
+          id: e.id,
+          at: Date.parse(e.timestamp) || 0,
+          actorId: e.actorId ?? 'system',
+          whoName: e.actorId ? 'Team member' : 'System',
+          action,
+          text: stockRefund && state ? describeRefund(state) : action,
+          beforeState: e.beforeState,
+          afterState: e.afterState,
+          orderNumber: stringValue(state?.['orderNumber']),
+          customerName: stringValue(state?.['guestName']),
+          orderTotal: typeof totalAmount === 'number' ? money(totalAmount) : '',
+          itemSummary: `${items.length} ${items.length === 1 ? 'item' : 'items'}`,
+          changes: stockRefund && state ? stockRefundChanges(state) : [],
+        };
+      }),
     );
     this.chain.set(chain);
   }
@@ -209,7 +326,7 @@ export class AuditLog {
     return list
       .filter((e) => {
         if (!q) return true;
-        const haystack = `${e.whoName} ${e.action} ${e.text}`.toLowerCase();
+        const haystack = `${e.whoName} ${e.action} ${e.text} ${e.orderNumber} ${e.customerName}`.toLowerCase();
         return haystack.includes(q);
       })
       .sort((a, b) => b.at - a.at);
