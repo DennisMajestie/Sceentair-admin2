@@ -7,6 +7,8 @@ import { saveCatalogCtx } from './prod-shared';
 
 type CatalogApiSort = 'name' | 'price';
 
+type CatalogListEditHandler = (row: CatalogRow) => void;
+
 function variantSku(row: CatalogRow): string {
   return row.variants[0]?.sku ?? '—';
 }
@@ -34,6 +36,7 @@ function variantSize(row: CatalogRow): string {
               Price <app-icon [name]="sortIcon('price')" [size]="12" aria-hidden="true" />
             </button>
           </th>
+          <th scope="col">Edit</th>
         </tr>
       </thead>
       <tbody>
@@ -57,6 +60,18 @@ function variantSize(row: CatalogRow): string {
             </th>
             <td>{{ row.category ?? '—' }}</td>
             <td class="num">{{ money()(row.price) }}</td>
+            <td>
+              @if (onEdit(); as editHandler) {
+                <button
+                  type="button"
+                  class="catalog-table-edit"
+                  [attr.aria-label]="'Edit ' + row.name"
+                  (click)="editHandler(row)"
+                >
+                  Edit
+                </button>
+              }
+            </td>
           </tr>
         }
       </tbody>
@@ -71,6 +86,7 @@ export class CatalogApiProductList {
   readonly sort = input.required<CatalogApiSort>();
   readonly direction = input.required<'asc' | 'desc'>();
   readonly money = input.required<(value: number) => string>();
+  readonly onEdit = input<CatalogListEditHandler | null>(null);
   readonly sortChange = output<CatalogApiSort>();
 
   protected variantSize = variantSize;

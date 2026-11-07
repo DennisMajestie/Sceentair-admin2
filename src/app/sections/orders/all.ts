@@ -320,6 +320,31 @@ const API_FLOW: ApiOrderStatus[] = [
             }
           </dl>
 
+          @if (o.status === 'processing') {
+            <h3 class="dlabel">Pack out</h3>
+            <div class="packout">
+              <label class="field">
+                <span class="field-label">Delivery note</span>
+                <input type="text" [value]="packNote()" (input)="packNote.set($any($event.target).value)" placeholder="e.g. leave with the front desk" />
+              </label>
+              <div class="packout__grid">
+                <label class="field">
+                  <span class="field-label">Gross weight (kg)</span>
+                  <input type="number" min="0" step="0.01" [value]="packWeightKg()" (input)="packWeightKg.set($any($event.target).value)" />
+                </label>
+                <label class="field">
+                  <span class="field-label">Pallet ref</span>
+                  <input type="text" [value]="packPalletRef()" (input)="packPalletRef.set($any($event.target).value)" placeholder="e.g. PLT-014" />
+                </label>
+              </div>
+              <div class="packout__actions">
+                <button type="button" class="btn" [disabled]="packSaving()" (click)="savePackOut(o.id)">
+                  {{ packSaving() ? 'Saving…' : 'Save pack-out' }}
+                </button>
+              </div>
+            </div>
+          }
+
           <h3 class="dlabel">Timeline</h3>
           <ol class="timeline">
             @for (h of o.history; track h.at) {
@@ -333,7 +358,15 @@ const API_FLOW: ApiOrderStatus[] = [
             }
           </ol>
           <div class="dfooter">
-            @if (nextStep(o); as next) {
+            @if (o.hasShortfall && o.status !== 'cancelled') {
+              <span class="dfooter__prompt">Short lines need allocation before dispatch.</span>
+              <button type="button" class="btn" [disabled]="stockBusy() !== null" (click)="retryAllocation()">
+                {{ stockBusy() === 'allocate' ? 'Allocating…' : 'Retry allocation' }}
+              </button>
+              <button type="button" class="btn btn--ghost destructive" [disabled]="stockBusy() !== null" (click)="refundOrder()">
+                {{ stockBusy() === 'refund' ? 'Refunding…' : 'Refund & cancel' }}
+              </button>
+            } @else if (nextStep(o); as next) {
               <button type="button" class="btn" [disabled]="!canAdvance(o, next)" (click)="advance(o, next)">
                 Advance to {{ labels[next] }}
               </button>
@@ -445,8 +478,16 @@ const API_FLOW: ApiOrderStatus[] = [
     .timeline__text { display: grid; line-height: 1.3; }
     .timeline__text strong { font-size: var(--fs-xs); }
     .timeline__text span { font-size: var(--fs-2xs); color: var(--faint); }
-    .dfooter { position: sticky; bottom: -14px; z-index: 2; display: flex; justify-content: flex-end; margin: 0 -14px -14px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+    .dfooter { position: sticky; bottom: -14px; z-index: 2; display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin: 0 -14px -14px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--surface); }
     .dfooter__complete { align-self: center; color: var(--muted); font-size: var(--fs-xs); }
+    .dfooter__prompt { flex: 1; min-width: 0; text-align: left; color: var(--bad); font-size: var(--fs-xs); font-weight: 600; }
+    .destructive { color: var(--bad); }
+    .packout { display: grid; gap: 9px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); }
+    .packout .field { display: grid; gap: 4px; }
+    .packout input { padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--raised); color: var(--text); font-size: var(--fs-sm); }
+    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+    .packout__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .packout__actions { display: flex; justify-content: flex-end; }
   `,
 })
 export class OrdersAll {
@@ -510,6 +551,12 @@ export class OrdersAll {
     this.rows().reduce((sum, row) => sum + row.total, 0),
   );
 
+  protected readonly stockBusy = signal<'allocate' | 'refund' | null>(null);
+  protected readonly packSaving = signal(false);
+  protected readonly packNote = signal('');
+  protected readonly packWeightKg = signal('');
+  protected readonly packPalletRef = signal('');
+
   constructor() {
     void this.loadPublicConfig();
     void this.loadOrders(true);
@@ -567,6 +614,7 @@ export class OrdersAll {
       total: order.totalAmount,
       subtotal,
       units: items.reduce((sum, item) => sum + item.quantity, 0),
+      hasShortfall: items.some((item) => (item.shortfall ?? 0) > 0),
       stepIndex: API_FLOW.indexOf(order.status),
       lines: items.map((item) => ({
         id: item.id,
@@ -617,6 +665,55 @@ export class OrdersAll {
         ? 'custom_orders'
         : 'retail_orders';
     return this.auth.user()?.access[module] === 'full';
+  }
+
+  protected async retryAllocation(): Promise<void> {
+    const order = this.selectedOrder();
+    if (!order || this.stockBusy() !== null) return;
+    this.stockBusy.set('allocate');
+    try {
+      await this.api.allocateStockException(order.id);
+      this.toasts.show('Short lines allocated', 'good');
+      await Promise.all([this.loadDetail(order.id), this.loadOrders(true)]);
+    } catch (error) {
+      this.toasts.show(error instanceof Error ? error.message : 'Could not allocate the short lines.', 'bad');
+    } finally {
+      this.stockBusy.set(null);
+    }
+  }
+
+  protected async refundOrder(): Promise<void> {
+    const order = this.selectedOrder();
+    if (!order || this.stockBusy() !== null) return;
+    this.stockBusy.set('refund');
+    try {
+      await this.api.refundStockException(order.id);
+      this.toasts.show('Order refunded and cancelled', 'good');
+      await Promise.all([this.loadDetail(order.id), this.loadOrders(true)]);
+    } catch (error) {
+      this.toasts.show(error instanceof Error ? error.message : 'Could not refund the order.', 'bad');
+    } finally {
+      this.stockBusy.set(null);
+    }
+  }
+
+  protected async savePackOut(orderId: string): Promise<void> {
+    if (this.packSaving()) return;
+    this.packSaving.set(true);
+    const weight = this.packWeightKg().trim();
+    try {
+      await this.api.fulfil(orderId, {
+        deliveryNote: this.packNote().trim() || null,
+        grossWeightKg: weight === '' || Number.isNaN(Number(weight)) ? null : Number(weight),
+        palletRef: this.packPalletRef().trim() || null,
+      });
+      this.toasts.show('Pack-out saved', 'good');
+      await Promise.all([this.loadDetail(orderId), this.loadOrders(true)]);
+    } catch (error) {
+      this.toasts.show(error instanceof Error ? error.message : 'Could not save the pack-out.', 'bad');
+    } finally {
+      this.packSaving.set(false);
+    }
   }
 
   protected ago(ts: number): string {
@@ -699,6 +796,12 @@ export class OrdersAll {
       if (requestId !== this.detailRequestId) return;
       this.selectedOrder.set(order);
       this.tracking.set(tracking);
+      if (this.detailLoadedId !== id) {
+        this.detailLoadedId = id;
+        this.packNote.set('');
+        this.packWeightKg.set('');
+        this.packPalletRef.set('');
+      }
     } catch (error) {
       if (requestId === this.detailRequestId) this.error.set(this.errorMessage(error));
     } finally {
@@ -708,6 +811,7 @@ export class OrdersAll {
 
   private listRequestId = 0;
   private detailRequestId = 0;
+  private detailLoadedId: string | null = null;
 
   private async loadPublicConfig(): Promise<void> {
     this.publicConfig.set(await this.api.publicConfig());

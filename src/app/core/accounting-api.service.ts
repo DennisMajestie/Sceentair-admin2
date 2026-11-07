@@ -61,4 +61,11 @@ export class AccountingApiService {
       ),
     );
   }
+
+  /** Record a manual income/expenditure ledger entry. */
+  recordEntry(body: Record<string, unknown>): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(apiUrl(this.baseUrl, 'accounting/ledger'), body),
+    );
+  }
 }

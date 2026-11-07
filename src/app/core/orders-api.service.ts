@@ -146,4 +146,37 @@ export class OrdersApiService {
       }),
     );
   }
+
+  /** Stock exception: retry the short lines against current stock. */
+  allocateStockException(id: string): Promise<ApiOrder> {
+    return firstValueFrom(
+      this.http.post<ApiOrder>(
+        apiUrl(this.baseUrl, `orders/${encodeURIComponent(id)}/stock-exception/allocate`),
+        {},
+      ),
+    );
+  }
+
+  /** Stock exception: release allocated units, record the refund, cancel the order. */
+  refundStockException(id: string): Promise<ApiOrder> {
+    return firstValueFrom(
+      this.http.post<ApiOrder>(
+        apiUrl(this.baseUrl, `orders/${encodeURIComponent(id)}/stock-exception/refund`),
+        {},
+      ),
+    );
+  }
+
+  /** Warehouse pack-out for dispatch: shipping address, weight, pallet, QR stencil. */
+  fulfil(
+    id: string,
+    body: Record<string, unknown>,
+  ): Promise<ApiOrder> {
+    return firstValueFrom(
+      this.http.patch<ApiOrder>(
+        apiUrl(this.baseUrl, `orders/${encodeURIComponent(id)}/fulfilment`),
+        body,
+      ),
+    );
+  }
 }

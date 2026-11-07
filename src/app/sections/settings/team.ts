@@ -1,4 +1,4 @@
-import {
+﻿import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
@@ -12,14 +12,17 @@ import {
   signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { gsap } from 'gsap';
 import { AuthService } from '../../core/auth.service';
 import { Store } from '../../core/store';
 import { count as fmtCount } from '../../core/format';
 import { TeamRole } from '../../core/models';
 import { ToastService } from '../../core/toast';
-import { ApiRoleMatrixRow, ApiRolePermission, UsersApiService } from '../../core/users-api.service';
+import { ApiCreateUserInput, UsersApiService } from '../../core/users-api.service';
+import { StaffPermissionsComponent } from './staff-permissions.component';
 import { Icon } from '../../ui/icon';
+import { Drawer } from '../../ui/drawer';
 
 export type RoleFilter = 'all' | TeamRole;
 
@@ -55,47 +58,6 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 
 const ROLE_ORDER: TeamRole[] = ['admin', 'manager', 'staff', 'viewer'];
 const AVATAR_TONES = ['pine', 'ochre', 'teal', 'ocean', 'sky', 'rose', 'sage', 'slate'];
-const ACCESS_LEVELS = ['none', 'own', 'view', 'approve', 'full'] as const;
-type AccessLevel = (typeof ACCESS_LEVELS)[number];
-const PERMISSION_MODULE_ORDER = [
-  'manufacturing', 'raw_materials', 'catalogue', 'inventory', 'retail_orders',
-  'wholesale_orders', 'custom_orders', 'payments', 'returns', 'accounting',
-  'logistics', 'marketing', 'analytics', 'partners', 'staff_access',
-  'approvals_audit', 'communication',
-];
-const PERMISSION_ROLE_LABELS: Record<string, string> = {
-  business_owner_admin: 'Owner',
-  management: 'Manager',
-  sales: 'Sales',
-  inventory: 'Inventory',
-  production: 'Production',
-  finance_accounting: 'Finance',
-  logistics: 'Logistics',
-  marketing: 'Marketing',
-  partner_investor: 'Partner',
-  wholesaler: 'Wholesale',
-  customer: 'Customer',
-};
-const ACCESS_LEVEL_LABELS: Record<AccessLevel, string> = {
-  none: 'No access',
-  own: 'Own records',
-  view: 'View only',
-  approve: 'Can approve',
-  full: 'Full access',
-};
-
-function permissionRoleLabel(role: string): string {
-  return PERMISSION_ROLE_LABELS[role] ?? role.replaceAll('_', ' ');
-}
-
-function permissionErrorMessage(error: unknown, fallback: string): string {
-  if (typeof error === 'object' && error !== null && 'error' in error) {
-    const message = (error as { error?: { message?: unknown } }).error?.message;
-    if (typeof message === 'string') return message;
-  }
-  return fallback;
-}
-
 export function filterTeamMembers(
   rows: readonly TeamMemberRow[],
   role: RoleFilter,
@@ -165,13 +127,16 @@ function avatarToneForId(id: string): string {
 @Component({
   selector: 'app-settings-team',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
+  imports: [Icon, StaffPermissionsComponent, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
         <span class="head__eyebrow">Team access and membership</span>
         <h1 class="head__title">Team &amp; roles</h1>
         <p class="head__sub">Who works in Vessa and what they can do</p>
+      </div>
+      <div class="head__actions">
+        <button class="btn btn--primary" type="button" (click)="openCreate()">+ Add staff</button>
       </div>
     </div>
 
@@ -276,7 +241,7 @@ function avatarToneForId(id: string): string {
                           <span class="who__you">You</span>
                         }
                       </strong>
-                      <span class="who__meta">{{ member.title }} · {{ member.email }}</span>
+                      <span class="who__meta">{{ member.title }} Â· {{ member.email }}</span>
                     </span>
                   </div>
                 </td>
@@ -322,105 +287,14 @@ function avatarToneForId(id: string): string {
     </article>
 
     <div class="team-details team-details--permissions">
-      <article class="card permissions-card" aria-labelledby="permissions-heading">
-        <div class="card__head">
-          <div>
-            <h2 class="card__title" id="permissions-heading">What each role can do</h2>
-            <p class="card__sub">Role access levels from the API · changes stay in draft until saved</p>
-          </div>
-        </div>
-        @if (permissionMatrixError()) {
-          <div class="permission-error" role="alert">
-            <span>{{ permissionMatrixError() }}</span>
-            <button type="button" class="btn btn--ghost" (click)="loadPermissionMatrix()">Retry</button>
-          </div>
-        } @else if (permissionMatrixLoading()) {
-          <p class="permission-loading" aria-busy="true">Loading role permissions…</p>
-        } @else if (permissionMatrix().length === 0) {
-          <p class="permission-loading">No role permissions were returned by the API.</p>
-        } @else {
-          <form class="permission-form" (submit)="requestPermissionSave($event)">
-            <div class="permission-table-wrap">
-              <table class="permission-table">
-                <caption>Access levels by module and role</caption>
-                <thead>
-                  <tr>
-                    <th scope="col">Permission</th>
-                    @for (role of permissionMatrix(); track role.id) {
-                      <th scope="col">
-                        {{ permissionRoleLabel(role.name) }}
-                        <small>{{ count(permissionRoleCount(role.name)) }}</small>
-                      </th>
-                    }
-                  </tr>
-                </thead>
-                <tbody>
-                  @for (module of permissionModules(); track module) {
-                    <tr>
-                      <th scope="row" [id]="'permission-module-' + module">
-                        {{ permissionRoleLabel(module) }}
-                      </th>
-                      @for (role of permissionMatrix(); track role.id) {
-                        <td>
-                          <div class="permission-cell">
-                            <input
-                              class="permission-toggle"
-                              type="checkbox"
-                              [name]="'access-' + role.name + '-' + module"
-                              [attr.aria-label]="permissionRoleLabel(module) + ' access for ' + permissionRoleLabel(role.name)"
-                              [attr.aria-describedby]="module === 'staff_access' ? 'staff-access-hint' : null"
-                              [checked]="permissionLevel(role.name, module) !== 'none'"
-                              [disabled]="!canManagePermissions() || module === 'staff_access' || savingPermissions()"
-                              (change)="setAccess(module, role.name, $any($event.target).checked)"
-                            />
-                            <select
-                              class="permission-level"
-                              [name]="'level-' + role.name + '-' + module"
-                              [attr.aria-label]="permissionRoleLabel(module) + ' access level for ' + permissionRoleLabel(role.name)"
-                              [disabled]="!canManagePermissions() || permissionLevel(role.name, module) === 'none' || savingPermissions()"
-                              [value]="permissionLevel(role.name, module)"
-                              (change)="setLevel(module, role.name, $any($event.target).value)"
-                            >
-                              @for (level of accessLevels; track level) {
-                                <option [value]="level" [disabled]="module === 'staff_access' && level === 'none'">
-                                  {{ accessLevelLabels[level] }}
-                                </option>
-                              }
-                            </select>
-                          </div>
-                        </td>
-                      }
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-            <p class="hint" id="staff-access-hint">
-              Staff access stays enabled to prevent locking administrators out.
-            </p>
-            @if (canManagePermissions()) {
-              <div class="permission-actions">
-                <button
-                  type="submit"
-                  class="btn btn--primary"
-                  [disabled]="!permissionDraftDirty() || savingPermissions()"
-                >
-                  {{ savingPermissions() ? 'Saving…' : 'Save permissions' }}
-                </button>
-              </div>
-            } @else {
-              <p class="hint">You need full staff-access permission to change role access.</p>
-            }
-          </form>
-        }
-      </article>
+      <app-staff-permissions />
 
       @if (seatUsage(); as seats) {
         <article class="card seats-card" aria-labelledby="seats-heading">
           <div class="card__head">
             <div>
               <h2 class="card__title" id="seats-heading">Seats</h2>
-              <p class="card__sub">{{ billing().plan }} plan · up to {{ count(seats.limit) }} seats</p>
+              <p class="card__sub">{{ billing().plan }} plan Â· up to {{ count(seats.limit) }} seats</p>
             </div>
           </div>
           <div class="seats-content">
@@ -444,39 +318,30 @@ function avatarToneForId(id: string): string {
       }
     </div>
 
-    @if (permissionConfirmationOpen()) {
-      <div class="permission-confirmation-backdrop" (click)="cancelPermissionSave()">
-        <section
-          class="permission-confirmation"
-          role="alertdialog"
-          aria-modal="true"
-          aria-labelledby="permission-confirm-title"
-          (click)="$event.stopPropagation()"
-        >
-          <h2 id="permission-confirm-title">Save role permission changes?</h2>
-          <p>
-            These access levels apply to everyone assigned to the changed roles on their next
-            request. The updates are written to the audit log.
-          </p>
-          <ul class="permission-confirmation__roles">
-            @for (role of dirtyPermissionRoles(); track role.id) {
-              <li>{{ permissionRoleLabel(role.name) }}</li>
-            }
-          </ul>
-          <div class="permission-confirmation__actions">
-            <button type="button" class="btn btn--ghost" (click)="cancelPermissionSave()">Cancel</button>
-            <button
-              type="button"
-              class="btn btn--primary"
-              [disabled]="savingPermissions()"
-              (click)="confirmPermissionSave()"
-            >
-              {{ savingPermissions() ? 'Saving…' : 'Save permissions' }}
-            </button>
-          </div>
-        </section>
-      </div>
-    }
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="Add staff">
+      <ng-container drawerTitle><div class="dtitle"><strong>Add staff</strong></div></ng-container>
+      <form class="staff-form" (ngSubmit)="createStaff()">
+        <div class="staff-grid">
+          <label class="field"><span class="field-label">Name</span><input type="text" [(ngModel)]="createForm.name" name="newname" required /></label>
+          <label class="field"><span class="field-label">Email</span><input type="email" [(ngModel)]="createForm.email" name="newemail" required /></label>
+          <label class="field"><span class="field-label">Role</span>
+            <select [(ngModel)]="createForm.role" name="newrole">
+              @for (item of teamRoleOptions; track item.id) {
+                <option [value]="item.id">{{ item.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Password</span><input type="password" [(ngModel)]="createForm.password" name="newpassword" /></label>
+          <label class="field"><span class="field-label">Title</span><input type="text" [(ngModel)]="createForm.title" name="newtitle" /></label>
+          <label class="field"><span class="field-label">Phone</span><input type="text" [(ngModel)]="createForm.phone" name="newphone" /></label>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn--primary" type="submit" [disabled]="busy() || !createForm.name.trim() || !createForm.email.trim() || !createForm.role">{{ busy() ? 'Creating…' : 'Create staff' }}</button>
+          <button class="btn btn--ghost" type="button" (click)="closeCreate()">Cancel</button>
+        </div>
+      </form>
+    </app-drawer>
+
   `,
   styles: `
     .kpis {
@@ -673,6 +538,55 @@ function avatarToneForId(id: string): string {
       color: var(--muted);
       font-size: 12px;
     }
+    .dtitle {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .dtitle strong {
+      font-size: var(--fs-lg);
+    }
+    .staff-form,
+    .staff-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .staff-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+    .field input[type='text'],
+    .field input[type='email'],
+    .field input[type='password'],
+    .field select {
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: var(--fs-md);
+    }
+    .field input:focus-visible,
+    .field select:focus-visible {
+      outline: 2px solid var(--primary);
+    }
+    .field-label {
+      font-size: var(--fs-2xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .form-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
     @container main (max-width: 900px) {
       .kpis {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -751,34 +665,23 @@ export class SettingsTeam {
   private readonly destroyRef = inject(DestroyRef);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   protected readonly store = inject(Store);
-  private readonly usersApi = inject(UsersApiService);
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
-
-  protected readonly permissionMatrix = signal<ApiRoleMatrixRow[]>([]);
-  protected readonly permissionMatrixLoading = signal(true);
-  protected readonly permissionMatrixError = signal('');
-  protected readonly edit = signal<Record<string, Record<string, AccessLevel>>>({});
-  protected readonly lastEnabledLevel = signal<Record<string, Record<string, AccessLevel>>>({});
-  protected readonly savingPermissions = signal(false);
-  protected readonly permissionConfirmationOpen = signal(false);
-  protected readonly accessLevels = ACCESS_LEVELS;
-  protected readonly accessLevelLabels = ACCESS_LEVEL_LABELS;
-  protected readonly permissionRoleLabel = permissionRoleLabel;
+  private readonly users = inject(UsersApiService);
 
   protected readonly count = fmtCount;
   protected readonly teamRoleOptions = ROLE_ORDER.map((id) => ({ id, label: ROLE_LABELS[id] }));
   protected readonly role = signal<RoleFilter>('all');
   protected readonly searchInput = signal('');
   private readonly searchQuery = signal('');
+  protected readonly busy = signal(false);
+  protected readonly creating = signal(false);
+  protected readonly createForm = { name: '', email: '', role: 'staff', title: '', phone: '', password: '' };
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private entranceContext?: gsap.Context;
   private filterContext?: gsap.Context;
   private entrancePlayed = false;
 
-  protected readonly canManagePermissions = computed(
-    () => this.auth.user()?.access['staff_access'] === 'full',
-  );
   protected readonly billing = computed(() => this.store.settings().billing);
   protected readonly meId = computed(() => this.store.settings().me.id);
 
@@ -807,24 +710,6 @@ export class SettingsTeam {
 
   protected readonly roleFilters = computed(() => teamRoleCounts(this.rows()));
   protected readonly statusCounts = computed(() => teamStatusCounts(this.rows()));
-  protected readonly permissionModules = computed(() => {
-    const modules = new Set(
-      this.permissionMatrix().flatMap((role) => role.permissions.map((permission) => permission.module)),
-    );
-    modules.add('staff_access');
-    const ordered = PERMISSION_MODULE_ORDER.filter((module) => modules.delete(module));
-    return [...ordered, ...[...modules].sort((a, b) => a.localeCompare(b))];
-  });
-  protected readonly dirtyPermissionRoles = computed(() =>
-    this.permissionMatrix().filter((role) => {
-      const saved = new Map(role.permissions.map((permission) => [permission.module, permission.accessLevel]));
-      if (!saved.has('staff_access')) saved.set('staff_access', 'view');
-      const draft = this.edit()[role.name] ?? {};
-      const modules = new Set([...saved.keys(), ...Object.keys(draft)]);
-      return [...modules].some((module) => (draft[module] ?? 'none') !== (saved.get(module) ?? 'none'));
-    }),
-  );
-  protected readonly permissionDraftDirty = computed(() => this.dirtyPermissionRoles().length > 0);
   protected readonly visible = computed(() =>
     filterTeamMembers(this.rows(), this.role(), this.searchQuery()),
   );
@@ -837,7 +722,6 @@ export class SettingsTeam {
   );
 
   constructor() {
-    void this.loadPermissionMatrix();
     afterNextRender(() => this.playEntrance(), { injector: this.injector });
     this.destroyRef.onDestroy(() => {
       if (this.searchTimer) clearTimeout(this.searchTimer);
@@ -846,127 +730,46 @@ export class SettingsTeam {
     });
   }
 
-  protected roleCount(role: TeamRole): number {
-    return this.rows().filter((member) => member.role === role).length;
-  }
-
-  protected async loadPermissionMatrix(): Promise<void> {
-    this.permissionMatrixLoading.set(true);
-    this.permissionMatrixError.set('');
-    try {
-      const roles = await this.usersApi.rolesMatrix();
-      this.permissionMatrix.set(roles);
-      this.permissionMatrixLoading.set(false);
-      const drafts: Record<string, Record<string, AccessLevel>> = {};
-      const previousLevels: Record<string, Record<string, AccessLevel>> = {};
-      for (const role of roles) {
-        const levels: Record<string, AccessLevel> = {};
-        for (const permission of role.permissions) {
-          levels[permission.module] = ACCESS_LEVELS.includes(permission.accessLevel as AccessLevel)
-            ? (permission.accessLevel as AccessLevel)
-            : 'none';
-        }
-        if (!levels['staff_access']) levels['staff_access'] = 'view';
-        drafts[role.name] = levels;
-        previousLevels[role.name] = Object.fromEntries(
-          Object.entries(levels).filter(([, level]) => level !== 'none'),
-        );
-      }
-      this.edit.set(drafts);
-      this.lastEnabledLevel.set(previousLevels);
-    } catch (error) {
-      this.permissionMatrixLoading.set(false);
-      this.permissionMatrixError.set(
-        permissionErrorMessage(error, 'Role permissions could not be loaded.'),
-      );
-    }
-  }
-
-  protected permissionLevel(roleName: string, module: string): AccessLevel {
-    return this.edit()[roleName]?.[module] ?? 'none';
-  }
-
-  protected permissionRoleCount(roleName: string): number {
-    return this.rows().filter((member) => member.apiRoleName === roleName).length;
-  }
-
-  protected setLevel(module: string, roleName: string, level: string): void {
-    if (!ACCESS_LEVELS.includes(level as AccessLevel)) return;
-    if (module === 'staff_access' && level === 'none') return;
-    this.edit.update((draft) => ({
-      ...draft,
-      [roleName]: { ...draft[roleName], [module]: level as AccessLevel },
-    }));
-    if (level !== 'none') {
-      this.lastEnabledLevel.update((roles) => ({
-        ...roles,
-        [roleName]: { ...roles[roleName], [module]: level as AccessLevel },
-      }));
-    }
-  }
-
-  protected setAccess(module: string, roleName: string, enabled: boolean): void {
-    if (module === 'staff_access' && !enabled) return;
-    const current = this.permissionLevel(roleName, module);
-    if (!enabled) {
-      if (current !== 'none') {
-        this.lastEnabledLevel.update((roles) => ({
-          ...roles,
-          [roleName]: { ...roles[roleName], [module]: current },
-        }));
-      }
-      this.edit.update((draft) => ({
-        ...draft,
-        [roleName]: { ...draft[roleName], [module]: 'none' },
-      }));
-      return;
-    }
-    const previous = this.lastEnabledLevel()[roleName]?.[module];
-    this.edit.update((draft) => ({
-      ...draft,
-      [roleName]: { ...draft[roleName], [module]: current !== 'none' ? current : previous ?? 'view' },
-    }));
-  }
-
-  protected requestPermissionSave(event: Event): void {
-    event.preventDefault();
-    if (!this.canManagePermissions() || !this.permissionDraftDirty() || this.savingPermissions()) return;
-    this.permissionConfirmationOpen.set(true);
-  }
-
-  protected cancelPermissionSave(): void {
-    if (!this.savingPermissions()) this.permissionConfirmationOpen.set(false);
-  }
-
-  protected async confirmPermissionSave(): Promise<void> {
-    const roles = this.dirtyPermissionRoles();
-    if (!roles.length || !this.canManagePermissions() || this.savingPermissions()) return;
-    this.permissionConfirmationOpen.set(false);
-    this.savingPermissions.set(true);
-    try {
-      for (const role of roles) {
-        const permissions: ApiRolePermission[] = Object.entries(this.edit()[role.name] ?? {}).map(
-          ([module, accessLevel]) => ({ module, accessLevel }),
-        );
-        await this.usersApi.updateRolePermissions(role.name, permissions);
-        this.permissionMatrix.update((current) =>
-          current.map((item) => (item.name === role.name ? { ...item, permissions } : item)),
-        );
-      }
-      this.toasts.show(
-        `Permissions saved for ${roles.map((role) => permissionRoleLabel(role.name).toLowerCase()).join(', ')}`,
-        'good',
-      );
-    } catch (error) {
-      this.toasts.show(permissionErrorMessage(error, 'Permissions could not be saved.'), 'bad');
-    } finally {
-      this.savingPermissions.set(false);
-    }
-  }
-
   protected setMemberRole(id: string, value: string): void {
     if (ROLE_ORDER.includes(value as TeamRole)) {
       this.store.setTeammateRole(id, value as TeamRole);
+    }
+  }
+
+  protected openCreate(): void {
+    this.createForm.name = '';
+    this.createForm.email = '';
+    this.createForm.role = 'staff';
+    this.createForm.title = '';
+    this.createForm.phone = '';
+    this.createForm.password = '';
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected async createStaff(): Promise<void> {
+    if (!this.createForm.name.trim() || !this.createForm.email.trim() || !this.createForm.role.trim()) return;
+    this.busy.set(true);
+    try {
+      const input: ApiCreateUserInput = {
+        name: this.createForm.name.trim(),
+        email: this.createForm.email.trim(),
+        role: this.createForm.role,
+        password: this.createForm.password,
+        title: this.createForm.title.trim() || undefined,
+        phone: this.createForm.phone.trim() || undefined,
+      };
+      const user = await this.users.create(input);
+      this.store.addTeammate(user);
+      this.creating.set(false);
+      this.toasts.show('Staff account created', 'good');
+    } catch (err) {
+      this.toasts.show(err instanceof Error ? err.message : 'Could not create the staff account.', 'bad');
+    } finally {
+      this.busy.set(false);
     }
   }
 
@@ -1045,3 +848,4 @@ export class SettingsTeam {
     });
   }
 }
+

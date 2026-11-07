@@ -17,6 +17,20 @@
 .table-product-copy { display: grid; gap: 2px; }
 .table-product-copy strong { color: var(--text); font-size: var(--fs-xs); font-weight: 700; }
 .table-product-copy small { color: var(--faint); font-size: 10px; }
+.catalog-table-edit {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 11px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.catalog-table-edit:hover { color: var(--text); border-color: var(--line); }
 .table-available { font-weight: 750; font-variant-numeric: tabular-nums; }
 .table-available.is-good { color: var(--good); }
 .table-available.is-warn { color: var(--warn); }

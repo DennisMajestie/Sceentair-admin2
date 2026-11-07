@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { date as fmtDate, statusLabel, statusTone } from '../../core/format';
 import { Drawer } from '../../ui/drawer';
 import { Icon } from '../../ui/icon';
@@ -8,12 +9,19 @@ import {
   ApiCount,
   ApiCountLine,
   InventoryApiService,
+  type InventoryItemType,
 } from '../../core/inventory-api.service';
+
+function errorText(err: unknown): string {
+  const raw = err as { error?: { message?: unknown }; message?: unknown };
+  const text = raw?.error?.message ?? raw?.message;
+  return typeof text === 'string' && text ? text : String(err);
+}
 
 @Component({
   selector: 'app-warehouses-counts',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Drawer, Icon, RouterLink],
+  imports: [Drawer, Icon, RouterLink, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
@@ -154,7 +162,7 @@ import {
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col">Counted</th></tr>
+                <tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col">Counted</th><th scope="col">Movement</th></tr>
               </thead>
               <tbody>
                 @for (line of c.lines; track line.itemId) {
@@ -165,11 +173,34 @@ import {
                     </td>
                     <td class="num">{{ line.itemType }}</td>
                     <td class="num">{{ line.countedQuantity === null ? '—' : line.countedQuantity }}</td>
+                    <td>
+                      <button type="button" class="btn btn--ghost btn--xs" (click)="openMovement(line)">Record movement</button>
+                    </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
+
+          @if (movementLine(); as line) {
+            <form class="move-form" (ngSubmit)="submitMovement()">
+              <p class="mono move-form__target">{{ line.itemId }}</p>
+              <div class="move-form__fields">
+                <label class="field"><span class="field-label">Direction</span>
+                  <select [(ngModel)]="movementForm.direction" name="moveDirection">
+                    <option value="in">In</option>
+                    <option value="out">Out</option>
+                  </select>
+                </label>
+                <label class="field"><span class="field-label">Quantity</span><input type="number" min="1" step="1" [(ngModel)]="movementForm.quantity" name="moveQuantity" required /></label>
+                <label class="field"><span class="field-label">Note</span><input type="text" [(ngModel)]="movementForm.note" name="moveNote" placeholder="optional" /></label>
+              </div>
+              <div class="move-form__actions">
+                <button type="submit" class="btn btn--primary btn--xs" [disabled]="saving()">Record</button>
+                <button type="button" class="btn btn--ghost btn--xs" (click)="closeMovement()">Cancel</button>
+              </div>
+            </form>
+          }
         </div>
       }
     </app-drawer>
@@ -191,6 +222,14 @@ import {
     .facts div { display: grid; gap: 2px; }
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+    .move-form { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); }
+    .move-form__target { margin: 0; font-size: var(--fs-xs); font-weight: 700; }
+    .move-form__fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .move-form__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
+    .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
+    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .notice {
       display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs);
     }
@@ -208,6 +247,13 @@ export class WarehouseCounts {
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly counts = signal<ApiCount[]>([]);
+  protected readonly movementLine = signal<ApiCountLine | null>(null);
+  protected readonly saving = signal(false);
+  protected readonly movementForm = {
+    direction: 'out' as 'in' | 'out',
+    quantity: 0,
+    note: '',
+  };
 
   constructor() {
     void this.loadCounts();
@@ -308,6 +354,41 @@ export class WarehouseCounts {
 
   protected openNewCount(): void {
     this.toasts.show('New count creation requires item selection from the API.', 'info');
+  }
+
+  protected openMovement(line: ApiCountLine): void {
+    this.movementLine.set(line);
+    this.movementForm.direction = 'out';
+    this.movementForm.quantity = 0;
+    this.movementForm.note = '';
+  }
+
+  protected closeMovement(): void {
+    this.movementLine.set(null);
+  }
+
+  protected async submitMovement(): Promise<void> {
+    const line = this.movementLine();
+    if (!line) return;
+    const quantity = Number(this.movementForm.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      this.toasts.show('Quantity must be greater than zero.', 'bad');
+      return;
+    }
+    this.saving.set(true);
+    try {
+      await this.inventoryApi.recordMovement(line.itemType as InventoryItemType, line.itemId, {
+        direction: this.movementForm.direction,
+        quantity,
+        note: this.movementForm.note.trim(),
+      });
+      this.toasts.show('Movement recorded', 'good');
+      this.closeMovement();
+    } catch (err) {
+      this.toasts.show(errorText(err), 'bad');
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected close(): void {

@@ -1062,6 +1062,14 @@ export class Store {
       .catch(() => this.load());
   }
 
+  /** Add a teammate row after the API creates a staff account. */
+  addTeammate(user: import('./users-api.service').ApiUser): void {
+    this.state.update((s) => ({
+      ...s,
+      team: [...s.team, mapTeammate(user)],
+    }));
+  }
+
   /** Move a transfer along: planned �+' in transit �+' received. */
   advanceTransfer(id: string): Transfer['status'] {
     const current = this.transfer(id)?.status ?? 'planned';

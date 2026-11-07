@@ -1,16 +1,24 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Store } from '../../core/store';
 import { date as fmtDate, money as fmtMoney } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { ToastService } from '../../core/toast';
 import {
   AccountingApiService,
   type ApiLedgerEntry,
   type LedgerEntryType,
 } from '../../core/accounting-api.service';
+
+function errorText(err: unknown): string {
+  const raw = err as { error?: { message?: unknown }; message?: unknown };
+  const text = raw?.error?.message ?? raw?.message;
+  return typeof text === 'string' && text ? text : String(err);
+}
 
 const ENTRY_TYPES: { id: LedgerEntryType | 'all'; label: string }[] = [
   { id: 'all', label: 'All' },
@@ -34,7 +42,7 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
 @Component({
   selector: 'app-accounting-ledger',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [RouterLink, Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
@@ -45,9 +53,33 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
         </p>
       </div>
       <div class="head__actions">
+        <button type="button" class="btn btn--primary" (click)="openForm()">
+          <app-icon name="plus" [size]="15" />
+          Record entry
+        </button>
         <a class="btn btn--ghost" routerLink="/accounting/ledger">Refresh</a>
       </div>
     </div>
+
+    @if (formOpen()) {
+      <form class="entry-bar" (ngSubmit)="submitEntry()">
+        <div class="entry-bar__fields">
+          <label class="field"><span class="field-label">Type</span>
+            <select [(ngModel)]="entryForm.type" name="ledgerType">
+              <option value="income">Income</option>
+              <option value="expenditure">Expenditure</option>
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Amount</span><input type="number" min="0.01" step="0.01" [(ngModel)]="entryForm.amount" name="ledgerAmount" required /></label>
+          <label class="field"><span class="field-label">Occurred at</span><input type="date" [(ngModel)]="entryForm.occurredAt" name="ledgerOccurredAt" /></label>
+          <label class="field entry-bar__note"><span class="field-label">Note</span><input type="text" [(ngModel)]="entryForm.note" name="ledgerNote" placeholder="What was recorded" required /></label>
+        </div>
+        <div class="entry-bar__actions">
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">Save entry</button>
+          <button type="button" class="btn btn--ghost" (click)="closeForm()">Cancel</button>
+        </div>
+      </form>
+    }
 
     <div class="stats" aria-label="Ledger summary">
       <article class="stat">
@@ -174,12 +206,20 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
     .dbody { display: grid; gap: 16px; }
     .dright { display: grid; justify-items: end; }
     .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
+    .entry-bar { display: grid; gap: 12px; margin-bottom: var(--gap); padding: 16px; border: 1px solid var(--line); border-radius: var(--sd-r-card); background: var(--surface); box-shadow: var(--shadow); }
+    .entry-bar__fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .entry-bar__note { grid-column: 1 / -1; }
+    .entry-bar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .field { display: grid; gap: 5px; min-width: 0; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
+    .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
+    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
     .facts div { display: grid; gap: 2px; }
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
-    @media (max-width: 1100px) { .ledger-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 1100px) { .ledger-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entry-bar__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .ledger-grid { grid-template-columns: 1fr; } }
   `,
 })
@@ -188,6 +228,7 @@ export class AccountingLedger {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly accountingApi = inject(AccountingApiService);
+  private readonly toasts = inject(ToastService);
 
   protected readonly date = fmtDate;
   protected readonly money = fmtMoney;
@@ -196,6 +237,15 @@ export class AccountingLedger {
   protected readonly dateFrom = signal<string | null>(null);
   protected readonly dateTo = signal<string | null>(null);
   protected readonly entryType = signal<LedgerEntryType | 'all'>('all');
+
+  protected readonly formOpen = signal(false);
+  protected readonly saving = signal(false);
+  protected readonly entryForm = {
+    type: 'income' as 'income' | 'expenditure',
+    amount: 0,
+    note: '',
+    occurredAt: '',
+  };
 
   protected readonly entryTypes = ENTRY_TYPES;
 
@@ -238,5 +288,46 @@ export class AccountingLedger {
 
   protected close(): void {
     this.router.navigate(['/accounting/ledger']);
+  }
+
+  protected openForm(): void {
+    this.formOpen.set(true);
+  }
+
+  protected closeForm(): void {
+    this.formOpen.set(false);
+  }
+
+  protected async submitEntry(): Promise<void> {
+    const amount = Number(this.entryForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.toasts.show('Amount must be greater than zero.', 'bad');
+      return;
+    }
+    const note = this.entryForm.note.trim();
+    if (!note) {
+      this.toasts.show('Note is required.', 'bad');
+      return;
+    }
+    this.saving.set(true);
+    try {
+      await this.accountingApi.recordEntry({
+        type: this.entryForm.type,
+        amount,
+        note,
+        ...(this.entryForm.occurredAt ? { occurredAt: this.entryForm.occurredAt } : {}),
+      });
+      this.toasts.show('Ledger entry recorded', 'good');
+      this.formOpen.set(false);
+      this.entryForm.type = 'income';
+      this.entryForm.amount = 0;
+      this.entryForm.note = '';
+      this.entryForm.occurredAt = '';
+      void this.store.load();
+    } catch (err) {
+      this.toasts.show(errorText(err), 'bad');
+    } finally {
+      this.saving.set(false);
+    }
   }
 }

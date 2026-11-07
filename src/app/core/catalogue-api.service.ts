@@ -59,6 +59,16 @@ export interface ApiCollection {
   name: string;
 }
 
+/** One BOM line for a variant: which material and how much per unit. */
+export interface ApiBomRow {
+  id: string;
+  materialId: string;
+  materialName?: string;
+  materialUnit?: string;
+  quantity: number;
+  note?: string | null;
+}
+
 export interface ApiProductFilters {
   page: number;
   limit: number;
@@ -97,8 +107,108 @@ export class CatalogueApiService {
   }
 
   collections(): Promise<ApiCollection[]> {
+    return firstValueFrom(this.http.get<ApiCollection[]>(apiUrl(this.baseUrl, 'collections')));
+  }
+
+  /** Product photo upload (multipart, field `file`); server returns the public URL. */
+  uploadImage(file: File): Promise<{ url: string }> {
+    const body = new FormData();
+    body.append('file', file, file.name);
     return firstValueFrom(
-      this.http.get<ApiCollection[]>(apiUrl(this.baseUrl, 'collections')),
+      this.http.post<{ url: string }>(apiUrl(this.baseUrl, 'media/images'), body),
     );
+  }
+
+  createProduct(body: Partial<ApiProduct> & Record<string, unknown>): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(apiUrl(this.baseUrl, 'products'), body),
+    );
+  }
+
+  updateProduct(id: string, body: Partial<ApiProduct> & Record<string, unknown>): Promise<unknown> {
+    return firstValueFrom(
+      this.http.patch(apiUrl(this.baseUrl, `products/${encodeURIComponent(id)}`), body),
+    );
+  }
+
+  deleteProduct(id: string): Promise<unknown> {
+    return firstValueFrom(
+      this.http.delete(apiUrl(this.baseUrl, `products/${encodeURIComponent(id)}`)),
+    );
+  }
+
+  /** Start a timed sale; the API requires the covering approval request id. */
+  setProductSale(
+    id: string,
+    body: { percent: number; endsAt: string; approvalRequestId: string },
+  ): Promise<unknown> {
+    return firstValueFrom(
+      this.http.put(apiUrl(this.baseUrl, `products/${encodeURIComponent(id)}/sale`), body),
+    );
+  }
+
+  endProductSale(id: string): Promise<unknown> {
+    return firstValueFrom(
+      this.http.delete(apiUrl(this.baseUrl, `products/${encodeURIComponent(id)}/sale`)),
+    );
+  }
+
+  createVariant(productId: string, body: Partial<ApiProductVariant> & Record<string, unknown>): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(
+        apiUrl(this.baseUrl, `products/${encodeURIComponent(productId)}/variants`),
+        body,
+      ),
+    );
+  }
+
+  updateVariant(
+    productId: string,
+    variantId: string,
+    body: Partial<ApiProductVariant> & Record<string, unknown>,
+  ): Promise<unknown> {
+    return firstValueFrom(
+      this.http.patch(
+        apiUrl(
+          this.baseUrl,
+          `products/${encodeURIComponent(productId)}/variants/${encodeURIComponent(variantId)}`,
+        ),
+        body,
+      ),
+    );
+  }
+
+  bom(variantId: string): Promise<ApiBomRow[]> {
+    return firstValueFrom(
+      this.http.get<ApiBomRow[]>(apiUrl(this.baseUrl, `variants/${encodeURIComponent(variantId)}/bom`)),
+    );
+  }
+
+  replaceBom(
+    variantId: string,
+    items: Array<{ materialId: string; quantity: number; note?: string }>,
+  ): Promise<unknown> {
+    return firstValueFrom(
+      this.http.put(
+        apiUrl(this.baseUrl, `variants/${encodeURIComponent(variantId)}/bom`),
+        { items },
+      ),
+    );
+  }
+
+  specSheet(variantId: string): Promise<Record<string, unknown>> {
+    return firstValueFrom(
+      this.http.get<Record<string, unknown>>(
+        apiUrl(this.baseUrl, `variants/${encodeURIComponent(variantId)}/spec-sheet`),
+      ),
+    );
+  }
+
+  createCategory(name: string): Promise<unknown> {
+    return firstValueFrom(this.http.post(apiUrl(this.baseUrl, 'categories'), { name }));
+  }
+
+  createCollection(name: string): Promise<unknown> {
+    return firstValueFrom(this.http.post(apiUrl(this.baseUrl, 'collections'), { name }));
   }
 }

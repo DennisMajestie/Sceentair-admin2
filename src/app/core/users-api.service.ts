@@ -18,6 +18,12 @@ export interface ApiRoleMatrixRow {
   id: string;
   name: string;
   permissions: ApiRolePermission[];
+  /** Enum order from the server; oldest callers may omit it. */
+  accessLevels?: string[];
+  /** Stable SHA-256 over the canonical module/level set. */
+  version?: string;
+  /** Active users in the role (aggregate count, no personal data). */
+  memberCount?: number;
 }
 
 export interface ApiUser {
@@ -32,6 +38,16 @@ export interface ApiUser {
   totpEnabled: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Payload for creating a staff account. */
+export interface ApiCreateUserInput {
+  name: string;
+  email: string;
+  role: string;
+  password: string;
+  phone?: string;
+  title?: string;
 }
 
 export interface ApiUserList {
@@ -55,11 +71,15 @@ export class UsersApiService {
     );
   }
 
-  updateRolePermissions(roleName: string, permissions: ApiRolePermission[]): Promise<unknown> {
+  updateRolePermissions(
+    roleName: string,
+    permissions: ApiRolePermission[],
+    options?: { baseVersion?: string; reason?: string },
+  ): Promise<ApiRoleMatrixRow> {
     return firstValueFrom(
-      this.http.put(
+      this.http.put<ApiRoleMatrixRow>(
         apiUrl(this.baseUrl, `users/roles/${encodeURIComponent(roleName)}/permissions`),
-        { permissions },
+        { ...options, permissions },
       ),
     );
   }
@@ -69,6 +89,18 @@ export class UsersApiService {
       this.http.patch<ApiUser>(apiUrl(this.baseUrl, `users/${encodeURIComponent(id)}/role`), {
         role,
       }),
+    );
+  }
+
+  detail(id: string): Promise<ApiUser> {
+    return firstValueFrom(
+      this.http.get<ApiUser>(apiUrl(this.baseUrl, `users/${encodeURIComponent(id)}`)),
+    );
+  }
+
+  create(input: ApiCreateUserInput): Promise<ApiUser> {
+    return firstValueFrom(
+      this.http.post<ApiUser>(apiUrl(this.baseUrl, 'users'), input),
     );
   }
 

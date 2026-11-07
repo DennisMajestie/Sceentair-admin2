@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -6,6 +6,9 @@ import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { PartnersApiService, type Partner, type PartnerList } from '../../core/partners-api.service';
+import { moneyNgn } from '../customers/cs-data';
+
+type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboard']>>;
 
 @Component({
   selector: 'app-partners-list',
@@ -55,7 +58,7 @@ import { PartnersApiService, type Partner, type PartnerList } from '../../core/p
           <span class="partner-card__name">{{ row.userName ?? '—' }}</span>
           <span class="partner-card__email">{{ row.userEmail ?? '—' }}</span>
           <span class="partner-card__meta">
-            <span>{{ row.investedAmount }}</span>
+            <span>{{ money(row.investedAmount) }}</span>
             <span>{{ row.createdAt }}</span>
           </span>
         </button>
@@ -83,9 +86,51 @@ import { PartnersApiService, type Partner, type PartnerList } from '../../core/p
             <div><dt>User</dt><dd>{{ p.userName ?? '—' }}</dd></div>
             <div><dt>Email</dt><dd>{{ p.userEmail ?? '—' }}</dd></div>
             <div><dt>Equity %</dt><dd>{{ p.equityPercentage }}%</dd></div>
-            <div><dt>Invested</dt><dd>{{ p.investedAmount }}</dd></div>
+            <div><dt>Invested</dt><dd>{{ money(p.investedAmount) }}</dd></div>
             <div><dt>Created</dt><dd>{{ p.createdAt }}</dd></div>
           </dl>
+
+          @if (dashboardLoading()) {
+            <p class="dnote">Loading dashboard…</p>
+          } @else if (dashboardError()) {
+            <p class="dnote dnote--bad">{{ dashboardError() }}</p>
+          } @else {
+            @if (dashboard(); as d) {
+              <div class="dsummary">
+                <div>
+                  <span class="stat__label">Total invested</span>
+                  <strong class="dtotal">{{ money(d.totalInvested) }}</strong>
+                </div>
+                <div class="dright">
+                  <span class="stat__label">Total distributed</span>
+                  <strong class="dtotal">{{ money(d.totalDistributed) }}</strong>
+                </div>
+              </div>
+
+              <h3 class="dlabel">Profit distributions ({{ d.partner.userName ?? d.partner.id }})</h3>
+              <div class="table-wrap">
+                <table aria-label="Profit distributions">
+                  <thead>
+                    <tr><th scope="col">Period</th><th scope="col">Total profit</th><th scope="col">Partner share</th><th scope="col">Created</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (row of d.distributions; track row.id) {
+                      <tr>
+                        <td>{{ row.period }}</td>
+                        <td>{{ money(row.totalProfit) }}</td>
+                        <td>{{ money(row.perPartnerBreakdown[d.partner.id] ?? 0) }}</td>
+                        <td>{{ row.createdAt }}</td>
+                      </tr>
+                    } @empty {
+                      <tr><td colspan="4" class="dnote">No profit distributions recorded.</td></tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="dnote">Dashboard unavailable.</p>
+            }
+          }
         </div>
       }
     </app-drawer>
@@ -110,6 +155,10 @@ import { PartnersApiService, type Partner, type PartnerList } from '../../core/p
     .facts div { display: grid; gap: 2px; }
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+    .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
+    .dright { display: grid; justify-items: end; }
+    .dnote { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+    .dnote--bad { color: var(--bad); }
     @media (max-width: 1100px) { .partner-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .partner-grid { grid-template-columns: 1fr; } }
   `,
@@ -121,6 +170,9 @@ export class PartnersList {
 
   protected readonly partners = signal<Partner[]>([]);
   protected readonly query = signal('');
+  protected readonly dashboard = signal<PartnerDashboard | null>(null);
+  protected readonly dashboardLoading = signal(false);
+  protected readonly dashboardError = signal('');
 
   private readonly routeId = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), {
     initialValue: this.route.snapshot.paramMap.get('id'),
@@ -128,11 +180,33 @@ export class PartnersList {
 
   constructor() {
     void this.load();
+    effect(() => {
+      const id = this.routeId();
+      if (id) void this.loadDashboard(id);
+      else {
+        this.dashboard.set(null);
+        this.dashboardError.set('');
+      }
+    });
   }
 
   async load(): Promise<void> {
     const result = await this.partnersApi.listPartners({ page: 1, limit: 100 });
     this.partners.set(result.data);
+  }
+
+  private async loadDashboard(id: string): Promise<void> {
+    this.dashboardLoading.set(true);
+    this.dashboardError.set('');
+    try {
+      const result = await this.partnersApi.getPartnerDashboard(id);
+      if (this.routeId() !== id) return;
+      this.dashboard.set(result);
+    } catch (err) {
+      this.dashboardError.set(err instanceof Error ? err.message : 'Could not load the partner dashboard.');
+    } finally {
+      this.dashboardLoading.set(false);
+    }
   }
 
   protected readonly visible = computed(() => {
@@ -149,7 +223,7 @@ export class PartnersList {
     this.partners().reduce((a, p) => a + p.investedAmount, 0),
   );
 
-  protected readonly money = (value: number) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(value);
+  protected readonly money = moneyNgn;
 
   protected readonly selected = computed(() => this.partners().find((p) => p.id === this.routeId()));
 

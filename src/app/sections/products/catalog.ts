@@ -24,6 +24,7 @@ import {
 import { Icon } from '../../ui/icon';
 import { SdSlidingIndicator } from '../../ui/sliding-indicator';
 import { CatalogApiProductCard } from './catalog-api-product-card';
+import { CatalogApiProductEditor } from './catalog-product-editor';
 import { CatalogEmpty } from './catalog-empty';
 import { CatalogApiProductList } from './catalog-api-product-list';
 import { moneyNgn } from '../customers/cs-data';
@@ -101,7 +102,7 @@ function mapRow(product: ApiProduct): CatalogRow {
 @Component({
   selector: 'app-products-catalog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, CatalogApiProductCard, CatalogEmpty, CatalogApiProductList, SdSlidingIndicator],
+  imports: [RouterLink, Icon, CatalogApiProductCard, CatalogApiProductEditor, CatalogEmpty, CatalogApiProductList, SdSlidingIndicator],
   template: `
     <main #root class="catalog-page">
       <header class="catalog-head" data-enter>
@@ -112,11 +113,14 @@ function mapRow(product: ApiProduct): CatalogRow {
             {{ rows().length }} products across {{ categories().length }} categories.
           </p>
         </div>
-        <a class="catalog-batches" routerLink="/products/batches">
-          <app-icon name="layers" [size]="16" aria-hidden="true" />
-          <span>Batches</span>
-          <app-icon class="catalog-batches__arrow" name="chevron" [size]="14" aria-hidden="true" />
-        </a>
+        <div class="catalog-head__actions">
+          <button class="btn btn--primary" type="button" (click)="openCreate()">+ New product</button>
+          <a class="catalog-batches" routerLink="/products/batches">
+            <app-icon name="layers" [size]="16" aria-hidden="true" />
+            <span>Batches</span>
+            <app-icon class="catalog-batches__arrow" name="chevron" [size]="14" aria-hidden="true" />
+          </a>
+        </div>
       </header>
 
       <p class="catalog-demo-note" role="note" data-enter>
@@ -280,6 +284,7 @@ function mapRow(product: ApiProduct): CatalogRow {
                 [queryParams]="urlQueryParams()"
                 [catalogIds]="visibleIds()"
                 [money]="money"
+                [onEdit]="openEdit"
               />
             }
           </div>
@@ -293,6 +298,7 @@ function mapRow(product: ApiProduct): CatalogRow {
             [sort]="queryState().sort"
             [direction]="queryState().direction"
             [money]="money"
+            [onEdit]="openEdit"
             (sortChange)="sortHeader($event)"
           />
         }
@@ -301,6 +307,14 @@ function mapRow(product: ApiProduct): CatalogRow {
           <div class="notice notice--error" role="alert">{{ error() }}</div>
         }
       </section>
+
+      <app-catalog-product-editor
+        [open]="editorOpen()"
+        [product]="editorProduct()"
+        [categories]="categories()"
+        (saved)="onEditorSaved()"
+        (closed)="closeEditor()"
+      />
     </main>
   `,
   styleUrl: './catalog.css',
@@ -358,6 +372,14 @@ export class ProductsCatalog {
   });
 
   protected readonly visibleIds = computed(() => this.visibleRows().map((row) => row.id));
+
+  protected readonly editorProductId = signal<string | null>(null);
+  protected readonly editorOpen = signal(false);
+  protected readonly editorProduct = computed<ApiProduct | null>(() => {
+    const id = this.editorProductId();
+    if (!id) return null;
+    return this.products().find((product) => product.id === id) ?? null;
+  });
 
   protected readonly metrics = computed<CatalogMetric[]>(() => {
     const list = this.rows();
@@ -437,6 +459,24 @@ export class ProductsCatalog {
 
   protected categoryCount(categoryId: string): number {
     return this.rows().filter((r) => r.category === categoryId).length;
+  }
+
+  protected readonly openCreate = (): void => {
+    this.editorProductId.set(null);
+    this.editorOpen.set(true);
+  };
+
+  protected readonly openEdit = (row: CatalogRow): void => {
+    this.editorProductId.set(row.id);
+    this.editorOpen.set(true);
+  };
+
+  protected closeEditor(): void {
+    this.editorOpen.set(false);
+  }
+
+  protected onEditorSaved(): void {
+    void this.loadCatalog();
   }
 
   private async loadCatalog(): Promise<void> {

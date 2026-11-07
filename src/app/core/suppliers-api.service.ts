@@ -72,4 +72,12 @@ export class SuppliersApiService {
       ),
     );
   }
+
+  remove(id: string): Promise<void> {
+    return firstValueFrom(
+      this.http.delete<void>(
+        apiUrl(this.baseUrl, `materials/suppliers/${encodeURIComponent(id)}`),
+      ),
+    );
+  }
 }

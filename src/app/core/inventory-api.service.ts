@@ -107,4 +107,28 @@ export class InventoryApiService {
       this.http.post<ApiCount>(apiUrl(this.baseUrl, 'inventory/counts'), request),
     );
   }
+
+  /** Record a manual stock movement (in/out) against an item. */
+  recordMovement(
+    itemType: InventoryItemType,
+    itemId: string,
+    body: Record<string, unknown>,
+  ): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(
+        apiUrl(this.baseUrl, `inventory/${encodeURIComponent(itemId)}/movements`),
+        body,
+        { params: new HttpParams().set('itemType', itemType) },
+      ),
+    );
+  }
+
+  /** Hash-chain integrity badge for the whole inventory ledger. */
+  ledgerVerify(): Promise<{ total: number; valid: number; broken: number; headHash: string | null }> {
+    return firstValueFrom(
+      this.http.get<{ total: number; valid: number; broken: number; headHash: string | null }>(
+        apiUrl(this.baseUrl, 'inventory/ledger/verify'),
+      ),
+    );
+  }
 }

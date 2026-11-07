@@ -60,4 +60,11 @@ export class NotificationsApiService {
       ),
     );
   }
+
+  /** Send a notification to a known recipient (staff/customer/wholesale). */
+  send(body: Record<string, unknown>): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(apiUrl(this.baseUrl, 'notifications/send'), body),
+    );
+  }
 }

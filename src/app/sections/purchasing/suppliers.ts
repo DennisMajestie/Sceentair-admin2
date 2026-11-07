@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { monthYear, money as fmtMoney, date as fmtDate } from '../../core/format';
 import { Icon } from '../../ui/icon';
+import { ToastService } from '../../core/toast';
 import { Drawer } from '../../ui/drawer';
 import {
   ApiSupplier,
@@ -96,6 +97,9 @@ interface SupplierRow {
               @if (s.certified) {
                 <span class="badge badge--warn">Certified</span>
               }
+              <button type="button" class="btn btn--xs btn--ghost destructive" [disabled]="busy()" aria-label="Remove supplier" (click)="removingId.set(s.id)">
+                <app-icon name="close" [size]="14" aria-hidden="true" />
+              </button>
             </div>
 
             @if (s.category) {
@@ -117,6 +121,13 @@ interface SupplierRow {
               <span class="scard__since">Added {{ s.sinceLabel }}</span>
               <button type="button" class="btn btn--xs btn--ghost" (click)="open(s.id)">View</button>
             </div>
+
+            @if (removingId() === s.id) {
+              <form class="remove-row" (ngSubmit)="confirmRemove(s.id)">
+                <button class="btn btn--ghost" type="button" (click)="removingId.set(null)">Keep</button>
+                <button class="btn btn--ghost destructive" type="submit" [disabled]="busy()">Confirm removal</button>
+              </form>
+            }
           </article>
         }
       </div>
@@ -223,6 +234,8 @@ interface SupplierRow {
     .scard__stats .stat__value { font-size: var(--fs-xl); }
     .scard__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
     .scard__since { font-size: var(--fs-2xs); color: var(--faint); }
+    .destructive { color: var(--bad); }
+    .remove-row { display: flex; gap: 10px; justify-content: flex-end; }
     .dtitle { display: flex; align-items: center; gap: 9px; }
     .dtitle strong { font-size: var(--fs-lg); }
     .dbody { display: grid; gap: 16px; }
@@ -251,6 +264,7 @@ interface SupplierRow {
 })
 export class PurchasingSuppliers {
   private readonly suppliersApi = inject(SuppliersApiService);
+  private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -261,6 +275,7 @@ export class PurchasingSuppliers {
   protected readonly error = signal<string | null>(null);
   protected readonly suppliers = signal<ApiSupplier[]>([]);
   protected readonly busy = signal(false);
+  protected readonly removingId = signal<string | null>(null);
   protected readonly creating = signal(false);
   protected readonly editing = signal(false);
   protected readonly editForm = { name: '', category: '', location: '', slaScore: 0, quotaUnits: 0, certified: false, complianceNotes: '' };
@@ -429,6 +444,20 @@ export class PurchasingSuppliers {
       await this.loadSuppliers();
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Could not save the supplier.');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected async confirmRemove(id: string): Promise<void> {
+    this.removingId.set(null);
+    this.busy.set(true);
+    try {
+      await this.suppliersApi.remove(id);
+      this.suppliers.update((list) => list.filter((s) => s.id !== id));
+      this.toasts.show('Supplier removed', 'good');
+    } catch (err) {
+      this.toasts.show(err instanceof Error ? err.message : 'Could not remove the supplier.', 'bad');
     } finally {
       this.busy.set(false);
     }

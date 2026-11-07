@@ -4,6 +4,8 @@ import { ProductShot } from '../../ui/product-shot';
 import type { CatalogRow } from './catalog';
 import { saveCatalogCtx } from './prod-shared';
 
+type CatalogCardEditHandler = (row: CatalogRow) => void;
+
 function variantSku(row: CatalogRow): string {
   return row.variants[0]?.sku ?? '—';
 }
@@ -30,6 +32,16 @@ function variantSize(row: CatalogRow): string {
           <span class="product-card__art-label">API product</span>
           @if (row().isBestseller) {
             <span class="product-badge is-good">Bestseller</span>
+          }
+          @if (onEdit(); as editHandler) {
+            <button
+              type="button"
+              class="product-card__edit"
+              [attr.aria-label]="'Edit ' + row().name"
+              (click)="editRow($event, editHandler)"
+            >
+              Edit
+            </button>
           }
         </div>
 
@@ -65,9 +77,16 @@ export class CatalogApiProductCard {
   readonly queryParams = input.required<Record<string, string | null>>();
   readonly catalogIds = input.required<readonly string[]>();
   readonly money = input.required<(value: number) => string>();
+  readonly onEdit = input<CatalogCardEditHandler | null>(null);
 
   protected variantSize = variantSize;
   protected variantSku = variantSku;
+
+  protected editRow(event: MouseEvent, handler: CatalogCardEditHandler): void {
+    event.preventDefault();
+    event.stopPropagation();
+    handler(this.row());
+  }
 
   protected productLinkLabel(): string {
     const row = this.row();

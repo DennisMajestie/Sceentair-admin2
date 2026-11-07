@@ -2,6 +2,7 @@
 .catalog-page { display: grid; gap: 16px; max-width: 1600px; margin: 0 auto; padding-bottom: 24px; }
 .catalog-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .catalog-head__copy { display: grid; gap: 4px; }
+.catalog-head__actions { display: flex; flex: none; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 .catalog-eyebrow { color: var(--primary); font-size: var(--fs-2xs); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
 .catalog-eyebrow span { padding: 0 4px; color: var(--faint); }
 .catalog-head h1 { color: var(--text); font-size: clamp(25px, 3vw, 34px); font-weight: 750; letter-spacing: -.045em; line-height: 1.1; }
