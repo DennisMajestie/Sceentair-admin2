@@ -480,7 +480,7 @@ export class ProductionQueue {
     this.loading.set(true);
     this.loadError.set(null);
     try {
-      const result = await this.api.list(1, 200);
+      const result = await this.api.list(1, 100);
       this.batches.set(result.data);
       this.stages.set(result.stages ?? []);
     } catch {

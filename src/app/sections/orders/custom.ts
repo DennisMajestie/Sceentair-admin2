@@ -291,7 +291,7 @@ export class OrdersCustom {
     this.loading.set(true);
     this.loadError.set(null);
     try {
-      const result = await this.api.list(1, 200);
+      const result = await this.api.list(1, 100);
       this.rows.set(result.data);
     } catch {
       this.loadError.set('The custom orders service is unreachable. Try again.');
