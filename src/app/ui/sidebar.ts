@@ -3,6 +3,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NAV, matchSection } from '../core/nav';
 import { Store } from '../core/store';
+import { AuthService } from '../core/auth.service';
 import { ThemeService } from '../core/theme';
 import { ToastService } from '../core/toast';
 import { SdShellStateService } from '../core/sd-shell-state.service';
@@ -279,6 +280,7 @@ export class Sidebar {
   protected readonly state = inject(SdShellStateService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly nav = NAV;
@@ -324,8 +326,14 @@ export class Sidebar {
     }
   }
 
-  protected signOut(): void {
-    this.toast.show('Demo mode — there is nothing to sign out of yet.', 'info');
-    this.router.navigateByUrl('/dashboard/overview');
+  protected signingOut = signal(false);
+
+  protected async signOut(): Promise<void> {
+    if (this.signingOut()) return;
+    this.signingOut.set(true);
+    await this.auth.logout();
+    this.signingOut.set(false);
+    this.toast.show('Signed out.', 'good');
+    await this.router.navigateByUrl('/signin');
   }
 }

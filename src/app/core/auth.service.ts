@@ -115,10 +115,10 @@ export class AuthService {
       await firstValueFrom(
         this.http.post(apiUrl(this.baseUrl, 'auth/logout'), {}, { withCredentials: true }),
       );
-      this.clear();
     } catch (error) {
-      this.error.set(this.messageFor(error, 'Could not sign out.'));
-      throw error;
+      this.error.set(this.messageFor(error, 'Could not reach the sign-out service.'));
+    } finally {
+      this.clear();
     }
   }
 
