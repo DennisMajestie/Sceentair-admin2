@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
-import { date as fmtDate, count as fmtCount } from '../../core/format';
+import { count as fmtCount } from '../../core/format';
 import { Store } from '../../core/store';
 import { buildCustomerDetail, rememberCustomerOpener, restoreCustomerOpener } from '../../core/customer-detail';
 import { Icon } from '../../ui/icon';
@@ -285,7 +285,9 @@ export class CustomerShoppers {
       .filter((c) => c.kind === 'shopper')
       .map((c) => {
         const customerOrders = this.orders().filter((o) => o.customer?.id === c.id);
-        const spend = customerOrders.reduce((a, o) => a + o.totalAmount, 0);
+        const spend = customerOrders
+          .filter((o) => o.status !== 'cancelled')
+          .reduce((a, o) => a + o.totalAmount, 0);
         const last = customerOrders.reduce((max, o) => Math.max(max, Date.parse(o.createdAt)), 0);
         const hash = [...c.id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
         return {
@@ -341,10 +343,10 @@ export class CustomerShoppers {
   protected readonly tiles = computed(() => {
     const fresh = this.rows().filter((r) => r.since >= monthStart()).length;
     return [
-      this.tile('Users', 'ocean', 'Shoppers', fmtCount(this.rows().length), fresh > 0 ? `${fmtCount(fresh)} new this month` : undefined),
-      this.tile('Card', 'sage', 'Subscribers', fmtCount(this.tagged('subscriber')), `${this.subscriberPct().toFixed(0)}% of shoppers`),
-      this.tile('Cart', 'ochre', 'Spent · 30 days', this.money(this.spent30()), this.orders30() > 0 ? `${this.orders30()} orders` : undefined),
-      this.tile('Dollar', 'slate', 'Average spend', this.money(this.averageSpend())),
+      this.tile('users', 'ocean', 'Shoppers', fmtCount(this.rows().length), fresh > 0 ? `${fmtCount(fresh)} new this month` : undefined),
+      this.tile('card', 'sage', 'Subscribers', fmtCount(this.tagged('subscriber')), `${this.subscriberPct().toFixed(0)}% of shoppers`),
+      this.tile('cart', 'ochre', 'Spent · 30 days', this.money(this.spent30()), this.orders30() > 0 ? `${this.orders30()} orders` : undefined),
+      this.tile('dollar', 'slate', 'Average spend', this.money(this.averageSpend())),
     ];
   });
 

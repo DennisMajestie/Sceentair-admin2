@@ -257,18 +257,22 @@ export const routes: Routes = [
 
   {
     path: 'customers/shoppers',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/customers/customers').then((m) => m.Customers),
   },
   {
     path: 'customers/stockists',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/customers/customers').then((m) => m.Customers),
   },
   {
     path: 'customers/stockists/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/customers/stockists').then((m) => m.CustomerStockists),
   },
   {
     path: 'customers/shoppers/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/customers/shoppers').then((m) => m.CustomerShoppers),
   },
   { path: 'customers', redirectTo: 'customers/stockists' },

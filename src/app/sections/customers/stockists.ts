@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 import { map } from 'rxjs';
-import { date as fmtDate, count as fmtCount } from '../../core/format';
+import { count as fmtCount } from '../../core/format';
 import { Store } from '../../core/store';
 import { buildCustomerDetail, rememberCustomerOpener, restoreCustomerOpener } from '../../core/customer-detail';
 import { Icon } from '../../ui/icon';
@@ -304,7 +304,9 @@ export class CustomerStockists {
       .map((c) => {
         const customerOrders = this.orders().filter((o) => o.customer?.id === c.id);
         const units = customerOrders.reduce((a, o) => a + o.items.reduce((b, l) => b + l.quantity, 0), 0);
-        const spend = customerOrders.reduce((a, o) => a + o.totalAmount, 0);
+        const spend = customerOrders
+          .filter((o) => o.status !== 'cancelled')
+          .reduce((a, o) => a + o.totalAmount, 0);
         const last = customerOrders.reduce((max, o) => Math.max(max, Date.parse(o.createdAt)), 0);
         const hash = [...c.id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
         const monthStart = new Date();
@@ -330,7 +332,7 @@ export class CustomerStockists {
           avgOrder: customerOrders.length ? Math.round(spend / customerOrders.length) : 0,
           unpaid: Math.round(
             customerOrders
-              .filter((o) => o.paymentStatus !== 'paid')
+              .filter((o) => o.paymentStatus !== 'paid' && o.status !== 'cancelled')
               .reduce((a, o) => a + o.totalAmount, 0),
           ),
           monthSpend: Math.round(monthSpend),
@@ -380,10 +382,10 @@ export class CustomerStockists {
   protected readonly tiles = computed(() => {
     const net30 = this.tagged('net30');
     return [
-      this.tile('Store', 'ocean', 'Stockists', fmtCount(this.rows().length), net30 > 0 ? `${net30} Net 30` : undefined),
-      this.tile('Package', 'sage', 'Wholesale · 90 days', this.money(this.wholesale90())),
-      this.tile('Cart', 'ochre', 'Average order', this.money(this.avgOrder())),
-      this.tile('Card', 'slate', 'On account, unpaid', this.money(this.unpaid()), 'Net 30'),
+      this.tile('store', 'ocean', 'Stockists', fmtCount(this.rows().length), net30 > 0 ? `${net30} Net 30` : undefined),
+      this.tile('package', 'sage', 'Wholesale · 90 days', this.money(this.wholesale90())),
+      this.tile('cart', 'ochre', 'Average order', this.money(this.avgOrder())),
+      this.tile('card', 'slate', 'On account, unpaid', this.money(this.unpaid()), 'Net 30'),
     ];
   });
 
@@ -504,7 +506,7 @@ export class CustomerStockists {
   }
 }
 
-function months(orders: { createdAt: string; items: { quantity: number }[] }[]): number[] {
+function months(orders: { createdAt: string; totalAmount: number }[]): number[] {
   const values: number[] = [];
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
@@ -514,7 +516,7 @@ function months(orders: { createdAt: string; items: { quantity: number }[] }[]):
         const c = new Date(o.createdAt);
         return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth();
       })
-      .reduce((a, o) => a + o.items.reduce((b, l) => b + l.quantity, 0), 0);
+      .reduce((a, o) => a + o.totalAmount, 0);
     values.push(Math.round(value));
   }
   return values;

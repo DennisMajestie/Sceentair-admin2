@@ -1,23 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { Router, NavigationStart } from '@angular/router';
+import { Router, NavigationStart, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
-import { date as fmtDate, count as fmtCount } from '../../core/format';
-import { ToastService } from '../../core/toast';
+import { count as fmtCount } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Sparkline } from '../../ui/chart';
 import { rememberCustomerOpener, restoreCustomerOpener } from '../../core/customer-detail';
 import {
   ApiCustomer,
   ApiCustomerKind,
-  ApiCustomerList,
   CustomersApiService,
 } from '../../core/customers-api.service';
-import {
-  ApiOrder,
-  ApiOrderStatus,
-  OrdersApiService,
-} from '../../core/orders-api.service';
+import { ApiOrder, OrdersApiService } from '../../core/orders-api.service';
 import { moneyNgn, lastOrderLines, sortRows, SortDir } from './cs-data';
 
 type View = 'stockists' | 'shoppers';
@@ -411,7 +404,6 @@ export class Customers {
     spend: 'desc',
     last: 'desc',
   };
-  private readonly page = signal(1);
   private readonly pageSize = 100;
 
   constructor() {
@@ -423,35 +415,28 @@ export class Customers {
       if (!(e instanceof NavigationStart)) return;
       this.view.set(e.url.includes('/shoppers') ? 'shoppers' : 'stockists');
     });
-    void this.loadCustomers(true);
+    void this.loadCustomers();
   }
 
   protected rememberOpener(kind: 'stockist' | 'shopper', id: string): void {
     rememberCustomerOpener(kind, id);
   }
 
-  private async loadCustomers(reset: boolean): Promise<void> {
-    if (!reset && this.loading()) return;
-    const requestId = reset ? ++this.listRequestId : this.listRequestId;
+  private async loadCustomers(): Promise<void> {
+    const requestId = ++this.listRequestId;
     this.loading.set(true);
     this.error.set(null);
-    const page = reset ? 1 : this.page() + 1;
-    if (reset) {
-      this.page.set(0);
-      this.customers.set([]);
-    }
     try {
       const [customerResult, orderResult] = await Promise.all([
         this.customersApi.list({
-          page,
+          page: 1,
           limit: this.pageSize,
           ...(this.view() === 'stockists' ? { kind: 'stockist' } : { kind: 'shopper' }),
         }),
         this.ordersApi.list({ page: 1, limit: 100 }),
       ]);
       if (requestId !== this.listRequestId) return;
-      this.page.set(page);
-      this.customers.update((list) => reset ? customerResult.data : [...list, ...customerResult.data]);
+      this.customers.set(customerResult.data);
       this.orders.set(orderResult.data);
     } catch (err) {
       if (requestId === this.listRequestId) this.error.set(this.errorMessage(err));
@@ -467,7 +452,9 @@ export class Customers {
       .filter((c) => c.kind === 'stockist')
       .map((c) => {
         const customerOrders = this.orders().filter((o) => o.customer?.id === c.id);
-        const spend = customerOrders.reduce((a, o) => a + o.totalAmount, 0);
+        const spend = customerOrders
+          .filter((o) => o.status !== 'cancelled')
+          .reduce((a, o) => a + o.totalAmount, 0);
         const last = customerOrders.reduce((max, o) => Math.max(max, Date.parse(o.createdAt)), 0);
         const hash = [...c.id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
         const monthStart = new Date();
@@ -502,7 +489,11 @@ export class Customers {
           orders: customerOrders.length,
           spend: Math.round(spend),
           avgOrder: customerOrders.length ? Math.round(spend / customerOrders.length) : 0,
-          unpaid: Math.round(customerOrders.filter((o) => o.paymentStatus !== 'paid').reduce((a, o) => a + o.totalAmount, 0)),
+          unpaid: Math.round(
+            customerOrders
+              .filter((o) => o.paymentStatus !== 'paid' && o.status !== 'cancelled')
+              .reduce((a, o) => a + o.totalAmount, 0),
+          ),
           monthSpend: Math.round(monthSpend),
           lastOrder: last || null,
           initials: c.name.split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join(''),
@@ -518,7 +509,9 @@ export class Customers {
       .filter((c) => c.kind === 'shopper')
       .map((c) => {
         const customerOrders = this.orders().filter((o) => o.customer?.id === c.id);
-        const spend = customerOrders.reduce((a, o) => a + o.totalAmount, 0);
+        const spend = customerOrders
+          .filter((o) => o.status !== 'cancelled')
+          .reduce((a, o) => a + o.totalAmount, 0);
         const last = customerOrders.reduce((max, o) => Math.max(max, Date.parse(o.createdAt)), 0);
         const hash = [...c.id].reduce((a, ch) => a + ch.charCodeAt(0), 0);
         return {
@@ -586,18 +579,18 @@ export class Customers {
     if (this.view() === 'stockists') {
       const net30 = this.tagged('net30');
       return [
-        this.tile('Store', 'ocean', 'Stockists', fmtCount(this.rows().length), net30 > 0 ? `${net30} Net 30` : undefined),
-        this.tile('Package', 'sage', 'Wholesale · 90 days', this.money(this.wholesale90())),
-        this.tile('Cart', 'ochre', 'Average order', this.money(this.avgOrder())),
-        this.tile('Card', 'slate', 'On account, unpaid', this.money(this.unpaid()), 'Net 30'),
+        this.tile('store', 'ocean', 'Stockists', fmtCount(this.rows().length), net30 > 0 ? `${net30} Net 30` : undefined),
+        this.tile('package', 'sage', 'Wholesale · 90 days', this.money(this.wholesale90())),
+        this.tile('cart', 'ochre', 'Average order', this.money(this.avgOrder())),
+        this.tile('card', 'slate', 'On account, unpaid', this.money(this.unpaid()), 'Net 30'),
       ];
     }
     const fresh = this.newThisMonth();
     return [
-      this.tile('Users', 'ocean', 'Shoppers', fmtCount(this.rows().length), fresh > 0 ? `${fmtCount(fresh)} new this month` : undefined),
-      this.tile('Card', 'sage', 'Subscribers', fmtCount(this.tagged('subscriber')), `${this.subscriberPct().toFixed(0)}% of shoppers`),
-      this.tile('Cart', 'ochre', 'Spent · 30 days', this.money(this.spent30()), this.orders30() > 0 ? `${this.orders30()} orders` : undefined),
-      this.tile('Dollar', 'slate', 'Average spend', this.money(this.averageSpend())),
+      this.tile('users', 'ocean', 'Shoppers', fmtCount(this.rows().length), fresh > 0 ? `${fmtCount(fresh)} new this month` : undefined),
+      this.tile('card', 'sage', 'Subscribers', fmtCount(this.tagged('subscriber')), `${this.subscriberPct().toFixed(0)}% of shoppers`),
+      this.tile('cart', 'ochre', 'Spent · 30 days', this.money(this.spent30()), this.orders30() > 0 ? `${this.orders30()} orders` : undefined),
+      this.tile('dollar', 'slate', 'Average spend', this.money(this.averageSpend())),
     ];
   });
 

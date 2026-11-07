@@ -177,7 +177,8 @@ function mapOrder(o: ApiOrder): Order {
     id: o.id,
     number: o.id,
     customerId: o.customer?.id ?? '',
-    channel: 'online',
+    channel:
+      o.channel === 'wholesale' ? 'wholesale' : o.channel === 'custom' ? 'studio' : 'online',
     status: o.status as Order['status'],
     createdAt: Date.parse(o.createdAt) || 0,
     shipBy: Date.parse(o.updatedAt) || 0,

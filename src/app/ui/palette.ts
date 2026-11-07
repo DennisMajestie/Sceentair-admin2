@@ -266,7 +266,7 @@ export class Palette {
         group: 'Customers',
         label: c.name,
         hint: c.city,
-        path: `/customers/stockists/${c.id}`,
+        path: `/customers/${c.kind}/${c.id}`,
         icon: 'customers',
       });
     }

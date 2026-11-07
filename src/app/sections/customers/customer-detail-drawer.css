@@ -289,6 +289,45 @@
   border-radius: var(--sd-r-pill);
 }
 
+.sd-update-form {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--well);
+}
+
+.sd-update-field {
+  display: grid;
+  gap: 4px;
+}
+
+.sd-update-field span {
+  color: var(--faint);
+  font-size: 11px;
+}
+
+.sd-update-form select,
+.sd-update-form textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.sd-update-form textarea {
+  resize: vertical;
+}
+
+.sd-update-form .btn {
+  justify-self: start;
+  min-height: 38px;
+}
+
 @keyframes sd-month-grow {
   to { transform: scaleY(1); }
 }

@@ -28,7 +28,6 @@ export interface ApiCustomerFilters {
   page: number;
   limit: number;
   kind?: ApiCustomerKind;
-  tag?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -41,7 +40,6 @@ export class CustomersApiService {
       .set('page', filters.page)
       .set('limit', filters.limit);
     if (filters.kind) params = params.set('kind', filters.kind);
-    if (filters.tag) params = params.set('tag', filters.tag);
     return firstValueFrom(
       this.http.get<ApiCustomerList>(apiUrl(this.baseUrl, 'customers'), { params }),
     );

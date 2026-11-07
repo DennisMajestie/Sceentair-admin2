@@ -3,22 +3,30 @@
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export function money(value: number, currency = 'USD'): string {
+/**
+ * Money renders in Naira app-wide; minimal-ICU browsers (and the headless
+ * test build) print the currency CODE ("NGN 1,250"), so force the ₦ glyph.
+ */
+export function money(value: number, currency = 'NGN'): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     maximumFractionDigits: value >= 1000 ? 0 : 2,
-  }).format(value);
+  })
+    .format(value)
+    .replace(/^NGN\s?/, '₦');
 }
 
 export function moneyCompact(value: number): string {
   if (Math.abs(value) >= 1000) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'NGN',
       notation: 'compact',
       maximumFractionDigits: 1,
-    }).format(value);
+    })
+      .format(value)
+      .replace(/^NGN\s?/, '₦');
   }
   return money(value);
 }

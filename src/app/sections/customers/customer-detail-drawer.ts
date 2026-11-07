@@ -1,8 +1,10 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { dateFull, monthYear, titleCase } from '../../core/format';
 import { moneyNgn } from './cs-data';
 import type { CustomerDetailData } from '../../core/customer-detail';
+import { NotificationsApiService } from '../../core/notifications-api.service';
+import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
 import { ProductShot } from '../../ui/product-shot';
 import { SdDetailDrawerComponent } from '../../ui/sd-detail-drawer';
@@ -155,6 +157,41 @@ import { SdDetailDrawerComponent } from '../../ui/sd-detail-drawer';
                 </div>
               </section>
             }
+
+            <section class="sd-customer-section" aria-labelledby="sd-update-title">
+              <h3 id="sd-update-title">Send update</h3>
+              <div class="sd-update-form">
+                @if (detail.recentOrders.length) {
+                  <label class="sd-update-field">
+                    <span>Regarding order</span>
+                    <select [value]="updateOrderId()" (change)="updateOrderId.set($any($event.target).value)" aria-label="Regarding order">
+                      <option value="">Not tied to an order</option>
+                      @for (order of detail.recentOrders; track order.id) {
+                        <option [value]="order.id">{{ order.number }}</option>
+                      }
+                    </select>
+                  </label>
+                }
+                <label class="sd-update-field">
+                  <span>Message</span>
+                  <textarea
+                    rows="3"
+                    [value]="updateDraft()"
+                    (input)="updateDraft.set($any($event.target).value)"
+                    placeholder="A short note for the customer…"
+                    aria-label="Message"
+                  ></textarea>
+                </label>
+                <button
+                  type="button"
+                  class="btn btn--primary"
+                  [disabled]="sendingUpdate()"
+                  (click)="sendUpdate()"
+                >
+                  {{ sendingUpdate() ? 'Sending…' : 'Send update' }}
+                </button>
+              </div>
+            </section>
           </div>
         } @else {
           <p class="sd-customer-not-found">This customer could not be found.</p>
@@ -179,9 +216,41 @@ export class CustomerDetailDrawerComponent {
   readonly open = input(false);
   readonly account = input<CustomerDetailData | null>(null);
   readonly close = output<void>();
+  private readonly notificationsApi = inject(NotificationsApiService);
+  private readonly toasts = inject(ToastService);
   protected readonly money = moneyNgn;
   protected readonly monthYear = monthYear;
   protected readonly dateFull = dateFull;
+
+  protected readonly updateOrderId = signal('');
+  protected readonly updateDraft = signal('');
+  protected readonly sendingUpdate = signal(false);
+
+  protected async sendUpdate(): Promise<void> {
+    const detail = this.account();
+    if (!detail || this.sendingUpdate()) return;
+    const draft = this.updateDraft().trim();
+    if (!draft) {
+      this.toasts.show('Write the update first', 'bad');
+      return;
+    }
+    this.sendingUpdate.set(true);
+    try {
+      await this.notificationsApi.send({
+        recipientId: detail.customer.id,
+        channel: 'in_platform',
+        type: 'order_update',
+        message: draft,
+        relatedOrderId: this.updateOrderId() || null,
+      });
+      this.toasts.show('Update sent', 'good');
+      this.updateDraft.set('');
+    } catch (err) {
+      this.toasts.show(err instanceof Error ? err.message : 'Could not send the update.', 'bad');
+    } finally {
+      this.sendingUpdate.set(false);
+    }
+  }
 
   protected hasEmail(): boolean {
     return !!this.account()?.customer.email;
