@@ -216,7 +216,7 @@
           <div class="row-item__tile"></div>
           <div class="row-item__text">
             <strong>{{ row.title }}</strong>
-            <span>{{ row.text }}</span>
+            @if (row.text) { <span>{{ row.text }}</span> }
           </div>
         </li>
       } @empty {

@@ -384,14 +384,40 @@ function mapApproval(a: import('./approvals-api.service').ApiApproval): Approval
   };
 }
 
+function readableActivityTitle(action: string): string {
+  const httpMatch = action.match(/^([A-Z]+)\s+\/api\/v\d+\/(.*)$/);
+  if (httpMatch) {
+    const path = httpMatch[2].split('?')[0];
+    return `${httpMatch[1]} ${path}`;
+  }
+  return action
+    .split(/[._-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function safeActivityText(afterState: unknown): string {
+  if (!afterState || typeof afterState !== 'object' || Array.isArray(afterState)) return '';
+  const fragments: string[] = [];
+  for (const [key, value] of Object.entries(afterState)) {
+    if (/token|password|secret|email|id$/i.test(key)) continue;
+    if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') continue;
+    const text = String(value);
+    fragments.push(`${key}: ${text.length > 40 ? `${text.slice(0, 40)}…` : text}`);
+    if (fragments.length >= 3) break;
+  }
+  return fragments.join(' · ');
+}
+
 function mapActivity(a: import('./audit-api.service').ApiAuditEntry): import('./models').ActivityEntry {
   return {
     id: a.id,
     at: Date.parse(a.timestamp) || 0,
     who: a.actorId ?? 'system',
     kind: a.action.split('.')[0] ?? 'audit',
-    title: a.action,
-    text: a.afterState ? JSON.stringify(a.afterState).slice(0, 160) : '',
+    title: readableActivityTitle(a.action),
+    text: safeActivityText(a.afterState),
     href: '',
   };
 }

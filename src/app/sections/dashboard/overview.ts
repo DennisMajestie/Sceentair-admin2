@@ -584,7 +584,7 @@ export class DashboardOverview {
   protected readonly queue = computed(() => this.store.shippingQueue());
 
   protected readonly low = computed(() => this.store.lowStock().slice(0, 6));
-  protected readonly feed = computed(() => this.store.activityFeed().slice(0, 7));
+  protected readonly feed = computed(() => this.store.activityFeed().slice(0, 5));
 
   protected readonly inQa = computed(() => this.store.batchStats().inQa);
 
