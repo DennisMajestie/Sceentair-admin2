@@ -75,8 +75,9 @@ export const NAV: NavSection[] = [
     id: 'warehouses',
     label: 'Warehouses',
     icon: 'warehouses',
-    path: '/warehouses/locations',
+    path: '/warehouses/inventory',
     pages: [
+      { label: 'Stock ledger', path: '/warehouses/inventory' },
       { label: 'Locations', path: '/warehouses/locations' },
       { label: 'Cycle counts', path: '/warehouses/counts', badge: 'counts' },
     ],

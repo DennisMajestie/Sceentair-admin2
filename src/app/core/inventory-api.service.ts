@@ -22,6 +22,36 @@ export interface ApiInventoryDigest {
   ledgerHead: string | null;
 }
 
+export type InventoryMovementType =
+  | 'purchase'
+  | 'production'
+  | 'sale'
+  | 'return'
+  | 'damage'
+  | 'dispatch'
+  | 'adjustment';
+
+export interface ApiInventoryMovement {
+  id: string;
+  movementType: InventoryMovementType;
+  quantityDelta: number;
+  timestamp: string;
+  referenceId: string | null;
+}
+
+export interface ApiMovementList {
+  data: ApiInventoryMovement[];
+  total: number;
+  currentQuantity: number;
+}
+
+export interface ApiMovementInput {
+  movementType: InventoryMovementType;
+  quantityDelta: number;
+  referenceId?: string;
+  approvalRequestId?: string;
+}
+
 export interface ApiInventoryFilters {
   page: number;
   limit: number;
@@ -80,13 +110,13 @@ export class InventoryApiService {
     itemType: InventoryItemType,
     itemId: string,
     filters: ApiInventoryFilters = { page: 1, limit: 50 },
-  ): Promise<{ data: unknown[]; total: number; currentQuantity: number }> {
+  ): Promise<ApiMovementList> {
     let params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit)
       .set('itemType', itemType);
     return firstValueFrom(
-      this.http.get<{ data: unknown[]; total: number; currentQuantity: number }>(
+      this.http.get<ApiMovementList>(
         apiUrl(this.baseUrl, `inventory/${encodeURIComponent(itemId)}/movements`),
         { params },
       ),
@@ -112,10 +142,10 @@ export class InventoryApiService {
   recordMovement(
     itemType: InventoryItemType,
     itemId: string,
-    body: Record<string, unknown>,
-  ): Promise<unknown> {
+    body: ApiMovementInput,
+  ): Promise<ApiInventoryMovement> {
     return firstValueFrom(
-      this.http.post(
+      this.http.post<ApiInventoryMovement>(
         apiUrl(this.baseUrl, `inventory/${encodeURIComponent(itemId)}/movements`),
         body,
         { params: new HttpParams().set('itemType', itemType) },

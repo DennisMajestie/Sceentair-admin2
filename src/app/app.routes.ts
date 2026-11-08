@@ -226,6 +226,15 @@ export const routes: Routes = [
   },
 
   {
+    path: 'warehouses/inventory',
+    loadComponent: () => import('./sections/warehouses/inventory').then((m) => m.WarehouseStock),
+  },
+  {
+    path: 'warehouses/inventory/:itemType/:itemId',
+    loadComponent: () =>
+      import('./sections/warehouses/inventory-detail').then((m) => m.WarehouseStockDetail),
+  },
+  {
     path: 'warehouses/locations',
     loadComponent: () => import('./sections/warehouses/locations').then((m) => m.WarehouseLocations),
   },

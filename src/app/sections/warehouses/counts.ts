@@ -377,10 +377,12 @@ export class WarehouseCounts {
     }
     this.saving.set(true);
     try {
+      const delta = this.movementForm.direction === 'out' ? -quantity : quantity;
+      const note = this.movementForm.note.trim();
       await this.inventoryApi.recordMovement(line.itemType as InventoryItemType, line.itemId, {
-        direction: this.movementForm.direction,
-        quantity,
-        note: this.movementForm.note.trim(),
+        movementType: 'adjustment',
+        quantityDelta: delta,
+        ...(note ? { referenceId: note } : {}),
       });
       this.toasts.show('Movement recorded', 'good');
       this.closeMovement();
