@@ -1,4 +1,4 @@
-﻿import {
+import {
   afterNextRender,
   ChangeDetectionStrategy,
   Component,
@@ -133,7 +133,7 @@ function avatarToneForId(id: string): string {
       <div class="head__text">
         <span class="head__eyebrow">Team access and membership</span>
         <h1 class="head__title">Team &amp; roles</h1>
-        <p class="head__sub">Who works in Vessa and what they can do</p>
+        <p class="head__lead">Who works in Vessa and what they can do</p>
       </div>
       <div class="head__actions">
         <button class="btn btn--primary" type="button" (click)="openCreate()">+ Add staff</button>
@@ -224,6 +224,7 @@ function avatarToneForId(id: string): string {
               }
               <th scope="col">Role</th>
               <th scope="col">Status</th>
+              <th scope="col"><span class="sr">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -266,10 +267,21 @@ function avatarToneForId(id: string): string {
                     {{ member.status }}
                   </span>
                 </td>
+                <td data-label="Actions" class="row-actions">
+                  @if (!member.isMe && member.status.toLowerCase() === 'active') {
+                    <button
+                      type="button"
+                      class="btn btn--xs btn--ghost"
+                      (click)="askDeactivate(member)"
+                    >
+                      Deactivate
+                    </button>
+                  }
+                </td>
               </tr>
             } @empty {
               <tr>
-                <td class="empty-cell" [attr.colspan]="hasLocations() ? 4 : 3">
+                <td class="empty-cell" [attr.colspan]="hasLocations() ? 5 : 4">
                   <span>No people match</span>
                   <button
                     type="button"
@@ -322,24 +334,42 @@ function avatarToneForId(id: string): string {
       <ng-container drawerTitle><div class="dtitle"><strong>Add staff</strong></div></ng-container>
       <form class="staff-form" (ngSubmit)="createStaff()">
         <div class="staff-grid">
-          <label class="field"><span class="field-label">Name</span><input type="text" [(ngModel)]="createForm.name" name="newname" required /></label>
-          <label class="field"><span class="field-label">Email</span><input type="email" [(ngModel)]="createForm.email" name="newemail" required /></label>
-          <label class="field"><span class="field-label">Role</span>
+          <label class="field"><span class="field__label">Name</span><input type="text" [(ngModel)]="createForm.name" name="newname" required /></label>
+          <label class="field"><span class="field__label">Email</span><input type="email" [(ngModel)]="createForm.email" name="newemail" required /></label>
+          <label class="field"><span class="field__label">Role</span>
             <select [(ngModel)]="createForm.role" name="newrole">
               @for (item of teamRoleOptions; track item.id) {
                 <option [value]="item.id">{{ item.label }}</option>
               }
             </select>
           </label>
-          <label class="field"><span class="field-label">Password</span><input type="password" [(ngModel)]="createForm.password" name="newpassword" /></label>
-          <label class="field"><span class="field-label">Title</span><input type="text" [(ngModel)]="createForm.title" name="newtitle" /></label>
-          <label class="field"><span class="field-label">Phone</span><input type="text" [(ngModel)]="createForm.phone" name="newphone" /></label>
+          <label class="field"><span class="field__label">Password</span><input type="password" [(ngModel)]="createForm.password" name="newpassword" /></label>
+          <label class="field"><span class="field__label">Title</span><input type="text" [(ngModel)]="createForm.title" name="newtitle" /></label>
+          <label class="field"><span class="field__label">Phone</span><input type="text" [(ngModel)]="createForm.phone" name="newphone" /></label>
         </div>
         <div class="form-actions">
           <button class="btn btn--primary" type="submit" [disabled]="busy() || !createForm.name.trim() || !createForm.email.trim() || !createForm.role">{{ busy() ? 'Creating…' : 'Create staff' }}</button>
           <button class="btn btn--ghost" type="button" (click)="closeCreate()">Cancel</button>
         </div>
       </form>
+    </app-drawer>
+
+    <app-drawer [open]="!!deactivateTarget()" (close)="cancelDeactivate()" label="Deactivate staff">
+      <ng-container drawerTitle><div class="dtitle"><strong>Deactivate staff</strong></div></ng-container>
+      @if (deactivateTarget(); as member) {
+        <div class="staff-form">
+          <p class="hint">
+            Deactivating <strong>{{ member.name }}</strong> disables their account and signs them out of
+            all devices immediately. This is recorded in the audit log.
+          </p>
+          <div class="form-actions">
+            <button class="btn btn--primary" type="button" [disabled]="busy()" (click)="confirmDeactivate()">
+              {{ busy() ? 'Deactivating…' : 'Deactivate' }}
+            </button>
+            <button class="btn btn--ghost" type="button" (click)="cancelDeactivate()">Cancel</button>
+          </div>
+        </div>
+      }
     </app-drawer>
 
   `,
@@ -491,6 +521,10 @@ function avatarToneForId(id: string): string {
     .status--info { color: var(--info); }
     .status--neutral { color: var(--muted); }
     .members-table td .badge { color: var(--text); }
+    .row-actions {
+      text-align: right;
+      white-space: nowrap;
+    }
     .empty-cell {
       height: auto !important;
       padding: 30px 16px !important;
@@ -574,13 +608,6 @@ function avatarToneForId(id: string): string {
     .field input:focus-visible,
     .field select:focus-visible {
       outline: 2px solid var(--primary);
-    }
-    .field-label {
-      font-size: var(--fs-2xs);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--faint);
     }
     .form-actions {
       display: flex;
@@ -676,6 +703,7 @@ export class SettingsTeam {
   private readonly searchQuery = signal('');
   protected readonly busy = signal(false);
   protected readonly creating = signal(false);
+  protected readonly deactivateTarget = signal<TeamMemberRow | null>(null);
   protected readonly createForm = { name: '', email: '', role: 'staff', title: '', phone: '', password: '' };
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private entranceContext?: gsap.Context;
@@ -768,6 +796,30 @@ export class SettingsTeam {
       this.toasts.show('Staff account created', 'good');
     } catch (err) {
       this.toasts.show(err instanceof Error ? err.message : 'Could not create the staff account.', 'bad');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected askDeactivate(member: TeamMemberRow): void {
+    this.deactivateTarget.set(member);
+  }
+
+  protected cancelDeactivate(): void {
+    this.deactivateTarget.set(null);
+  }
+
+  protected async confirmDeactivate(): Promise<void> {
+    const member = this.deactivateTarget();
+    if (!member) return;
+    this.busy.set(true);
+    try {
+      const user = await this.users.deactivate(member.id);
+      this.store.deactivateTeammate(user);
+      this.deactivateTarget.set(null);
+      this.toasts.show(`${member.name} deactivated`, 'good');
+    } catch (err) {
+      this.toasts.show(err instanceof Error ? err.message : 'Could not deactivate the staff account.', 'bad');
     } finally {
       this.busy.set(false);
     }

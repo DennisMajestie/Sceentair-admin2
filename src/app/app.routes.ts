@@ -58,10 +58,6 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/orders/all').then((m) => m.OrdersAll),
   },
   {
-    path: 'signin',
-    loadComponent: () => import('./sections/signin/signin').then((m) => m.Signin),
-  },
-  {
     path: 'orders/board',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/board').then((m) => m.OrdersBoard),
@@ -75,6 +71,12 @@ export const routes: Routes = [
     path: 'orders/returns/:id',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/returns').then((m) => m.OrdersReturns),
+  },
+
+  {
+    path: 'messages',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/messages/inbox').then((m) => m.MessagesInbox),
   },
 
   {
@@ -176,6 +178,11 @@ export const routes: Routes = [
     path: 'coupons/wallet',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/coupons/wallet').then((m) => m.CouponsWallet),
+  },
+  {
+    path: 'coupons/campaigns',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/coupons/campaigns').then((m) => m.CouponsCampaigns),
   },
   {
     path: 'deliveries',

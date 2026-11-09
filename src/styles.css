@@ -7,12 +7,6 @@
 @import './app/sections/products/prod-detail.css';
 @import './app/sections/orders/orders-all.css';
 
-app-settings-team .head__sub {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
 app-settings-team .kpi__icon--good {
   color: var(--good);
   background: color-mix(in srgb, var(--good) 14%, var(--surface));
@@ -261,8 +255,8 @@ app-settings-team .permission-toggle {
 
   /* Radius scale */
   --sd-r-rail: 34px;
-  --sd-r-card: 26px;
-  --sd-r-header: 26px;
+  --sd-r-card: var(--r-card);
+  --sd-r-header: var(--r-card);
   --sd-r-row: 16px;
   --sd-r-tile: 14px;
   --sd-r-pill: 999px;

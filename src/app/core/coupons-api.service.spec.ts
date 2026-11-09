@@ -4,7 +4,7 @@ import {
   HttpTestingController,
 } from '@angular/common/http/testing';
 import { API_BASE_URL } from './api-config';
-import { CouponsApiService } from './coupons-api.service';
+import { CouponsApiService, campaignStatus } from './coupons-api.service';
 
 const TEST_URL = '/api/v1';
 
@@ -70,5 +70,93 @@ describe('CouponsApiService', () => {
     const result = await promise;
     expect(result.claimed).toBeTrue();
     expect(result.message).toBe('Added to your wallet');
+  });
+
+  it('GETs admin coupons and normalises casing', async () => {
+    const { http, service } = init();
+    const promise = service.adminCoupons();
+    const req = http.expectOne('/api/v1/coupons/admin/coupons');
+    expect(req.request.method).toBe('GET');
+    req.flush([{ ...API_COUPON, is_active: true, per_customer_cap: 2 }]);
+    const rows = await promise;
+    expect(rows).toHaveSize(1);
+    expect(rows[0].isActive).toBeTrue();
+    expect(rows[0].perCustomerCap).toBe(2);
+  });
+
+  it('creates a coupon and unwraps the returned coupon', async () => {
+    const { http, service } = init();
+    const promise = service.createCoupon({
+      name: 'Spring',
+      type: 'percent_off',
+      value: 10,
+      maxDiscount: 2000,
+      audience: 'all',
+      reason: 'launch',
+    });
+    const req = http.expectOne('/api/v1/coupons/admin/coupons');
+    expect(req.request.method).toBe('POST');
+    req.flush({ coupon: { ...API_COUPON, is_active: true }, marginWarning: null });
+    const created = await promise;
+    expect(created.id).toBe('c-1');
+    expect(created.isActive).toBeTrue();
+  });
+
+  it('deactivates a coupon with a reason in the body', async () => {
+    const { http, service } = init();
+    const promise = service.deactivateCoupon('c-1', 'mistake');
+    const req = http.expectOne('/api/v1/coupons/admin/coupons/c-1');
+    expect(req.request.method).toBe('DELETE');
+    expect(req.request.body).toEqual({ reason: 'mistake' });
+    req.flush({ ...API_COUPON, is_active: false });
+    const coupon = await promise;
+    expect(coupon.isActive).toBeFalse();
+  });
+
+  it('GETs campaigns and normalises their window fields', async () => {
+    const { http, service } = init();
+    const promise = service.campaigns();
+    const req = http.expectOne('/api/v1/coupons/admin/campaigns');
+    expect(req.request.method).toBe('GET');
+    req.flush([
+      {
+        id: 'cc-1',
+        headline: 'Sale',
+        starts_at: '2026-03-01T00:00:00Z',
+        ends_at: '2026-04-01T00:00:00Z',
+        claim_kind: 'coupon',
+        is_active: true,
+      },
+    ]);
+    const rows = await promise;
+    expect(rows[0].startsAt).toBe('2026-03-01T00:00:00Z');
+    expect(rows[0].claimKind).toBe('coupon');
+    expect(rows[0].isActive).toBeTrue();
+  });
+
+  it('coerces report counts to numbers', async () => {
+    const { http, service } = init();
+    const promise = service.report();
+    const req = http.expectOne('/api/v1/coupons/admin/report');
+    req.flush([{ coupon_id: 'c-1', code: 'X', name: 'X', held: '4', used: null, expired: '2' }]);
+    const rows = await promise;
+    expect(rows[0].held).toBe(4);
+    expect(rows[0].used).toBe(0);
+    expect(rows[0].expired).toBe(2);
+  });
+});
+
+describe('campaignStatus', () => {
+  it('derives the banner state from the window', () => {
+    const now = Date.parse('2026-06-01T00:00:00Z');
+    expect(
+      campaignStatus({ startsAt: '2026-01-01T00:00:00Z', endsAt: '2026-12-01T00:00:00Z' }, now),
+    ).toBe('running');
+    expect(
+      campaignStatus({ startsAt: '2026-01-01T00:00:00Z', endsAt: '2026-02-01T00:00:00Z' }, now),
+    ).toBe('ended');
+    expect(
+      campaignStatus({ startsAt: '2026-08-01T00:00:00Z', endsAt: '2026-09-01T00:00:00Z' }, now),
+    ).toBe('upcoming');
   });
 });

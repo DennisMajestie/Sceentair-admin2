@@ -64,15 +64,15 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
     @if (formOpen()) {
       <form class="entry-bar" (ngSubmit)="submitEntry()">
         <div class="entry-bar__fields">
-          <label class="field"><span class="field-label">Type</span>
+          <label class="field"><span class="field__label">Type</span>
             <select [(ngModel)]="entryForm.type" name="ledgerType">
               <option value="income">Income</option>
               <option value="expenditure">Expenditure</option>
             </select>
           </label>
-          <label class="field"><span class="field-label">Amount</span><input type="number" min="0.01" step="0.01" [(ngModel)]="entryForm.amount" name="ledgerAmount" required /></label>
-          <label class="field"><span class="field-label">Occurred at</span><input type="date" [(ngModel)]="entryForm.occurredAt" name="ledgerOccurredAt" /></label>
-          <label class="field entry-bar__note"><span class="field-label">Note</span><input type="text" [(ngModel)]="entryForm.note" name="ledgerNote" placeholder="What was recorded" required /></label>
+          <label class="field"><span class="field__label">Amount</span><input type="number" min="0.01" step="0.01" [(ngModel)]="entryForm.amount" name="ledgerAmount" required /></label>
+          <label class="field"><span class="field__label">Occurred at</span><input type="date" [(ngModel)]="entryForm.occurredAt" name="ledgerOccurredAt" /></label>
+          <label class="field entry-bar__note"><span class="field__label">Note</span><input type="text" [(ngModel)]="entryForm.note" name="ledgerNote" placeholder="What was recorded" required /></label>
         </div>
         <div class="entry-bar__actions">
           <button type="submit" class="btn btn--primary" [disabled]="saving()">Save entry</button>
@@ -213,7 +213,6 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
     .field { display: grid; gap: 5px; min-width: 0; }
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
     .facts div { display: grid; gap: 2px; }

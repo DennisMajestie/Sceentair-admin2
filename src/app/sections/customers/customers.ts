@@ -52,7 +52,13 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
   imports: [RouterLink, Icon, Sparkline],
   template: `
     <div class="head head--cs">
-      <h1 class="head__title">{{ view() === 'stockists' ? 'Stockists' : 'Shoppers' }}</h1>
+      <div class="head__text">
+        <span class="head__eyebrow">Customers</span>
+        <h1 class="head__title">{{ view() === 'stockists' ? 'Stockists' : 'Shoppers' }}</h1>
+        <p class="head__lead">
+          {{ view() === 'stockists' ? 'Trade accounts buying wholesale from Vessa.' : 'Everyone who shops with Vessa.' }}
+        </p>
+      </div>
     </div>
 
     <section class="cs-tiles" aria-label="Summary">

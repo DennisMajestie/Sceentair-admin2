@@ -98,6 +98,13 @@ export class UsersApiService {
     );
   }
 
+  /** Disables the account and revokes its sessions server-side. */
+  deactivate(id: string): Promise<ApiUser> {
+    return firstValueFrom(
+      this.http.patch<ApiUser>(apiUrl(this.baseUrl, `users/${encodeURIComponent(id)}/deactivate`), {}),
+    );
+  }
+
   create(input: ApiCreateUserInput): Promise<ApiUser> {
     return firstValueFrom(
       this.http.post<ApiUser>(apiUrl(this.baseUrl, 'users'), input),

@@ -4,12 +4,11 @@ import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, type ApiAuthSession } from '../../core/auth.service';
 import { ToastService } from '../../core/toast';
-import { Icon } from '../../ui/icon';
 
 @Component({
   selector: 'app-settings-security',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe],
   template: `
     <div class="head">
       <div class="head__text">
@@ -55,7 +54,7 @@ import { Icon } from '../../ui/icon';
               <code class="secret mono">{{ setup()?.secret }}</code>
               <button class="btn btn--ghost" type="button" (click)="copySecret()">Copy secret</button>
             </div>
-            <label class="field"><span class="field-label">6-digit code</span>
+            <label class="field"><span class="field__label">6-digit code</span>
               <input class="code-input mono" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [(ngModel)]="code" name="code" placeholder="000000" />
             </label>
             <div class="security-actions">
@@ -67,7 +66,7 @@ import { Icon } from '../../ui/icon';
         @case ('disabling') {
           <div class="enroll">
             <p class="enroll__lead">Turning 2FA off will sign out every session, including this one. Enter a current 6-digit code to confirm:</p>
-            <label class="field"><span class="field-label">6-digit code</span>
+            <label class="field"><span class="field__label">6-digit code</span>
               <input class="code-input mono" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" [(ngModel)]="code" name="code" placeholder="000000" />
             </label>
             <div class="security-actions">
@@ -130,7 +129,6 @@ import { Icon } from '../../ui/icon';
     .field { display: grid; gap: 6px; max-width: 320px; }
     .code-input { height: 52px; font-size: 1.25rem; letter-spacing: 0.3em; text-align: center; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--text); }
     .code-input:focus-visible { outline: 2px solid var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .notice { margin: 0 22px 18px; padding: 10px 14px; border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-sm); }
     .notice--error { color: var(--bad); }
     .session-name { font-weight: 650; font-size: var(--fs-sm); }

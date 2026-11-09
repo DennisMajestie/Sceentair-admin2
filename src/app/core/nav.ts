@@ -50,6 +50,13 @@ export const NAV: NavSection[] = [
     ],
   },
   {
+    id: 'messages',
+    label: 'Messages',
+    icon: 'mail',
+    path: '/messages',
+    pages: [{ label: 'Customer messages', path: '/messages' }],
+  },
+  {
     id: 'purchasing',
     label: 'Purchasing',
     icon: 'purchasing',
@@ -102,6 +109,7 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Campaigns', path: '/marketing/campaigns' },
       { label: 'Coupon wallet', path: '/coupons/wallet' },
+      { label: 'Coupon campaigns', path: '/coupons/campaigns' },
       { label: 'Media library', path: '/media' },
     ],
   },

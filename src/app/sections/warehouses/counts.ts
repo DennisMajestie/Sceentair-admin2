@@ -186,14 +186,14 @@ function errorText(err: unknown): string {
             <form class="move-form" (ngSubmit)="submitMovement()">
               <p class="mono move-form__target">{{ line.itemId }}</p>
               <div class="move-form__fields">
-                <label class="field"><span class="field-label">Direction</span>
+                <label class="field"><span class="field__label">Direction</span>
                   <select [(ngModel)]="movementForm.direction" name="moveDirection">
                     <option value="in">In</option>
                     <option value="out">Out</option>
                   </select>
                 </label>
-                <label class="field"><span class="field-label">Quantity</span><input type="number" min="1" step="1" [(ngModel)]="movementForm.quantity" name="moveQuantity" required /></label>
-                <label class="field"><span class="field-label">Note</span><input type="text" [(ngModel)]="movementForm.note" name="moveNote" placeholder="optional" /></label>
+                <label class="field"><span class="field__label">Quantity</span><input type="number" min="1" step="1" [(ngModel)]="movementForm.quantity" name="moveQuantity" required /></label>
+                <label class="field"><span class="field__label">Note</span><input type="text" [(ngModel)]="movementForm.note" name="moveNote" placeholder="optional" /></label>
               </div>
               <div class="move-form__actions">
                 <button type="submit" class="btn btn--primary btn--xs" [disabled]="saving()">Record</button>
@@ -229,7 +229,6 @@ function errorText(err: unknown): string {
     .field { display: grid; gap: 5px; min-width: 0; }
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .notice {
       display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs);
     }

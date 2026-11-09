@@ -196,10 +196,10 @@ interface BatchRow {
             <form class="cost-form" (ngSubmit)="saveCost()">
               <p class="note">No cost record yet. Add the four components:</p>
               <div class="cost-grid">
-                <label class="field"><span class="field-label">Material</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.materialCost" name="materialCost" /></label>
-                <label class="field"><span class="field-label">Sewing</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.sewingCost" name="sewingCost" /></label>
-                <label class="field"><span class="field-label">Branding</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.brandingCost" name="brandingCost" /></label>
-                <label class="field"><span class="field-label">Packaging</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.packagingCost" name="packagingCost" /></label>
+                <label class="field"><span class="field__label">Material</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.materialCost" name="materialCost" /></label>
+                <label class="field"><span class="field__label">Sewing</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.sewingCost" name="sewingCost" /></label>
+                <label class="field"><span class="field__label">Branding</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.brandingCost" name="brandingCost" /></label>
+                <label class="field"><span class="field__label">Packaging</span><input type="number" min="0" step="0.01" [(ngModel)]="costForm.packagingCost" name="packagingCost" /></label>
               </div>
               <button class="btn btn--primary" type="submit" [disabled]="busy()">Save cost record</button>
             </form>
@@ -221,9 +221,9 @@ interface BatchRow {
           }
           <form class="rejection-form" (ngSubmit)="saveRejection()">
             <div class="cost-grid">
-              <label class="field"><span class="field-label">Qty</span><input type="number" min="1" step="1" [(ngModel)]="rejectionForm.quantity" name="rqty" /></label>
-              <label class="field"><span class="field-label">Reason</span><input type="text" [(ngModel)]="rejectionForm.reason" name="rreason" placeholder="stitch defect" required /></label>
-              <label class="field"><span class="field-label">Disposition</span>
+              <label class="field"><span class="field__label">Qty</span><input type="number" min="1" step="1" [(ngModel)]="rejectionForm.quantity" name="rqty" /></label>
+              <label class="field"><span class="field__label">Reason</span><input type="text" [(ngModel)]="rejectionForm.reason" name="rreason" placeholder="stitch defect" required /></label>
+              <label class="field"><span class="field__label">Disposition</span>
                 <select [(ngModel)]="rejectionForm.disposition" name="rdisposition">
                   <option value="repaired_restocked">Repaired &amp; restocked</option>
                   <option value="burned">Burned</option>
@@ -252,7 +252,7 @@ interface BatchRow {
       <form class="create-form" (ngSubmit)="createBatch()">
         <p class="note">One batch per variant, tied to an approved production request.</p>
 
-        <label class="field"><span class="field-label">Product</span>
+        <label class="field"><span class="field__label">Product</span>
           <select [(ngModel)]="createForm.productId" name="productId" required (ngModelChange)="onProductChange($event)">
             <option value="">Select product…</option>
             @for (p of productOptions(); track p.id) {
@@ -260,7 +260,7 @@ interface BatchRow {
             }
           </select>
         </label>
-        <label class="field"><span class="field-label">Variant</span>
+        <label class="field"><span class="field__label">Variant</span>
           <select [(ngModel)]="createForm.variantId" name="variantId" required [disabled]="!createForm.productId">
             <option value="">Select variant…</option>
             @for (v of variantOptions(); track v.id) {
@@ -269,10 +269,10 @@ interface BatchRow {
           </select>
         </label>
         <div class="cost-grid">
-          <label class="field"><span class="field-label">Quantity</span><input type="number" min="1" step="1" [(ngModel)]="createForm.quantity" name="quantity" required /></label>
-          <label class="field"><span class="field-label">Planned date</span><input type="date" [(ngModel)]="createForm.plannedDate" name="plannedDate" /></label>
+          <label class="field"><span class="field__label">Quantity</span><input type="number" min="1" step="1" [(ngModel)]="createForm.quantity" name="quantity" required /></label>
+          <label class="field"><span class="field__label">Planned date</span><input type="date" [(ngModel)]="createForm.plannedDate" name="plannedDate" /></label>
         </div>
-        <label class="field"><span class="field-label">Approved request</span>
+        <label class="field"><span class="field__label">Approved request</span>
           <select [(ngModel)]="createForm.approvalRequestId" name="approvalRequestId" required>
             <option value="">Select an approved production request…</option>
             @for (a of approvedRequests(); track a.id) {

@@ -111,14 +111,14 @@ import { ToastService } from '../../core/toast';
             </dl>
 
             <div class="ship-grid">
-              <label class="field field--check"><span class="field-label">Shipping enabled</span><input type="checkbox" [(ngModel)]="settingsForm.shippingEnabled" name="shipPanelShipping" /></label>
-              <label class="field"><span class="field-label">Free delivery threshold</span><input type="number" min="0" [(ngModel)]="settingsForm.freeDeliveryThreshold" name="shipPanelThreshold" /></label>
-              <label class="field field--check"><span class="field-label">VAT enabled</span><input type="checkbox" [(ngModel)]="settingsForm.vatEnabled" name="shipPanelVat" /></label>
-              <label class="field"><span class="field-label">VAT rate %</span><input type="number" min="0" max="100" [(ngModel)]="settingsForm.vatRatePercent" name="shipPanelVatRate" /></label>
-              <label class="field field--check"><span class="field-label">Coupons enabled</span><input type="checkbox" [(ngModel)]="settingsForm.couponsEnabled" name="shipPanelCoupons" /></label>
+              <label class="field field--check"><span class="field__label">Shipping enabled</span><input type="checkbox" [(ngModel)]="settingsForm.shippingEnabled" name="shipPanelShipping" /></label>
+              <label class="field"><span class="field__label">Free delivery threshold</span><input type="number" min="0" [(ngModel)]="settingsForm.freeDeliveryThreshold" name="shipPanelThreshold" /></label>
+              <label class="field field--check"><span class="field__label">VAT enabled</span><input type="checkbox" [(ngModel)]="settingsForm.vatEnabled" name="shipPanelVat" /></label>
+              <label class="field"><span class="field__label">VAT rate %</span><input type="number" min="0" max="100" [(ngModel)]="settingsForm.vatRatePercent" name="shipPanelVatRate" /></label>
+              <label class="field field--check"><span class="field__label">Coupons enabled</span><input type="checkbox" [(ngModel)]="settingsForm.couponsEnabled" name="shipPanelCoupons" /></label>
             </div>
             <div class="ship-save">
-              <label class="field"><span class="field-label">Reason for change</span><input type="text" placeholder="Required for the audit trail" [(ngModel)]="reason" name="shipPanelReason" /></label>
+              <label class="field"><span class="field__label">Reason for change</span><input type="text" placeholder="Required for the audit trail" [(ngModel)]="reason" name="shipPanelReason" /></label>
               <button type="button" class="btn" [disabled]="saving() || !reason.trim()" (click)="saveSettings()">{{ saving() ? 'Saving…' : 'Save settings' }}</button>
             </div>
 
@@ -147,10 +147,10 @@ import { ToastService } from '../../core/toast';
                   <tr>
                     <td colspan="4" class="ship-addcell">
                       <form class="ship-add" (ngSubmit)="addPricingRow()">
-                        <label class="field"><span class="field-label">Zone</span><input type="text" placeholder="Zone name" [(ngModel)]="addRowForm.zone" name="shipAddZone" required /></label>
-                        <label class="field"><span class="field-label">Base kg</span><input type="number" min="0" [(ngModel)]="addRowForm.baseKg" name="shipAddBaseKg" /></label>
-                        <label class="field"><span class="field-label">Base price</span><input type="number" min="0" [(ngModel)]="addRowForm.basePrice" name="shipAddBasePrice" /></label>
-                        <label class="field"><span class="field-label">Per kg price</span><input type="number" min="0" [(ngModel)]="addRowForm.perKgPrice" name="shipAddPerKg" /></label>
+                        <label class="field"><span class="field__label">Zone</span><input type="text" placeholder="Zone name" [(ngModel)]="addRowForm.zone" name="shipAddZone" required /></label>
+                        <label class="field"><span class="field__label">Base kg</span><input type="number" min="0" [(ngModel)]="addRowForm.baseKg" name="shipAddBaseKg" /></label>
+                        <label class="field"><span class="field__label">Base price</span><input type="number" min="0" [(ngModel)]="addRowForm.basePrice" name="shipAddBasePrice" /></label>
+                        <label class="field"><span class="field__label">Per kg price</span><input type="number" min="0" [(ngModel)]="addRowForm.perKgPrice" name="shipAddPerKg" /></label>
                         <button type="submit" class="btn" [disabled]="addingPriceRow() || !addRowForm.zone.trim()">{{ addingPriceRow() ? 'Saving…' : 'Add price row' }}</button>
                       </form>
                     </td>
@@ -258,7 +258,6 @@ import { ToastService } from '../../core/toast';
     .ship-empty { color: var(--muted); text-align: center; }
     .ship-addcell { border-top: 1px solid var(--line); background: var(--well); }
     .ship-add { display: grid; grid-template-columns: 1.3fr 0.5fr 0.9fr 0.9fr auto; gap: 10px; align-items: end; padding: 12px 14px; }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .field--check { justify-items: start; }
     @media (max-width: 700px) {
       .ship-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -141,8 +141,8 @@ interface SupplierRow {
       <ng-container drawerTitle><div class="dtitle"><strong>New supplier</strong></div></ng-container>
       <form class="supplier-form" (ngSubmit)="createSupplier()">
         <div class="cost-grid">
-          <label class="field"><span class="field-label">Name</span><input type="text" [(ngModel)]="createForm.name" name="newname" required /></label>
-          <label class="field"><span class="field-label">Category</span>
+          <label class="field"><span class="field__label">Name</span><input type="text" [(ngModel)]="createForm.name" name="newname" required /></label>
+          <label class="field"><span class="field__label">Category</span>
             <select [(ngModel)]="createForm.category" name="newcategory">
               <option value="">Not set</option>
               <option value="fabrics">Fabrics</option>
@@ -154,12 +154,12 @@ interface SupplierRow {
               <option value="other">Other</option>
             </select>
           </label>
-          <label class="field"><span class="field-label">Location</span><input type="text" [(ngModel)]="createForm.location" name="newlocation" placeholder="Lagos, Nigeria" /></label>
-          <label class="field"><span class="field-label">SLA score (0–100)</span><input type="number" min="0" max="100" step="0.5" [(ngModel)]="createForm.slaScore" name="newslaScore" /></label>
-          <label class="field"><span class="field-label">Quota units</span><input type="number" min="0" step="1" [(ngModel)]="createForm.quotaUnits" name="newquotaUnits" /></label>
-          <label class="field field--check"><span class="field-label">Certified</span><input type="checkbox" [(ngModel)]="createForm.certified" name="newcertified" /></label>
+          <label class="field"><span class="field__label">Location</span><input type="text" [(ngModel)]="createForm.location" name="newlocation" placeholder="Lagos, Nigeria" /></label>
+          <label class="field"><span class="field__label">SLA score (0–100)</span><input type="number" min="0" max="100" step="0.5" [(ngModel)]="createForm.slaScore" name="newslaScore" /></label>
+          <label class="field"><span class="field__label">Quota units</span><input type="number" min="0" step="1" [(ngModel)]="createForm.quotaUnits" name="newquotaUnits" /></label>
+          <label class="field field--check"><span class="field__label">Certified</span><input type="checkbox" [(ngModel)]="createForm.certified" name="newcertified" /></label>
         </div>
-        <label class="field"><span class="field-label">Compliance notes</span><textarea rows="3" [(ngModel)]="createForm.complianceNotes" name="newnotes"></textarea></label>
+        <label class="field"><span class="field__label">Compliance notes</span><textarea rows="3" [(ngModel)]="createForm.complianceNotes" name="newnotes"></textarea></label>
         <div class="form-actions">
           <button class="btn btn--primary" type="submit" [disabled]="busy() || !createForm.name.trim()">{{ busy() ? 'Creating…' : 'Create supplier' }}</button>
           <button class="btn btn--ghost" type="button" (click)="closeCreate()">Cancel</button>
@@ -194,8 +194,8 @@ interface SupplierRow {
           } @else {
             <form class="supplier-form" (ngSubmit)="saveEdit()">
               <div class="cost-grid">
-                <label class="field"><span class="field-label">Name</span><input type="text" [(ngModel)]="editForm.name" name="name" required /></label>
-                <label class="field"><span class="field-label">Category</span>
+                <label class="field"><span class="field__label">Name</span><input type="text" [(ngModel)]="editForm.name" name="name" required /></label>
+                <label class="field"><span class="field__label">Category</span>
                   <select [(ngModel)]="editForm.category" name="category">
                     <option value="">Not set</option>
                     <option value="fabrics">Fabrics</option>
@@ -207,12 +207,12 @@ interface SupplierRow {
                     <option value="other">Other</option>
                   </select>
                 </label>
-                <label class="field"><span class="field-label">Location</span><input type="text" [(ngModel)]="editForm.location" name="location" /></label>
-                <label class="field"><span class="field-label">SLA score (0–100)</span><input type="number" min="0" max="100" step="0.5" [(ngModel)]="editForm.slaScore" name="slaScore" /></label>
-                <label class="field"><span class="field-label">Quota units</span><input type="number" min="0" step="1" [(ngModel)]="editForm.quotaUnits" name="quotaUnits" /></label>
-                <label class="field field--check"><span class="field-label">Certified</span><input type="checkbox" [(ngModel)]="editForm.certified" name="certified" /></label>
+                <label class="field"><span class="field__label">Location</span><input type="text" [(ngModel)]="editForm.location" name="location" /></label>
+                <label class="field"><span class="field__label">SLA score (0–100)</span><input type="number" min="0" max="100" step="0.5" [(ngModel)]="editForm.slaScore" name="slaScore" /></label>
+                <label class="field"><span class="field__label">Quota units</span><input type="number" min="0" step="1" [(ngModel)]="editForm.quotaUnits" name="quotaUnits" /></label>
+                <label class="field field--check"><span class="field__label">Certified</span><input type="checkbox" [(ngModel)]="editForm.certified" name="certified" /></label>
               </div>
-              <label class="field"><span class="field-label">Compliance notes</span><textarea rows="3" [(ngModel)]="editForm.complianceNotes" name="complianceNotes"></textarea></label>
+              <label class="field"><span class="field__label">Compliance notes</span><textarea rows="3" [(ngModel)]="editForm.complianceNotes" name="complianceNotes"></textarea></label>
               <div class="form-actions">
                 <button class="btn btn--primary" type="submit" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Save terms' }}</button>
                 <button class="btn btn--ghost" type="button" (click)="editing.set(false)">Cancel</button>
@@ -247,7 +247,6 @@ interface SupplierRow {
     .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--primary); }
     .field--check { justify-items: start; }
     .field--check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }

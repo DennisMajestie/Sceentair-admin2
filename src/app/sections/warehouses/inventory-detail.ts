@@ -154,14 +154,14 @@ function stockState(quantity: number): 'out_of_stock' | 'in_stock' {
       <p class="sub move__note">Movements are appended to the hash-chained ledger and cannot be edited or deleted, only corrected with another movement.</p>
       <form class="move__form" (ngSubmit)="submitMovement()">
         <div class="move__fields">
-          <label class="field"><span class="field-label">Direction</span>
+          <label class="field"><span class="field__label">Direction</span>
             <select [(ngModel)]="form.direction" name="direction">
               <option value="in">In</option>
               <option value="out">Out</option>
             </select>
           </label>
-          <label class="field"><span class="field-label">Quantity</span><input type="number" [(ngModel)]="form.quantity" name="quantity" min="1" step="1" required /></label>
-          <label class="field"><span class="field-label">Reference</span><input type="text" [(ngModel)]="form.reference" name="reference" placeholder="optional note" /></label>
+          <label class="field"><span class="field__label">Quantity</span><input type="number" [(ngModel)]="form.quantity" name="quantity" min="1" step="1" required /></label>
+          <label class="field"><span class="field__label">Reference</span><input type="text" [(ngModel)]="form.reference" name="reference" placeholder="optional note" /></label>
         </div>
         <div class="move__actions">
           <button type="submit" class="btn btn--primary" [disabled]="saving()">{{ submitLabel() }}</button>
@@ -206,7 +206,6 @@ function stockState(quantity: number): 'out_of_stock' | 'in_stock' {
     .field { display: grid; gap: 5px; min-width: 0; }
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .notice {
       display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs);
     }

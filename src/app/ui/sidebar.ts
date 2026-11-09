@@ -192,7 +192,6 @@ import { Icon } from './icon';
       place-items: center;
     }
     .ri.is-on .ri__count {
-      // background: var(--on-primary);
       color: var(--raised);
     }
     /* Navigation list */

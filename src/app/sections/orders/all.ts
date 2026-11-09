@@ -324,16 +324,16 @@ const API_FLOW: ApiOrderStatus[] = [
             <h3 class="dlabel">Pack out</h3>
             <div class="packout">
               <label class="field">
-                <span class="field-label">Delivery note</span>
+                <span class="field__label">Delivery note</span>
                 <input type="text" [value]="packNote()" (input)="packNote.set($any($event.target).value)" placeholder="e.g. leave with the front desk" />
               </label>
               <div class="packout__grid">
                 <label class="field">
-                  <span class="field-label">Gross weight (kg)</span>
+                  <span class="field__label">Gross weight (kg)</span>
                   <input type="number" min="0" step="0.01" [value]="packWeightKg()" (input)="packWeightKg.set($any($event.target).value)" />
                 </label>
                 <label class="field">
-                  <span class="field-label">Pallet ref</span>
+                  <span class="field__label">Pallet ref</span>
                   <input type="text" [value]="packPalletRef()" (input)="packPalletRef.set($any($event.target).value)" placeholder="e.g. PLT-014" />
                 </label>
               </div>
@@ -485,7 +485,6 @@ const API_FLOW: ApiOrderStatus[] = [
     .packout { display: grid; gap: 9px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); }
     .packout .field { display: grid; gap: 4px; }
     .packout input { padding: 7px 10px; border: 1px solid var(--line-2); border-radius: 8px; background: var(--raised); color: var(--text); font-size: var(--fs-sm); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .packout__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
     .packout__actions { display: flex; justify-content: flex-end; }
   `,

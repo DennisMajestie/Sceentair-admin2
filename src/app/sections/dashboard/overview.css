@@ -510,13 +510,13 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: 13px;
 }
 
 .alerts-card .row-item {
   gap: 8px;
   margin-top: 0;
-  padding: 5px 8px;
+  padding: 11px 8px;
 }
 
 .alerts-card .row-item__tile {
@@ -536,8 +536,10 @@
 .seller {
   display: flex;
   align-items: center;
+  background: 
+  color-mix(in srgb, var(--sd-track) 38%, transparent);
   gap: 11px;
-  padding: 4px 6px;
+  padding: 13px 6px;
   border-radius: var(--sd-r-tile);
   transition: background 0.16s var(--ease);
 }

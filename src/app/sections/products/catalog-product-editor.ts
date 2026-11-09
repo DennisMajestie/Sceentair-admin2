@@ -78,15 +78,15 @@ function extractCreatedId(created: unknown): string | null {
       <form class="pform" (ngSubmit)="save()">
         <div class="pgrid">
           <label class="field field--span">
-            <span class="field-label">Name</span>
+            <span class="field__label">Name</span>
             <input type="text" name="pName" [(ngModel)]="fName" required placeholder="Product name" />
           </label>
           <label class="field">
-            <span class="field-label">Base price</span>
+            <span class="field__label">Base price</span>
             <input type="number" name="pBasePrice" min="0" step="0.01" [(ngModel)]="fBasePrice" required />
           </label>
           <div class="field">
-            <span class="field-label">Category</span>
+            <span class="field__label">Category</span>
             <select name="pCategory" [(ngModel)]="fCategory">
               <option value="">Not set</option>
               @for (option of categoryOptions(); track option.id) {
@@ -117,23 +117,23 @@ function extractCreatedId(created: unknown): string | null {
             }
           </div>
           <label class="field">
-            <span class="field-label">Size class</span>
+            <span class="field__label">Size class</span>
             <input type="text" name="pSizeClass" placeholder="e.g. medium" [(ngModel)]="fSizeClass" />
           </label>
           <label class="field field--check">
-            <span class="field-label">Bestseller</span>
+            <span class="field__label">Bestseller</span>
             <input type="checkbox" name="pBestseller" [(ngModel)]="fBestseller" />
           </label>
           <label class="field field--span">
-            <span class="field-label">Primary image URL</span>
+            <span class="field__label">Primary image URL</span>
             <input type="text" name="pPrimaryImage" placeholder="https://… or /uploads/…" [(ngModel)]="fPrimaryImage" />
           </label>
           <label class="field field--span">
-            <span class="field-label">Upload image</span>
+            <span class="field__label">Upload image</span>
             <input type="file" accept="image/*" [disabled]="working() !== ''" (change)="onImageFile($event)" />
           </label>
           <label class="field field--span">
-            <span class="field-label">Description</span>
+            <span class="field__label">Description</span>
             <textarea rows="3" name="pDescription" [(ngModel)]="fDescription"></textarea>
           </label>
         </div>
@@ -187,23 +187,23 @@ function extractCreatedId(created: unknown): string | null {
         <form class="pform" (ngSubmit)="submitVariant()">
           <div class="pgrid">
             <label class="field">
-              <span class="field-label">SKU</span>
+              <span class="field__label">SKU</span>
               <input type="text" name="vSku" placeholder="Auto-suggested" [(ngModel)]="vSku" />
             </label>
             <label class="field">
-              <span class="field-label">Size</span>
+              <span class="field__label">Size</span>
               <input type="text" name="vSize" [(ngModel)]="vSize" />
             </label>
             <label class="field">
-              <span class="field-label">Colour</span>
+              <span class="field__label">Colour</span>
               <input type="text" name="vColour" [(ngModel)]="vColour" />
             </label>
             <label class="field">
-              <span class="field-label">Price override</span>
+              <span class="field__label">Price override</span>
               <input type="number" name="vPriceOverride" min="0" step="0.01" [(ngModel)]="vPriceOverride" />
             </label>
             <div class="field">
-              <span class="field-label">Availability</span>
+              <span class="field__label">Availability</span>
               <select name="vAvailability" [(ngModel)]="vAvailability">
                 <option value="in_stock">In stock</option>
                 <option value="out_of_stock">Out of stock</option>
@@ -238,16 +238,16 @@ function extractCreatedId(created: unknown): string | null {
           } @else {
             <div class="pgrid">
               <label class="field">
-                <span class="field-label">Percent off</span>
+                <span class="field__label">Percent off</span>
                 <input type="number" min="1" max="99" [(ngModel)]="sPercent" />
               </label>
               <label class="field">
-                <span class="field-label">Ends at</span>
+                <span class="field__label">Ends at</span>
                 <input type="datetime-local" [(ngModel)]="sEndsAt" />
               </label>
             </div>
             <label class="field">
-              <span class="field-label">Approval request ID</span>
+              <span class="field__label">Approval request ID</span>
               <input type="text" placeholder="Approval covering this sale" [(ngModel)]="sApproval" />
             </label>
             <div class="form-actions">
@@ -311,7 +311,6 @@ function extractCreatedId(created: unknown): string | null {
     .field input[type='file'] { color: var(--muted); font-size: var(--fs-xs); }
     .field--check { justify-items: start; }
     .field--check input[type='checkbox'] { width: 18px; height: 18px; accent-color: var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .category-inline { display: flex; align-items: center; gap: 8px; }
     .category-inline input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-md); }
     .add-category { justify-self: start; padding: 0; border: 0; background: transparent; color: var(--primary); font: inherit; font-size: var(--fs-xs); font-weight: 700; cursor: pointer; }

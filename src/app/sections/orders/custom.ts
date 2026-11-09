@@ -128,8 +128,8 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
             @if (o.status === 'under_review' || o.status === 'submitted') {
               <form class="quote-form" (ngSubmit)="sendQuote()">
                 <div class="cost-grid">
-                  <label class="field"><span class="field-label">Amount (₦)</span><input type="number" min="0.01" step="0.01" [(ngModel)]="quoteForm.amount" name="amount" required /></label>
-                  <label class="field"><span class="field-label">Note</span><input type="text" [(ngModel)]="quoteForm.note" name="note" placeholder="Fabric + making + delivery" /></label>
+                  <label class="field"><span class="field__label">Amount (₦)</span><input type="number" min="0.01" step="0.01" [(ngModel)]="quoteForm.amount" name="amount" required /></label>
+                  <label class="field"><span class="field__label">Note</span><input type="text" [(ngModel)]="quoteForm.note" name="note" placeholder="Fabric + making + delivery" /></label>
                 </div>
                 <button class="btn btn--primary" type="submit" [disabled]="busy() || !quoteForm.amount">Send quote</button>
               </form>
@@ -139,7 +139,7 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
               @if (paymentOpen()) {
                 <form class="quote-form" (ngSubmit)="recordPayment()">
                   <div class="cost-grid">
-                    <label class="field"><span class="field-label">Method</span>
+                    <label class="field"><span class="field__label">Method</span>
                       <select [(ngModel)]="payForm.method" name="method">
                         <option value="paystack">Paystack</option>
                         <option value="bank_transfer">Bank transfer</option>
@@ -147,7 +147,7 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
                         <option value="pos">POS</option>
                       </select>
                     </label>
-                    <label class="field"><span class="field-label">Amount (₦) — must match quote</span><input type="number" min="0.01" step="0.01" [(ngModel)]="payForm.amount" name="payamount" required /></label>
+                    <label class="field"><span class="field__label">Amount (₦) — must match quote</span><input type="number" min="0.01" step="0.01" [(ngModel)]="payForm.amount" name="payamount" required /></label>
                   </div>
                   <div class="actions-row">
                     <button class="btn btn--primary" type="submit" [disabled]="busy() || !payForm.amount">Confirm payment</button>
@@ -164,7 +164,7 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
                 <button class="btn btn--primary" type="button" [disabled]="busy()" (click)="decideSample(true)">Sample approved</button>
                 <button class="btn btn--ghost" type="button" [disabled]="busy()" (click)="decideSample(false)">Sample rejected</button>
               </div>
-              <label class="field"><span class="field-label">Sample decision note</span><input type="text" [(ngModel)]="sampleNote" name="sampleNote" placeholder="optional" /></label>
+              <label class="field"><span class="field__label">Sample decision note</span><input type="text" [(ngModel)]="sampleNote" name="sampleNote" placeholder="optional" /></label>
             }
             @if (o.status === 'sample_approved') {
               <button class="btn btn--primary" type="button" [disabled]="busy()" (click)="setStatus('in_production')">Start full production</button>
@@ -211,7 +211,7 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
     .field { display: grid; gap: 5px; }
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
+
     .destructive { color: var(--bad); }
     .empty { display: grid; justify-items: center; gap: 10px; padding: 54px 20px; border: 1px dashed var(--line); border-radius: var(--sd-r-card); color: var(--muted); text-align: center; }
     @media (max-width: 900px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cost-grid { grid-template-columns: 1fr; } }

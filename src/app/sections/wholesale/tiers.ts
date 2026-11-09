@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
@@ -8,7 +8,7 @@ import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput,
 @Component({
   selector: 'app-wholesale-tiers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
@@ -108,7 +108,7 @@ import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput,
             </label>
             <div class="edit-actions">
               <button type="button" class="btn btn--ghost" (click)="clearEdit()">Clear</button>
-              <button type="button" class="btn" [disabled]="!editName()?.trim()" (click)="saveEdit(t.id)">Save changes</button>
+              <button type="button" class="btn" [disabled]="!editName().trim()" (click)="saveEdit(t.id)">Save changes</button>
               <button type="button" class="btn btn--ghost" (click)="deleteTier(t.id)" [class.delete]="true">Delete tier</button>
             </div>
             @if (editError()) {

@@ -8,12 +8,11 @@ import {
 } from '../../core/reviews-api.service';
 import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
-import { Drawer } from '../../ui/drawer';
 
 @Component({
   selector: 'app-products-reviews',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, DatePipe],
+  imports: [RouterLink, Icon, FormsModule, DatePipe],
   template: `
     <div class="head">
       <div class="head__text">

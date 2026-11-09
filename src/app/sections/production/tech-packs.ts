@@ -132,13 +132,13 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
             <form class="create-form" (ngSubmit)="saveEdit()">
               <h3 class="dlabel">Edit pack</h3>
               <div class="cost-grid">
-                <label class="field"><span class="field-label">Silhouette</span><input type="text" [(ngModel)]="editForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
-                <label class="field"><span class="field-label">Target units</span><input type="number" min="0" step="1" [(ngModel)]="editForm.targetYieldUnits" name="targetYieldUnits" /></label>
-                <label class="field"><span class="field-label">Cutting yield %</span><input type="number" min="0" max="100" step="0.1" [(ngModel)]="editForm.cuttingEfficiencyPct" name="cuttingEfficiencyPct" /></label>
-                <label class="field"><span class="field-label">DXF URL</span><input type="url" [(ngModel)]="editForm.dxfUrl" name="dxfUrl" placeholder="https://…" /></label>
+                <label class="field"><span class="field__label">Silhouette</span><input type="text" [(ngModel)]="editForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
+                <label class="field"><span class="field__label">Target units</span><input type="number" min="0" step="1" [(ngModel)]="editForm.targetYieldUnits" name="targetYieldUnits" /></label>
+                <label class="field"><span class="field__label">Cutting yield %</span><input type="number" min="0" max="100" step="0.1" [(ngModel)]="editForm.cuttingEfficiencyPct" name="cuttingEfficiencyPct" /></label>
+                <label class="field"><span class="field__label">DXF URL</span><input type="url" [(ngModel)]="editForm.dxfUrl" name="dxfUrl" placeholder="https://…" /></label>
               </div>
-              <label class="field"><span class="field-label">Stitch protocol</span><textarea rows="2" [(ngModel)]="editForm.stitchProtocol" name="stitchProtocol"></textarea></label>
-              <label class="field"><span class="field-label">Laydown protocol</span><textarea rows="2" [(ngModel)]="editForm.laydownProtocol" name="laydownProtocol"></textarea></label>
+              <label class="field"><span class="field__label">Stitch protocol</span><textarea rows="2" [(ngModel)]="editForm.stitchProtocol" name="stitchProtocol"></textarea></label>
+              <label class="field"><span class="field__label">Laydown protocol</span><textarea rows="2" [(ngModel)]="editForm.laydownProtocol" name="laydownProtocol"></textarea></label>
               <div class="actions-row">
                 <button class="btn btn--primary" type="submit" [disabled]="busy()">{{ busy() ? 'Saving…' : 'Save changes' }}</button>
                 <button class="btn btn--ghost" type="button" (click)="editing.set(false)">Cancel</button>
@@ -152,26 +152,26 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
     <app-drawer [open]="creating()" (close)="closeCreate()" label="New tech pack">
       <ng-container drawerTitle><div class="dtitle"><strong>New tech pack</strong><span class="dmeta">One pack per variant</span></div></ng-container>
       <form class="create-form" (ngSubmit)="createPack()">
-        <label class="field"><span class="field-label">Product</span>
+        <label class="field"><span class="field__label">Product</span>
           <select [(ngModel)]="createForm.productId" name="productId" required (ngModelChange)="onProductChange($event)">
             <option value="">Select product…</option>
             @for (p of productOptions(); track p.id) { <option [value]="p.id">{{ p.name }}</option> }
           </select>
         </label>
-        <label class="field"><span class="field-label">Variant</span>
+        <label class="field"><span class="field__label">Variant</span>
           <select [(ngModel)]="createForm.variantId" name="variantId" required [disabled]="!createForm.productId">
             <option value="">Select variant…</option>
             @for (v of variantOptions(); track v.id) { <option [value]="v.id">{{ v.sku }}{{ v.size ? ' · ' + v.size : '' }}{{ v.colour ? ' · ' + v.colour : '' }}</option> }
           </select>
         </label>
         <div class="cost-grid">
-          <label class="field"><span class="field-label">Silhouette</span><input type="text" [(ngModel)]="createForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
-          <label class="field"><span class="field-label">Target units</span><input type="number" min="0" step="1" [(ngModel)]="createForm.targetYieldUnits" name="targetYieldUnits" /></label>
-          <label class="field"><span class="field-label">Cutting yield %</span><input type="number" min="0" max="100" step="0.1" [(ngModel)]="createForm.cuttingEfficiencyPct" name="cuttingEfficiencyPct" /></label>
-          <label class="field"><span class="field-label">DXF URL</span><input type="url" [(ngModel)]="createForm.dxfUrl" name="dxfUrl" placeholder="https://…" /></label>
+          <label class="field"><span class="field__label">Silhouette</span><input type="text" [(ngModel)]="createForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
+          <label class="field"><span class="field__label">Target units</span><input type="number" min="0" step="1" [(ngModel)]="createForm.targetYieldUnits" name="targetYieldUnits" /></label>
+          <label class="field"><span class="field__label">Cutting yield %</span><input type="number" min="0" max="100" step="0.1" [(ngModel)]="createForm.cuttingEfficiencyPct" name="cuttingEfficiencyPct" /></label>
+          <label class="field"><span class="field__label">DXF URL</span><input type="url" [(ngModel)]="createForm.dxfUrl" name="dxfUrl" placeholder="https://…" /></label>
         </div>
-        <label class="field"><span class="field-label">Stitch protocol</span><textarea rows="2" [(ngModel)]="createForm.stitchProtocol" name="stitchProtocol" required></textarea></label>
-        <label class="field"><span class="field-label">Laydown protocol</span><textarea rows="2" [(ngModel)]="createForm.laydownProtocol" name="laydownProtocol"></textarea></label>
+        <label class="field"><span class="field__label">Stitch protocol</span><textarea rows="2" [(ngModel)]="createForm.stitchProtocol" name="stitchProtocol" required></textarea></label>
+        <label class="field"><span class="field__label">Laydown protocol</span><textarea rows="2" [(ngModel)]="createForm.laydownProtocol" name="laydownProtocol"></textarea></label>
         <button class="btn btn--primary" type="submit" [disabled]="busy() || !createForm.variantId || !createForm.stitchProtocol.trim()">{{ busy() ? 'Creating…' : 'Create pack' }}</button>
       </form>
     </app-drawer>
@@ -211,7 +211,6 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
     .field input, .field select, .field textarea { padding: 0 12px; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); font-family: inherit; }
     .field textarea { padding: 10px 12px; resize: vertical; }
     .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--primary); }
-    .field-label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 54px 20px; border: 1px dashed var(--line); border-radius: var(--sd-r-card); color: var(--muted); text-align: center; }
     .empty strong { color: var(--text); }
     @media (max-width: 1100px) { .pack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
