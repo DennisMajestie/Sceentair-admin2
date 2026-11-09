@@ -20,6 +20,15 @@ function errorText(err: unknown): string {
   return typeof text === 'string' && text ? text : String(err);
 }
 
+/** `retail_sale` → `Retail Sale`; falls back for entries without a category. */
+function categoryLabel(value: string | null): string {
+  if (!value) return 'Uncategorized';
+  return value
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 const ENTRY_TYPES: { id: LedgerEntryType | 'all'; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'sale', label: 'Sale' },
@@ -136,12 +145,12 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
             <span class="badge" [class]="'badge badge--' + tone(row.type)">{{ row.type }}</span>
           </span>
           <span class="ledger-card__category">
-            <span>{{ row.category ?? 'Uncategorized' }}</span>
+            <span>{{ categoryLabel(row.category) }}</span>
             <span class="ledger-card__amount">{{ money(row.amount) }}</span>
           </span>
           <span class="ledger-card__meta">
             <span>{{ date(row.entryAt) }}</span>
-            <span>{{ row.recordedBy ?? '—' }}</span>
+            <span>{{ personName(row.recordedBy) }}</span>
           </span>
           <span class="ledger-card__reference">
             {{ row.referenceId ?? '—' }}
@@ -179,9 +188,9 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
           </div>
 
           <dl class="facts">
-            <div><dt>Category</dt><dd>{{ entry.category ?? 'Uncategorized' }}</dd></div>
+            <div><dt>Category</dt><dd>{{ categoryLabel(entry.category) }}</dd></div>
             <div><dt>Recorded</dt><dd>{{ date(entry.entryAt) }}</dd></div>
-            <div><dt>Recorded by</dt><dd>{{ entry.recordedBy ?? '—' }}</dd></div>
+            <div><dt>Recorded by</dt><dd>{{ personName(entry.recordedBy) }}</dd></div>
             <div><dt>Reference</dt><dd>{{ entry.referenceId ?? '—' }}</dd></div>
           </dl>
         </div>
@@ -231,6 +240,7 @@ export class AccountingLedger {
 
   protected readonly date = fmtDate;
   protected readonly money = fmtMoney;
+  protected readonly categoryLabel = categoryLabel;
 
   protected readonly query = signal('');
   protected readonly dateFrom = signal<string | null>(null);
@@ -258,7 +268,7 @@ export class AccountingLedger {
       if (this.entryType() !== 'all' && entry.type !== this.entryType()) return false;
       if (this.query()) {
         const q = this.query().trim().toLowerCase();
-        const haystack = `${entry.category ?? ''} ${entry.referenceId ?? ''} ${entry.recordedBy ?? ''}`.toLowerCase();
+        const haystack = `${categoryLabel(entry.category)} ${entry.referenceId ?? ''} ${this.personName(entry.recordedBy)}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       if (this.dateFrom() && entry.entryAt < Date.parse(this.dateFrom()!)) return false;
@@ -278,6 +288,12 @@ export class AccountingLedger {
   protected readonly netBalance = computed(() => this.moneyIn() - this.moneyOut());
 
   protected readonly tone = (type: LedgerEntryType): string => TYPE_TONE[type] ?? 'muted';
+
+  /** Resolve a ledger actor id to a teammate name; never leak the raw uuid. */
+  protected personName(id: string | null): string {
+    if (!id) return '—';
+    return this.store.teammateById()[id]?.name ?? '—';
+  }
 
   protected readonly selected = computed(() => this.entries().find((e) => e.id === this.routeId()));
 
