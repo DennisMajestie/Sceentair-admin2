@@ -97,6 +97,116 @@ const SUMMARY = [
 
 const emptyList = { data: [], total: 0 };
 
+const ORDER = {
+  id: 'o-1',
+  customer: null,
+  guestName: 'Ada Okafor',
+  guestEmail: 'ada@okafor.ng',
+  channel: 'retail',
+  source: null,
+  status: 'processing',
+  paymentStatus: 'paid',
+  totalAmount: 105000,
+  deliveryFee: null,
+  shippingAddress: { state: 'Lagos', city: 'Ikeja', line: '12 Pepple St', phone: '0800 111 2222' },
+  deliveryMethod: 'pickup',
+  deliveredAt: null,
+  items: [
+    {
+      id: 'oi-1',
+      quantity: 25,
+      unitPrice: 4200,
+      variant: {
+        id: 'v-crb15-15',
+        sku: 'CRB15-M-NAVY',
+        size: 'M',
+        colour: 'Navy',
+        imageUrl: null,
+        product: { id: 'p-tee', name: 'Crab Tee', primaryImageUrl: null },
+      },
+    },
+  ],
+  createdAt: '2026-03-05T09:00:00Z',
+  updatedAt: '2026-03-06T09:00:00Z',
+};
+
+const REVIEW = {
+  id: 'rw-1',
+  orderId: 'o-1',
+  rating: 4,
+  comment: 'Fits true to size, heavy cotton.',
+  status: 'pending',
+  customerId: null,
+  createdAt: '2026-03-07T14:00:00Z',
+  variant: {
+    id: 'v-crb15-15',
+    sku: 'CRB15-M-NAVY',
+    size: 'M',
+    colour: 'Navy',
+    product: { id: 'p-tee', name: 'Crab Tee' },
+  },
+};
+
+const CUSTOM_ORDER = {
+  id: 'co-1',
+  buyer: { id: 'buy-1', name: 'Stella Nwosu', email: 'stella@nwosu.ng', phone: null, role: null },
+  sizes: 'S,M,L',
+  colours: 'Navy',
+  quantity: 120,
+  location: 'Abuja',
+  fabricQuality: '260gsm French terry',
+  description: 'Club-branded polos.',
+  desiredDate: '2026-05-01',
+  status: 'submitted',
+  reviewNote: null,
+  paidAt: null,
+  createdAt: '2026-03-08T10:00:00Z',
+  updatedAt: '2026-03-08T10:00:00Z',
+};
+
+const TECH_PACK = {
+  id: 'tp-1',
+  variant: { id: 'v-crb15-15', sku: 'CRB15-M-NAVY', size: 'M', colour: 'Navy', product: { id: 'p-tee', name: 'Crab Tee', category: 'Tops' } },
+  silhouette: 'Classic tee',
+  targetYieldUnits: 480,
+  cuttingEfficiencyPct: 78.5,
+  gradedMeasurements: null,
+  stitchProtocol: 'Single-needle jersey seams',
+  laydownProtocol: null,
+  dxfUrl: null,
+  revision: 1,
+  status: 'draft',
+  approvedBy: null,
+  approvedAt: null,
+  updatedBy: null,
+  createdAt: '2026-02-20T10:00:00Z',
+  updatedAt: '2026-03-01T10:00:00Z',
+  revisionCount: 1,
+};
+
+const BATCH = {
+  id: 'pb-1',
+  variant: { id: 'v-crb15-15', sku: 'CRB15-M-NAVY' },
+  quantity: 700,
+  stage: 'sewing',
+  plannedDate: '2026-03-10',
+  completedDate: null,
+  approvalRequestId: null,
+  barcode: 'PB-1-0001',
+  createdBy: 'u-admin',
+  createdAt: '2026-03-05T08:00:00Z',
+};
+
+const BATCH_COST = {
+  id: 'pb-1',
+  materialCost: 154000,
+  sewingCost: 91000,
+  brandingCost: 35000,
+  packagingCost: 7000,
+  confirmedComponents: ['material', 'sewing', 'branding'],
+  totalCost: 287000,
+};
+
 export const baseRules: RouteRule[] = [
   { method: 'POST', match: /\/auth\/login$/, data: { accessToken: 'e2e-access-token' } },
   { method: 'POST', match: /\/auth\/refresh$/, data: { accessToken: 'e2e-access-token' } },
@@ -160,6 +270,7 @@ export const baseRules: RouteRule[] = [
     },
   },
   { match: /\/products(\?.*)?$/, data: { data: [PRODUCT], total: 1 } },
+  { match: /\/products\/p-tee$/, data: PRODUCT },
   { match: /\/materials\/valuation$/, data: [MATERIAL] },
   { match: /\/materials(\?.*)?$/, data: { data: [MATERIAL], total: 1 } },
   { match: /\/production-batches(\?.*)?$/, data: { data: [], total: 0, stages: [] } },
@@ -193,6 +304,25 @@ export const baseRules: RouteRule[] = [
   { match: /\/analytics\/best-sellers(\?.*)?$/, data: [] },
   { match: /\/analytics\/inventory-valuation(\?.*)?$/, data: [] },
   { match: /\/analytics\/inventory-movement-trend(\?.*)?$/, data: [] },
+  { match: /\/config\/public$/, data: { currencyCode: 'NGN', currencySymbol: '₦', locale: 'en-NG', serverNow: '2026-03-06T12:00:00Z' } },
+  { match: /\/orders\/o-1\/tracking$/, data: { status: 'processing', deliveredAt: null, events: [
+    { status: 'processing', note: 'Payment confirmed', actor: 'System', createdAt: '2026-03-05T09:05:00Z' },
+  ], deliveries: [] } },
+  { match: /\/orders\/o-1$/, data: ORDER },
+  { match: /\/reviews\/pending$/, data: [REVIEW] },
+  { match: /\/custom-orders(\?.*)?$/, data: { data: [CUSTOM_ORDER], total: 1 } },
+  { match: /\/tech-packs(\?.*|\/.*)?$/, data: [TECH_PACK] },
+  { match: /\/production-batches\/pb-1\/bom$/, data: [
+    { materialId: 'm-shea', materialName: 'Shea butter', unit: 'kg', plannedQuantity: 140, consumedQuantity: 122 },
+  ] },
+  { match: /\/production-batches\/pb-1\/cost$/, data: BATCH_COST },
+  { match: /\/production-batches\/pb-1\/qc-rejections$/, data: [] },
+  { match: /\/production-batches\/pb-1\/scans$/, data: [
+    { id: 'bs-1', stage: 'sewing', scannedBy: 'Tailor 2', scannedAt: '2026-03-06T15:20:00Z' },
+    { id: 'bs-2', stage: 'cutting', scannedBy: 'Tailor 1', scannedAt: '2026-03-05T11:05:00Z' },
+  ] },
+  { match: /\/production-batches\/pb-1$/, data: BATCH },
+  { match: /\/production-batches\//, data: { data: [], stages: [], total: 0 } },
 ];
 
 export interface PostRecording {
