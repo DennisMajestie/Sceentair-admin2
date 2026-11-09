@@ -47,3 +47,10 @@ Thumbs.db
 /playwright-report/
 blob-report/
 
+# Local logs & throwaway artifacts
+*.log
+/audit-summary.txt
+
+# Throwaway diagnostic specs
+e2e/_*.spec.ts
+
