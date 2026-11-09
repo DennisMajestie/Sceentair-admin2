@@ -50,7 +50,7 @@ describe('MediaApiService upload', () => {
     FakeXhr.instances = [];
   });
 
-  it('POSTs the file to media/images as form data', async () => {
+  it('POSTs the file to media/images and derives metadata from the returned url', async () => {
     const file = new File(['bytes'], 'shirt.png', { type: 'image/png' });
     const promise = service.upload(file);
     const xhr = FakeXhr.instances[0];
@@ -59,21 +59,22 @@ describe('MediaApiService upload', () => {
     expect(xhr.body instanceof FormData).toBeTrue();
     expect((xhr.body as FormData).get('file')).toBe(file);
 
-    xhr.respond(
-      200,
-      JSON.stringify({
-        id: 'm-1',
-        url: '/cdn/shirt.png',
-        filename: 'shirt.png',
-        size: 5,
-        mimeType: 'image/png',
-        createdAt: '2026-05-01T00:00:00Z',
-      }),
-    );
+    // The endpoint only answers with a url; the rest is taken from the local file.
+    xhr.respond(200, JSON.stringify({ url: 'https://cdn.example.com/products/abc-123.png' }));
     const result = await promise;
-    expect(result.id).toBe('m-1');
-    expect(result.url).toBe('/cdn/shirt.png');
+    expect(result.id).toBe('abc-123.png');
+    expect(result.url).toBe('https://cdn.example.com/products/abc-123.png');
+    expect(result.filename).toBe('shirt.png');
+    expect(result.size).toBe(5);
     expect(result.mimeType).toBe('image/png');
+    expect(Date.parse(result.createdAt)).not.toBeNaN();
+  });
+
+  it('rejects when the server response carries no url', async () => {
+    const promise = service.upload(new File(['x'], 'nourl.png'));
+    const xhr = FakeXhr.instances[0];
+    xhr.respond(200, JSON.stringify({ ok: true }));
+    await expectAsync(promise).toBeRejectedWithError('Upload did not return an image URL');
   });
 
   it('rejects with the server status on a failed upload', async () => {
@@ -99,7 +100,7 @@ describe('MediaApiService upload', () => {
       ({ lengthComputable: true, loaded, total: 10 }) as ProgressEvent;
     progressListener(makeEvent(5));
     progressListener(makeEvent(10));
-    xhr.respond(200, JSON.stringify({ id: 'm-2', url: '/u', filename: 'prog.png', size: 1, mimeType: 'image/png', createdAt: '2026-01-01' }));
+    xhr.respond(200, JSON.stringify({ url: 'https://cdn.example.com/products/prog.png' }));
     await promise;
     expect(seen).toEqual([50, 100]);
   });

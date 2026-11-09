@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { MediaApiService, type MediaUpload } from '../../core/media-api.service';
+import { ToastService } from '../../core/toast';
 
 @Component({
   selector: 'app-media-library',
@@ -141,6 +142,7 @@ export class MediaLibrary {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly mediaApi = inject(MediaApiService);
+  private readonly toasts = inject(ToastService);
 
   protected readonly fmtDate = (value: string) => new Date(value).toLocaleDateString();
 
@@ -156,8 +158,8 @@ export class MediaLibrary {
   }
 
   async load(): Promise<void> {
-    // Media API uses XMLHttpRequest directly (not HttpClient) for progress tracking
-    // This is a placeholder - the actual upload is handled via the file input
+    // The media API exposes image uploads only (no list endpoint), so the shelf
+    // starts empty and fills as images are uploaded in this session.
     this.uploads.set([]);
   }
 
@@ -166,7 +168,7 @@ export class MediaLibrary {
     return this.uploads()
       .filter((m) => {
         if (!q) return true;
-        return m.filename.toLowerCase().includes(q);
+        return (m.filename ?? '').toLowerCase().includes(q);
       })
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   });
@@ -188,7 +190,7 @@ export class MediaLibrary {
       this.uploads.update((list) => [upload, ...list]);
       input.value = '';
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Upload failed.');
+      this.toasts.show(err instanceof Error ? err.message : 'Upload failed.', 'bad');
     }
   }
 
