@@ -23,10 +23,12 @@ export const routes: Routes = [
 
   {
     path: 'products/catalog',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/products/catalog').then((m) => m.ProductsCatalog),
   },
   {
     path: 'products/item/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/products/item').then((m) => m.ProductItem),
   },
   {
@@ -36,10 +38,12 @@ export const routes: Routes = [
   },
   {
     path: 'products/batches',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/products/batches').then((m) => m.ProductBatches),
   },
   {
     path: 'products/batches/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/products/batches').then((m) => m.ProductBatches),
   },
 
@@ -59,14 +63,17 @@ export const routes: Routes = [
   },
   {
     path: 'orders/board',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/board').then((m) => m.OrdersBoard),
   },
   {
     path: 'orders/returns',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/returns').then((m) => m.OrdersReturns),
   },
   {
     path: 'orders/returns/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/returns').then((m) => m.OrdersReturns),
   },
 
@@ -107,26 +114,32 @@ export const routes: Routes = [
   },
   {
     path: 'purchasing/orders',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/purchasing/orders').then((m) => m.PurchasingOrders),
   },
   {
     path: 'purchasing/orders/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/purchasing/orders').then((m) => m.PurchasingOrders),
   },
   {
     path: 'purchasing/materials',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/purchasing/materials').then((m) => m.PurchasingMaterials),
   },
   {
     path: 'purchasing/materials/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/purchasing/materials').then((m) => m.PurchasingMaterials),
   },
   {
     path: 'purchasing/suppliers',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/purchasing/suppliers').then((m) => m.PurchasingSuppliers),
   },
   {
     path: 'purchasing/suppliers/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/purchasing/suppliers').then((m) => m.PurchasingSuppliers),
   },
   {
@@ -227,39 +240,48 @@ export const routes: Routes = [
 
   {
     path: 'warehouses/inventory',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/warehouses/inventory').then((m) => m.WarehouseStock),
   },
   {
     path: 'warehouses/inventory/:itemType/:itemId',
+    canActivate: [requireAuth],
     loadComponent: () =>
       import('./sections/warehouses/inventory-detail').then((m) => m.WarehouseStockDetail),
   },
   {
     path: 'warehouses/locations',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/warehouses/locations').then((m) => m.WarehouseLocations),
   },
   {
     path: 'warehouses/locations/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/warehouses/locations').then((m) => m.WarehouseLocations),
   },
   {
     path: 'warehouses/counts',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/warehouses/counts').then((m) => m.WarehouseCounts),
   },
   {
     path: 'warehouses/counts/:id',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/warehouses/counts').then((m) => m.WarehouseCounts),
   },
   {
     path: 'analytics/overview',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/analytics/overview').then((m) => m.AnalyticsOverview),
   },
   {
     path: 'analytics/sales',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/analytics/sales').then((m) => m.AnalyticsSales),
   },
   {
     path: 'analytics/stock',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/analytics/stock').then((m) => m.AnalyticsStock),
   },
   { path: 'analytics', redirectTo: 'analytics/overview' },
@@ -288,18 +310,22 @@ export const routes: Routes = [
 
   {
     path: 'settings/account',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/settings/account').then((m) => m.SettingsAccount),
   },
   {
     path: 'settings/company',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/settings/company').then((m) => m.SettingsCompany),
   },
   {
     path: 'settings/notifications',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/settings/notifications').then((m) => m.SettingsNotifications),
   },
   {
     path: 'settings/team',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/settings/team').then((m) => m.SettingsTeam),
   },
   {
@@ -310,10 +336,12 @@ export const routes: Routes = [
 
   {
     path: 'help/center',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/help/center').then((m) => m.HelpCenter),
   },
   {
     path: 'help/tickets',
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/help/tickets').then((m) => m.HelpTickets),
   },
   { path: 'help', redirectTo: 'help/center' },
