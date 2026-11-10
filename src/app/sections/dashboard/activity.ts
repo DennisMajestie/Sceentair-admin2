@@ -156,7 +156,11 @@ export class DashboardActivity {
     const kind = this.filter();
     const q = this.query().trim().toLowerCase();
     return this.feed().filter((row) => {
-      if (kind !== 'all' && row.kind !== kind) return false;
+      if (kind === 'order') {
+        if (row.kind !== 'order' && row.kind !== 'web') return false;
+      } else if (kind !== 'all' && row.kind !== kind) {
+        return false;
+      }
       if (!q) return true;
       return `${row.title} ${row.text} ${row.whoName}`.toLowerCase().includes(q);
     });

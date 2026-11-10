@@ -411,12 +411,83 @@ function safeActivityText(afterState: unknown): string {
   return fragments.join(' · ');
 }
 
+function activityKind(action: string): string {
+  const http = action.match(/^[A-Z]+\s+\/api\/v\d+\/?(.*)$/i);
+  if (http) {
+    const path = http[1].split(/[?#]/)[0].toLowerCase();
+    const head = path.split('/')[0] ?? '';
+    if (head === 'returns') return 'return';
+    if (
+      head === 'purchase-orders' ||
+      head === 'purchases' ||
+      head === 'suppliers' ||
+      path.startsWith('materials/purchases') ||
+      path.startsWith('materials/suppliers')
+    ) {
+      return 'po';
+    }
+    if (head === 'orders' || head === 'change-requests') return 'order';
+    if (
+      head === 'inventory' ||
+      head === 'stock' ||
+      head === 'warehouses' ||
+      head === 'materials' ||
+      head === 'production-batches' ||
+      head === 'production' ||
+      head === 'batches' ||
+      head === 'counts'
+    ) {
+      return 'stock';
+    }
+    if (head === 'cart' || head === 'checkout' || head === 'storefront' || head === 'shop' || head === 'catalog') {
+      return 'web';
+    }
+    if (head === 'auth' || head === 'health' || head === 'metrics') return 'security';
+    return 'audit';
+  }
+  const key = (action.split(/[.:]/)[0] ?? '').toLowerCase();
+  if (key.includes('return')) return 'return';
+  if (key.includes('order')) return 'order';
+  if (key.includes('purchas') || key.includes('supplier') || key === 'po' || key.includes('receipt')) return 'po';
+  if (['stock', 'inventory', 'batch', 'count', 'move', 'adjust'].some((part) => key.includes(part))) return 'stock';
+  if (['web', 'shop', 'storefront', 'checkout', 'cart'].some((part) => key.includes(part))) return 'web';
+  return key || 'audit';
+}
+
+const MOVE_KIND: Record<string, Move['kind']> = {
+  purchase: 'receipt',
+  production: 'production',
+  sale: 'sale',
+  return: 'return',
+  damage: 'adjust',
+  dispatch: 'transfer',
+  adjustment: 'adjust',
+};
+
+function mapInventoryMovement(
+  itemType: 'variant' | 'material',
+  itemId: string,
+  m: import('./inventory-api.service').ApiInventoryMovement,
+): Move {
+  return {
+    id: m.id,
+    at: Date.parse(m.timestamp) || 0,
+    itemId,
+    locId: '',
+    qty: m.quantityDelta,
+    kind: MOVE_KIND[m.movementType] ?? 'adjust',
+    ref: m.referenceId ?? itemType,
+    byId: 'system',
+    value: 0,
+  };
+}
+
 function mapActivity(a: import('./audit-api.service').ApiAuditEntry): import('./models').ActivityEntry {
   return {
     id: a.id,
     at: Date.parse(a.timestamp) || 0,
     who: a.actorId ?? 'system',
-    kind: a.action.split('.')[0] ?? 'audit',
+    kind: activityKind(a.action),
     title: readableActivityTitle(a.action),
     text: safeActivityText(a.afterState),
     href: '',
@@ -688,7 +759,30 @@ export class Store {
         })
         .catch(() => { }),
     ]);
+    await this.hydrateMoves(next);
     this.state.set(next);
+  }
+
+  private async hydrateMoves(next: import('./models').Seed): Promise<void> {
+    try {
+      const items = await this.inventoryApi.summary();
+      const moves: Move[] = [];
+      const targets = items.slice(0, 60);
+      for (const item of targets) {
+        const itemType = item.itemType === 'material' ? 'material' : 'variant';
+        try {
+          const r = await this.inventoryApi.movements(itemType, item.itemId, { page: 1, limit: 10 });
+          for (const m of r.data ?? []) {
+            moves.push(mapInventoryMovement(itemType, item.itemId, m));
+          }
+        } catch {
+          // keep going; a missing item ledger is not fatal
+        }
+      }
+      next.moves = moves.sort((a, b) => b.at - a.at);
+    } catch {
+      // inventory summary unavailable; moves stay empty
+    }
   }
 
   // ---------------------------------------------------------------- entities
@@ -869,13 +963,135 @@ export class Store {
 
   readonly activityFeed = computed<ActivityRow[]>(() => {
     const people = this.teammateById();
-    return this.data()
-      .activity.slice()
-      .sort((a, b) => b.at - a.at)
-      .map((a) => ({
+    const customers = this.customerById();
+    const products = this.productById();
+    const orders = this.orders();
+    const rows: ActivityRow[] = [];
+
+    for (const a of this.data().activity) {
+      if (a.kind === 'security' || /^(GET|POST|PATCH|PUT|DELETE)\s/i.test(a.title)) continue;
+      rows.push({
         ...a,
-        whoName: a.who === 'web' ? 'Online store' : (people[a.who]?.name ?? a.who),
-      }));
+        whoName:
+          a.who === 'web'
+            ? 'Online store'
+            : (people[a.who]?.name ?? customers[a.who]?.name ?? a.who),
+      });
+    }
+
+    for (const o of orders) {
+      const customer = customers[o.customerId]?.name ?? 'Customer';
+      const kind = o.channel === 'online' ? 'web' : 'order';
+      const label =
+        o.channel === 'online' ? 'Online store' : o.channel === 'wholesale' ? 'Wholesale' : 'Studio';
+      const ref = o.number.slice(0, 8).toUpperCase();
+      rows.push({
+        id: `order-${o.id}`,
+        at: o.createdAt,
+        who: o.customerId || 'web',
+        whoName: customer,
+        kind,
+        title: `${label} order placed`,
+        text: `${ref} · ${o.lines.length} line${o.lines.length === 1 ? '' : 's'}`,
+        href: `/orders/all/${o.id}`,
+      });
+      if (o.shipBy && o.shipBy !== o.createdAt) {
+        rows.push({
+          id: `order-${o.id}-status`,
+          at: o.shipBy,
+          who: 'system',
+          whoName: 'Operations',
+          kind,
+          title: `Order ${o.status}`,
+          text: `${ref} · ${o.paid ? 'paid' : 'unpaid'}`,
+          href: `/orders/all/${o.id}`,
+        });
+      }
+    }
+
+    for (const m of this.moves()) {
+      const item = products[m.itemId] ?? this.materialById()[m.itemId];
+      rows.push({
+        id: `move-${m.id}`,
+        at: m.at,
+        who: m.byId,
+        whoName: people[m.byId]?.name ?? 'Warehouse',
+        kind: 'stock',
+        title: m.qty >= 0 ? 'Stock in' : 'Stock out',
+        text: `${item?.name ?? m.itemId} · ${m.qty > 0 ? '+' : ''}${m.qty}${m.ref ? ` · ${m.ref}` : ''}`,
+        href:
+          m.kind === 'receipt'
+            ? '/purchasing/materials'
+            : '/warehouses/inventory',
+      });
+    }
+
+    for (const b of this.batches()) {
+      rows.push({
+        id: `batch-${b.id}`,
+        at: b.madeAt,
+        who: b.chemistId || 'system',
+        whoName: people[b.chemistId]?.name ?? 'Production',
+        kind: 'stock',
+        title: 'Batch produced',
+        text: `${b.lot} · ${products[b.productId]?.name ?? b.productId} · ${b.qty} units`,
+        href: '/production',
+      });
+    }
+
+    for (const c of this.counts()) {
+      rows.push({
+        id: `count-${c.id}`,
+        at: c.at,
+        who: c.byId || 'system',
+        whoName: people[c.byId]?.name ?? 'Warehouse',
+        kind: 'stock',
+        title: c.status === 'done' ? 'Cycle count completed' : 'Cycle count started',
+        text: `${c.number.slice(0, 8).toUpperCase()} · ${c.zone || 'all zones'}`,
+        href: '/warehouses/counts',
+      });
+    }
+
+    for (const p of this.pos()) {
+      rows.push({
+        id: `po-${p.id}`,
+        at: p.createdAt,
+        who: p.recordedBy ?? 'system',
+        whoName: people[p.recordedBy ?? '']?.name ?? 'Purchasing',
+        kind: 'po',
+        title: 'Material purchase recorded',
+        text: `${p.number} · ${p.supplierId || 'Supplier'} · ${p.lines.length} line${p.lines.length === 1 ? '' : 's'}`,
+        href: `/purchasing/orders/${p.id}`,
+      });
+    }
+
+    for (const r of this.returns()) {
+      const order = orders.find((o) => o.id === r.orderId);
+      rows.push({
+        id: `return-${r.id}`,
+        at: r.createdAt,
+        who: 'web',
+        whoName: customers[order?.customerId ?? '']?.name ?? 'Customer',
+        kind: 'return',
+        title: 'Return requested',
+        text: `${r.number} · ${products[r.productId]?.name ?? r.productId} · ${r.qty} unit${r.qty === 1 ? '' : 's'}`,
+        href: `/orders/returns/${r.id}`,
+      });
+      if (r.resolvedAt) {
+        rows.push({
+          id: `return-${r.id}-resolved`,
+          at: r.resolvedAt,
+          who: r.resolvedBy ?? 'system',
+          whoName: people[r.resolvedBy ?? '']?.name ?? 'Support',
+          kind: 'return',
+          title: `Return ${r.status}`,
+          text: `${r.number} · ${r.resolution ?? r.reason}`,
+          href: `/orders/returns/${r.id}`,
+        });
+      }
+    }
+
+    return rows.filter((r) => r.at > 0).sort((a, b) => b.at - a.at).slice(0, 300);
   });
 
   readonly alerts = computed<AlertRow[]>(() => {

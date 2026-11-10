@@ -76,7 +76,7 @@ Sign in on `/signin`. Point out: branded split layout, password visibility toggl
    - Sales KPIs, revenue trend, recent orders, top sellers, stock alerts, recent activity.
    - Talking point: one screen answers "how is the business doing today".
    - Note: this page is an in-progress refactor (KPI row moved from stock counts to sales/open orders). It builds and renders; do not switch branches now.
-2. **Activity** - audit-derived event feed, newest first.
+2. **Activity** - blended event feed: online/wholesale/studio orders, stock movements, batches, cycle counts, purchases and returns, plus hash-chained audit events. All six filter tabs work (Orders, Stock, Purchasing, Returns, Online store).
 3. **Alerts** - operational alerts (low stock, failed payments, approvals).
 
 ### 2.2 Orders (4 min)
@@ -235,6 +235,7 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 - Audit log overflow: long head hash no longer stretches the stat grid (`.stat` min-width + `overflow-wrap`).
 - Sidebar labels now match page titles: Inventory, Stock summary, Material purchases, Accounting ledger, Reports, Stock health, Messages.
 - Verified: 43/43 routes render, 0 console errors (one benign GSAP warning on Team & roles), 0 horizontal overflow.
+- Activity feed rebuilt: audit `kind` is now derived from the endpoint path, auth/login noise is filtered out, and the feed blends orders (with customer names), stock movements, production batches, cycle counts, purchases and returns from live store data. Inventory movements now hydrate from the API (previously always empty). Purchasing/Returns tabs show the empty state until the first PO/return exists.
 
 ---
 
