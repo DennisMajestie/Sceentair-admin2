@@ -708,15 +708,13 @@ export class Bars {
     return value === null
       ? 'Not recorded'
       : new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
           maximumFractionDigits: 0,
         }).format(value);
   }
 
   protected formatAxisValue(value: number): string {
-    if (value >= 1000) return `$${Math.round(value / 1000)}k`;
-    return `$${Math.round(value)}`;
+    if (value >= 1000) return `${Math.round(value / 1000)}k`;
+    return `${Math.round(value)}`;
   }
 
   protected selectMonth(month: string): void {
