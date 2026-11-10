@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NAV, matchSection } from '../core/nav';
@@ -67,13 +67,30 @@ import { Icon } from './icon';
         </ul>
       </nav>
 
+      <!-- Logout confirmation dialog -->
+      <dialog #logoutDialog class="logout-dialog" (click)="onDialogClick($event)" (close)="onDialogClose()">
+        <div class="logout-dialog__body">
+          <div class="logout-dialog__icon">
+            <app-icon name="logout" [size]="24" />
+          </div>
+          <h3 class="logout-dialog__title">Sign out?</h3>
+          <p class="logout-dialog__msg">You'll need to sign back in to access the dashboard.</p>
+          <div class="logout-dialog__actions">
+            <button type="button" class="btn btn--ghost btn--sm" (click)="cancelLogout()">Cancel</button>
+            <button type="button" class="btn btn--sm logout-dialog__confirm" [disabled]="signingOut()" (click)="confirmLogout()">
+              {{ signingOut() ? 'Signing out…' : 'Sign out' }}
+            </button>
+          </div>
+        </div>
+      </dialog>
+
       <!-- Utility island: Sign out, Collapse -->
       <div class="railbox railbox--util" role="group" aria-label="Utilities">
         <button
           type="button"
           class="ri ri--util"
           [attr.data-tip]="state.collapsed() ? 'Sign out' : null"
-          (click)="signOut()"
+          (click)="promptLogout()"
         >
           <app-icon name="logout" [size]="20" />
           @if (!state.collapsed()) { <span class="ri__label">Sign out</span> }
@@ -271,6 +288,70 @@ import { Icon } from './icon';
         display: none;
       }
     }
+
+    /* ---- Logout confirmation dialog ---- */
+    .logout-dialog {
+      position: fixed;
+      inset: 0;
+      margin: auto;
+      width: min(360px, calc(100vw - 32px));
+      border: 0;
+      border-radius: 20px;
+      background: var(--surface);
+      box-shadow: 0 24px 60px -8px rgb(0 0 0 / 0.35);
+      padding: 0;
+      overflow: hidden;
+    }
+    .logout-dialog::backdrop {
+      background: rgb(0 0 0 / 0.45);
+      backdrop-filter: blur(3px);
+    }
+    .logout-dialog__body {
+      display: grid;
+      place-items: center;
+      gap: 10px;
+      padding: 32px 24px 24px;
+      text-align: center;
+    }
+    .logout-dialog__icon {
+      display: grid;
+      place-items: center;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: color-mix(in srgb, var(--bad) 10%, transparent);
+      color: var(--bad);
+      margin-bottom: 4px;
+    }
+    .logout-dialog__title {
+      font-size: var(--fs-lg, 1.1rem);
+      font-weight: 750;
+      margin: 0;
+    }
+    .logout-dialog__msg {
+      font-size: var(--fs-sm);
+      color: var(--muted);
+      margin: 0 0 6px;
+      max-width: 280px;
+    }
+    .logout-dialog__actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      width: 100%;
+    }
+    .logout-dialog__confirm {
+      background: var(--bad);
+      border-color: transparent;
+      color: #fff;
+    }
+    .logout-dialog__confirm:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+    .logout-dialog__confirm:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
   `,
 })
 export class Sidebar {
@@ -283,8 +364,10 @@ export class Sidebar {
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly nav = NAV;
-
   protected readonly activeSectionId = signal<string | null>(null);
+
+  /** Reference to the native <dialog> confirmation element */
+  private readonly logoutDialogRef = viewChild<ElementRef<HTMLDialogElement>>('logoutDialog');
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
@@ -293,7 +376,7 @@ export class Sidebar {
       this.activeSectionId.set(active?.id ?? null);
     });
 
-    this.destroyRef.onDestroy(() => {});
+    this.destroyRef.onDestroy(() => { });
   }
 
   protected groupBadge(section: (typeof NAV)[number]): number {
@@ -327,10 +410,32 @@ export class Sidebar {
 
   protected signingOut = signal(false);
 
-  protected async signOut(): Promise<void> {
+  /** Open the confirmation dialog instead of logging out immediately. */
+  protected promptLogout(): void {
+    this.logoutDialogRef()?.nativeElement.showModal();
+  }
+
+  /** Close dialog on backdrop click. */
+  protected onDialogClick(event: MouseEvent): void {
+    if (event.target === this.logoutDialogRef()?.nativeElement) {
+      this.cancelLogout();
+    }
+  }
+
+  /** Reset state when dialog is closed by any means (e.g. Escape key). */
+  protected onDialogClose(): void {
+    this.signingOut.set(false);
+  }
+
+  protected cancelLogout(): void {
+    this.logoutDialogRef()?.nativeElement.close();
+  }
+
+  protected async confirmLogout(): Promise<void> {
     if (this.signingOut()) return;
     this.signingOut.set(true);
     await this.auth.logout();
+    this.logoutDialogRef()?.nativeElement.close();
     this.signingOut.set(false);
     this.toast.show('Signed out.', 'good');
     await this.router.navigateByUrl('/signin');

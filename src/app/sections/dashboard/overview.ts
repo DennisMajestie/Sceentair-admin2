@@ -123,6 +123,7 @@ export class DashboardOverview {
   protected readonly inventoryMovements = signal<AnalyticsInventoryMovementMonth[] | null>(null);
   protected readonly dashboardBestSellers = signal<{ variantId: string; sku: string; productName: string; unitsSold: number; revenue: number }[]>([]);
   protected readonly dashboardError = signal<string | null>(null);
+  protected readonly dashboardErrors = signal<{ label: string; message: string }[]>([]);
   protected readonly chartExpanded = signal(false);
   protected readonly chartPeriod = signal<AnalyticsInventoryMovementPeriod>('weekly');
   protected readonly chartLoading = signal(false);
@@ -150,6 +151,7 @@ export class DashboardOverview {
   private async loadDashboard(): Promise<void> {
     this.pending.set(true);
     this.dashboardError.set(null);
+    this.dashboardErrors.set([]);
     this.dashboardData.set(null);
     this.dashboardBestSellers.set([]);
     this.lowStockData.set(null);
@@ -161,18 +163,34 @@ export class DashboardOverview {
       this.analyticsApi.inventoryMovementTrend(this.chartPeriod()),
     ]);
     const errors: string[] = [];
+    const errorItems: { label: string; message: string }[] = [];
     const [dashboard, bestSellers, lowStock, inventoryMovements] = results;
     if (dashboard.status === 'fulfilled') this.dashboardData.set(dashboard.value);
-    else errors.push(`Inventory totals: ${this.errorMessage(dashboard.reason)}`);
+    else {
+      const msg = this.errorMessage(dashboard.reason);
+      errors.push(`Inventory totals: ${msg}`);
+      errorItems.push({ label: 'Inventory totals', message: msg });
+    }
     if (bestSellers.status === 'fulfilled') this.dashboardBestSellers.set(bestSellers.value);
-    else errors.push(`Best sellers: ${this.errorMessage(bestSellers.reason)}`);
+    else {
+      const msg = this.errorMessage(bestSellers.reason);
+      errors.push(`Best sellers: ${msg}`);
+      errorItems.push({ label: 'Best sellers', message: msg });
+    }
     if (lowStock.status === 'fulfilled') this.lowStockData.set(lowStock.value);
-    else errors.push(`Low-stock items: ${this.errorMessage(lowStock.reason)}`);
+    else {
+      const msg = this.errorMessage(lowStock.reason);
+      errors.push(`Low-stock items: ${msg}`);
+      errorItems.push({ label: 'Low-stock items', message: msg });
+    }
     if (inventoryMovements.status === 'fulfilled') this.inventoryMovements.set(inventoryMovements.value);
     else {
-      this.chartError.set(this.errorMessage(inventoryMovements.reason));
-      errors.push(`Inventory movement chart: ${this.errorMessage(inventoryMovements.reason)}`);
+      const msg = this.errorMessage(inventoryMovements.reason);
+      this.chartError.set(msg);
+      errors.push(`Inventory movement chart: ${msg}`);
+      errorItems.push({ label: 'Inventory movement chart', message: msg });
     }
+    this.dashboardErrors.set(errorItems);
     this.dashboardError.set(
       errors.length ? `Some dashboard data could not be loaded. ${errors.join(' ')}` : null,
     );

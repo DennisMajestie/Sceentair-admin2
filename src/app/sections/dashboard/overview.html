@@ -15,8 +15,21 @@
   </div>
 }
 
-@if (dashboardError(); as error) {
-  <p class="overview-empty" role="alert">Dashboard data couldn't be loaded: {{ error }}</p>
+@if (dashboardErrors().length) {
+  <aside class="dash-warning" role="alert" aria-label="Dashboard data errors">
+    <div class="dash-warning__header">
+      <app-icon name="alert" [size]="16" />
+      <span>Some data couldn't be loaded</span>
+    </div>
+    <ul class="dash-warning__list">
+      @for (err of dashboardErrors(); track err.label) {
+        <li class="dash-warning__item">
+          <span class="dash-warning__label">{{ err.label }}</span>
+          <span class="dash-warning__msg">{{ err.message }}</span>
+        </li>
+      }
+    </ul>
+  </aside>
 }
 
 @if (flags().sales) {
