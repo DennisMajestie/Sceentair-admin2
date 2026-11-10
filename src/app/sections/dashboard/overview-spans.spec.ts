@@ -2,9 +2,9 @@ import { computeOverviewSpans, OverviewPresence } from './overview';
 
 const ALL: OverviewPresence = {
   welcome: true,
-  stock: true,
-  value: true,
-  low: true,
+  sales: true,
+  open: true,
+  approvals: true,
   chart: true,
   gauge: true,
   activities: true,
@@ -33,20 +33,20 @@ describe('computeOverviewSpans (12-column grid)', () => {
   it('row 1: welcome and three KPI cards each span three columns', () => {
     const s = computeOverviewSpans(withFlags({}));
     expect(s.welcome).toBe('span 3');
-    expect(s.stock).toBe('span 3');
-    expect(s.value).toBe('span 3');
-    expect(s.low).toBe('span 3');
+    expect(s.sales).toBe('span 3');
+    expect(s.open).toBe('span 3');
+    expect(s.approvals).toBe('span 3');
   });
 
   it('row 1: two KPI cards share the remaining space beside the welcome block', () => {
     const cases: Partial<OverviewPresence>[] = [
-      { low: false },
-      { value: false },
-      { stock: false },
+      { approvals: false },
+      { open: false },
+      { sales: false },
     ];
     for (const c of cases) {
       const s = computeOverviewSpans(withFlags(c));
-      const live = (['stock', 'value', 'low'] as const).filter(
+      const live = (['sales', 'open', 'approvals'] as const).filter(
         (k) => (s as unknown as Record<string, string>)[k] !== '',
       );
       expect(live.length).toBe(2);
@@ -56,9 +56,9 @@ describe('computeOverviewSpans (12-column grid)', () => {
   });
 
   it('row 1: a single KPI card takes the remaining nine columns', () => {
-    for (const only of ['stock', 'value', 'low'] as const) {
+    for (const only of ['sales', 'open', 'approvals'] as const) {
       const s = computeOverviewSpans(
-        withFlags({ stock: only === 'stock', value: only === 'value', low: only === 'low' }),
+        withFlags({ sales: only === 'sales', open: only === 'open', approvals: only === 'approvals' }),
       );
       expect(s.welcome).toBe('span 3');
       expect((s as unknown as Record<string, string>)[only]).toBe('span 9');
@@ -66,18 +66,18 @@ describe('computeOverviewSpans (12-column grid)', () => {
   });
 
   it('row 1: no figure cards gives the welcome block all 48 columns', () => {
-    const s = computeOverviewSpans(withFlags({ stock: false, value: false, low: false }));
+    const s = computeOverviewSpans(withFlags({ sales: false, open: false, approvals: false }));
     expect(s.welcome).toBe('span 12');
-    expect(s.stock).toBe('');
-    expect(s.value).toBe('');
-    expect(s.low).toBe('');
+    expect(s.sales).toBe('');
+    expect(s.open).toBe('');
+    expect(s.approvals).toBe('');
   });
 
   it('row 1: without the welcome block the figure cards split all 12 columns', () => {
-    expect(computeOverviewSpans(withFlags({ welcome: false })).stock).toBe('span 4');
-    expect(computeOverviewSpans(withFlags({ welcome: false, low: false })).value).toBe('span 6');
+    expect(computeOverviewSpans(withFlags({ welcome: false })).sales).toBe('span 4');
+    expect(computeOverviewSpans(withFlags({ welcome: false, approvals: false })).open).toBe('span 6');
     expect(
-      computeOverviewSpans(withFlags({ welcome: false, low: false, value: false })).stock,
+      computeOverviewSpans(withFlags({ welcome: false, approvals: false, open: false })).sales,
     ).toBe('span 12');
   });
 
@@ -146,7 +146,7 @@ describe('computeOverviewSpans (12-column grid)', () => {
 
   it('every filled row sums to exactly 12 columns for all flag combinations', () => {
     const keys: (keyof OverviewPresence)[] = [
-      'welcome', 'stock', 'value', 'low', 'chart', 'gauge',
+      'welcome', 'sales', 'open', 'approvals', 'chart', 'gauge',
       'activities', 'alerts', 'sellers', 'ships', 'locations',
     ];
     for (let mask = 0; mask < 1 << keys.length; mask++) {
@@ -155,7 +155,7 @@ describe('computeOverviewSpans (12-column grid)', () => {
         flags[k] = (mask & (1 << i)) !== 0;
       });
       const s = computeOverviewSpans(flags);
-      const row1 = rowSum(flags, ['welcome', 'stock', 'value', 'low']);
+      const row1 = rowSum(flags, ['welcome', 'sales', 'open', 'approvals']);
       const row2 = rowSum(flags, ['chart', 'gauge']);
       const row3 = rowSum(flags, ['activities', 'alerts', 'sellers']);
       const row4 = rowSum(flags, ['ships', 'locations']);

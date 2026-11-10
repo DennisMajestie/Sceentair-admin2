@@ -10,7 +10,6 @@ import { SdMotionService } from '../../core/sd-motion.service';
 import { AuthService } from '../../core/auth.service';
 import { gsap } from 'gsap';
 import {
-  AnalyticsInventoryValuation,
   AnalyticsInventoryMovementMonth,
   AnalyticsInventoryMovementPeriod,
   AnalyticsDashboard,
@@ -22,9 +21,9 @@ const LOCATION_COLORS = ['var(--pine)', 'var(--ocean)', 'var(--ochre)', 'var(--s
 
 export interface OverviewPresence {
   welcome: boolean;
-  stock: boolean;
-  value: boolean;
-  low: boolean;
+  sales: boolean;
+  open: boolean;
+  approvals: boolean;
   chart: boolean;
   gauge: boolean;
   activities: boolean;
@@ -36,9 +35,9 @@ export interface OverviewPresence {
 
 export interface OverviewSpans {
   welcome: string;
-  stock: string;
-  value: string;
-  low: string;
+  sales: string;
+  open: string;
+  approvals: string;
   chart: string;
   gauge: string;
   activities: string;
@@ -49,7 +48,7 @@ export interface OverviewSpans {
 }
 
 export function computeOverviewSpans(p: OverviewPresence): OverviewSpans {
-  const figureKeys = ['stock', 'value', 'low'] as const;
+  const figureKeys = ['sales', 'open', 'approvals'] as const;
   const visibleFigures = figureKeys.filter((key) => p[key]);
   const welcomeSpan = p.welcome ? (visibleFigures.length ? 3 : 12) : 0;
   const figureSpace = (p.welcome ? 12 - welcomeSpan : 12);
@@ -74,9 +73,9 @@ export function computeOverviewSpans(p: OverviewPresence): OverviewSpans {
 
   return {
     welcome: welcomeSpan ? `span ${welcomeSpan}` : '',
-    stock: p.stock ? `span ${figureSpans.get('stock')}` : '',
-    value: p.value ? `span ${figureSpans.get('value')}` : '',
-    low: p.low ? `span ${figureSpans.get('low')}` : '',
+    sales: p.sales ? `span ${figureSpans.get('sales')}` : '',
+    open: p.open ? `span ${figureSpans.get('open')}` : '',
+    approvals: p.approvals ? `span ${figureSpans.get('approvals')}` : '',
     chart: p.chart ? (row2 === 2 ? 'span 8' : 'span 12') : '',
     gauge: p.gauge ? (row2 === 2 ? 'span 4' : 'span 12') : '',
     activities: r3(p.activities),
@@ -94,9 +93,9 @@ export function computeOverviewSpans(p: OverviewPresence): OverviewSpans {
   host: {
     '[class.sd-pending]': 'pending()',
     '[style.--ov-welcome]': 'spans().welcome',
-    '[style.--ov-stock]': 'spans().stock',
-    '[style.--ov-value]': 'spans().value',
-    '[style.--ov-low]': 'spans().low',
+    '[style.--ov-sales]': 'spans().sales',
+    '[style.--ov-open]': 'spans().open',
+    '[style.--ov-approvals]': 'spans().approvals',
     '[style.--ov-chart]': 'spans().chart',
     '[style.--ov-gauge]': 'spans().gauge',
     '[style.--ov-acts]': 'spans().activities',
@@ -121,7 +120,6 @@ export class DashboardOverview {
   protected readonly analyticsApi = inject(AnalyticsApiService);
   protected readonly dashboardData = signal<AnalyticsDashboard | null>(null);
   protected readonly lowStockData = signal<AnalyticsLowStock | null>(null);
-  protected readonly inventoryValuation = signal<AnalyticsInventoryValuation | null>(null);
   protected readonly inventoryMovements = signal<AnalyticsInventoryMovementMonth[] | null>(null);
   protected readonly dashboardBestSellers = signal<{ variantId: string; sku: string; productName: string; unitsSold: number; revenue: number }[]>([]);
   protected readonly dashboardError = signal<string | null>(null);
@@ -155,25 +153,21 @@ export class DashboardOverview {
     this.dashboardData.set(null);
     this.dashboardBestSellers.set([]);
     this.lowStockData.set(null);
-    this.inventoryValuation.set(null);
     this.inventoryMovements.set(null);
     const results = await Promise.allSettled([
       this.analyticsApi.dashboard(),
       this.analyticsApi.bestSellers(5),
       this.analyticsApi.lowStock(),
-      this.analyticsApi.inventoryValuation(),
       this.analyticsApi.inventoryMovementTrend(this.chartPeriod()),
     ]);
     const errors: string[] = [];
-    const [dashboard, bestSellers, lowStock, inventoryValuation, inventoryMovements] = results;
+    const [dashboard, bestSellers, lowStock, inventoryMovements] = results;
     if (dashboard.status === 'fulfilled') this.dashboardData.set(dashboard.value);
     else errors.push(`Inventory totals: ${this.errorMessage(dashboard.reason)}`);
     if (bestSellers.status === 'fulfilled') this.dashboardBestSellers.set(bestSellers.value);
     else errors.push(`Best sellers: ${this.errorMessage(bestSellers.reason)}`);
     if (lowStock.status === 'fulfilled') this.lowStockData.set(lowStock.value);
     else errors.push(`Low-stock items: ${this.errorMessage(lowStock.reason)}`);
-    if (inventoryValuation.status === 'fulfilled') this.inventoryValuation.set(inventoryValuation.value);
-    else errors.push(`Stock valuation: ${this.errorMessage(inventoryValuation.reason)}`);
     if (inventoryMovements.status === 'fulfilled') this.inventoryMovements.set(inventoryMovements.value);
     else {
       this.chartError.set(this.errorMessage(inventoryMovements.reason));
@@ -382,15 +376,6 @@ export class DashboardOverview {
   protected readonly apiDashboard = computed(() => this.dashboardData());
   protected readonly apiBestSellers = computed(() => this.dashboardBestSellers());
 
-  /** Units on hand — from the API inventory ledger aggregate. */
-  protected readonly units = computed(() => this.dashboardData()?.inventory.finishedGoodsUnits ?? null);
-
-  /** Preserve the API's null when recorded batch costs are unavailable. */
-  protected readonly stockValue = computed(() => {
-    const valuation = this.inventoryValuation();
-    return valuation?.totalValue ?? null;
-  });
-
   /** Low stock includes variant SKUs and raw materials from the API. */
   protected readonly lowCount = computed(() => {
     const data = this.lowStockData();
@@ -400,6 +385,11 @@ export class DashboardOverview {
   /** Open orders — from API metrics.openOrders when available. */
   protected readonly openOrders = computed(() =>
     this.dashboardData()?.metrics.openOrders ?? this.store.openOrders().length,
+  );
+
+  /** Pending approvals — items awaiting review from the API dashboard. */
+  protected readonly pendingApprovals = computed(() =>
+    this.dashboardData()?.pendingApprovals ?? null,
   );
 
   /** Paid sales count for the current month from the analytics API. */
@@ -491,12 +481,11 @@ export class DashboardOverview {
   /** Stock trend series values for sparkline charts — from API series when available. */
   /** Flags driven by API data where available, falling back to Store. */
   protected readonly flags = computed<OverviewPresence>(() => {
-    const d = this.dashboardData();
     return {
       welcome: true,
-      stock: true,
-      value: true,
-      low: true,
+      sales: true,
+      open: true,
+      approvals: true,
       chart: (this.inventoryMovements()?.length ?? 0) > 0,
       gauge: true,
       activities: true,
@@ -508,15 +497,6 @@ export class DashboardOverview {
   });
 
   protected readonly spans = computed(() => computeOverviewSpans(this.flags()));
-
-  protected readonly lowThumbs = computed(() => {
-    const lowVariantIds = new Set(this.lowStockData()?.variants.map((item) => item.variantId) ?? []);
-    return this.store.products()
-      .filter((product) => product.variantIds?.some((variantId) => lowVariantIds.has(variantId)))
-      .slice(0, 3)
-      .map((product) => ({ id: product.id, name: product.name, photo: product.photo }))
-      .filter((product) => product.photo);
-  });
 
   protected readonly dashboardAlerts = computed(() => {
     const data = this.lowStockData();
@@ -556,15 +536,6 @@ export class DashboardOverview {
 
   protected readonly stamp = computed(() => dateFull(this.now));
 
-  protected readonly outCount = computed(() => {
-    const data = this.lowStockData();
-    return data
-      ? data.variants.filter((item) => item.currentQuantity <= 0).length +
-          data.materials.filter((item) => item.currentQuantity <= 0).length
-      : null;
-  });
-  protected readonly lowSkus = computed(() => this.lowStockData()?.variants.length ?? null);
-  protected readonly lowMaterials = computed(() => this.lowStockData()?.materials.length ?? null);
   protected readonly toShip = computed(() => this.store.ordersToShip().length);
   protected readonly unpaid = computed(() => this.store.unpaidOrders().length);
 

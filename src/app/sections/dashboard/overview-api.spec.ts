@@ -149,19 +149,15 @@ describe('dashboard API response mapping', () => {
     const data = (component as any).dashboardData();
     expect(data).not.toBeNull();
 
-    // Units from API inventory.finishedGoodsUnits
-    expect((component as any).units()).toBe(3840);
     // Sales overview totals come from paid month-to-date API data, not today's metrics.
     expect((component as any).totalSales()).toBe(2400);
     expect((component as any).numberOfSales()).toBe(18);
     // Open orders from API metrics.openOrders
     expect((component as any).openOrders()).toBe(18);
-    // Stock value, low stock and out-of-stock counts come from their dedicated APIs.
-    expect((component as any).stockValue()).toBe(1234);
+    // Pending approvals from API pendingApprovals
+    expect((component as any).pendingApprovals()).toBe(2);
+    // Low stock count comes from low stock API
     expect((component as any).lowCount()).toBe(4);
-    expect((component as any).lowSkus()).toBe(2);
-    expect((component as any).lowMaterials()).toBe(2);
-    expect((component as any).outCount()).toBe(2);
   });
 
   it('uses the reference dashboard metric and chart labels', async () => {
@@ -169,37 +165,30 @@ describe('dashboard API response mapping', () => {
     await ((fixture.componentInstance as any).loadDashboard());
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('Units on hand');
-    expect(fixture.nativeElement.textContent).toContain('Total stock value');
-    expect(fixture.nativeElement.textContent).toContain('Low stock items');
+    expect(fixture.nativeElement.textContent).toContain('Sales this month');
+    expect(fixture.nativeElement.textContent).toContain('Open orders');
+    expect(fixture.nativeElement.textContent).toContain('Pending approvals');
     expect(fixture.nativeElement.textContent).toContain('Inventory statistics');
     expect(fixture.nativeElement.textContent).toContain('Stock value');
     expect(fixture.nativeElement.textContent).toContain('Weekly');
     expect((fixture.componentInstance as any).count(1974)).toBe('1,974');
   });
 
-  it('shows stock value as unavailable while production costs are not recorded', async () => {
-    const analyticsApi = makeAnalyticsApi();
-    analyticsApi.inventoryValuation.and.returnValue(Promise.resolve({
-      finishedGoodsUnits: 3840,
-      stockedVariantCount: 5,
-      totalValue: null,
-      unvaluedUnits: 3840,
-      unvaluedVariantCount: 5,
-      method: 'latest-recorded-completed-batch-cost',
-    }));
+  it('shows pending approvals as unavailable when null', async () => {
+    const analyticsApi = makeAnalyticsApi({
+      ...DASHBOARD,
+      pendingApprovals: null as any,
+    });
     const fixture = createComponent(analyticsApi);
     const component = fixture.componentInstance;
 
     await (component as any).loadDashboard();
     fixture.detectChanges();
 
-    expect((component as any).stockValue()).toBeNull();
+    expect((component as any).pendingApprovals()).toBeNull();
     expect(
-      fixture.nativeElement.querySelector('[aria-label="Stock value unavailable"]'),
+      fixture.nativeElement.querySelector('[aria-label="Pending approvals unavailable"]'),
     ).not.toBeNull();
-    expect(fixture.nativeElement.textContent).not.toContain('$0.00');
-    expect(fixture.nativeElement.textContent).toContain('At cost · costs not recorded');
   });
 
   it('does not show a fabricated sales goal when none is configured', async () => {
@@ -217,19 +206,20 @@ describe('dashboard API response mapping', () => {
     expect(fixture.nativeElement.textContent).not.toContain('$24,500');
   });
 
-  it('keeps successful inventory metrics visible when one dashboard endpoint fails', async () => {
+  it('keeps successful dashboard metrics visible when one dashboard endpoint fails', async () => {
     const analyticsApi = makeAnalyticsApi();
-    analyticsApi.inventoryValuation.and.returnValue(Promise.reject(new Error('Cost service unavailable')));
+    analyticsApi.lowStock.and.returnValue(Promise.reject(new Error('Low stock service unavailable')));
     const fixture = createComponent(analyticsApi);
     const component = fixture.componentInstance;
 
     await (component as any).loadDashboard();
     await fixture.whenStable();
 
-    expect((component as any).units()).toBe(3840);
-    expect((component as any).lowCount()).toBe(4);
-    expect((component as any).stockValue()).toBeNull();
-    expect((component as any).dashboardError()).toContain('Cost service unavailable');
+    expect((component as any).totalSales()).toBe(2400);
+    expect((component as any).openOrders()).toBe(18);
+    expect((component as any).pendingApprovals()).toBe(2);
+    expect((component as any).lowStockData()).toBeNull();
+    expect((component as any).dashboardError()).toContain('Low stock service unavailable');
   });
 
   it('maps API bestSellers to seller rows', async () => {
@@ -368,11 +358,10 @@ describe('dashboard API response mapping', () => {
     const component = fixture.componentInstance;
 
     // Before loadDashboard completes
-    expect((component as any).units()).toBeNull();
-    expect((component as any).stockValue()).toBeNull();
     expect((component as any).lowCount()).toBeNull();
     expect((component as any).totalSales()).toBeNull();
     expect((component as any).numberOfSales()).toBeNull();
+    expect((component as any).pendingApprovals()).toBeNull();
     expect((component as any).openOrders()).toBe((component as any).store.openOrders().length);
     expect((component as any).sellers()).toEqual([]);
   });
@@ -386,9 +375,10 @@ describe('dashboard API response mapping', () => {
     await (component as any).loadDashboard();
     await fixture.whenStable();
 
-    expect((component as any).units()).toBeNull();
-    expect((component as any).stockValue()).toBe(1234);
     expect((component as any).totalSales()).toBeNull();
+    expect((component as any).numberOfSales()).toBeNull();
+    expect((component as any).pendingApprovals()).toBeNull();
+    expect((component as any).openOrders()).toBe((component as any).store.openOrders().length);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Sales data unavailable');
   });

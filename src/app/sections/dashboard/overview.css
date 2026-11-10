@@ -12,8 +12,20 @@
 }
 
 :host > .kpi {
-  grid-column: var(--ov-stock);
+  grid-column: var(--ov-sales, var(--ov-stock, span 3));
   align-self: start;
+}
+
+:host > .kpi--sales {
+  grid-column: var(--ov-sales);
+}
+
+:host > .kpi--open {
+  grid-column: var(--ov-open);
+}
+
+:host > .kpi--approvals {
+  grid-column: var(--ov-approvals);
 }
 
 :host > .chart-card {
@@ -571,12 +583,18 @@
   }
 
   :host > .kpi,
+  :host > .kpi--sales,
+  :host > .kpi--open,
+  :host > .kpi--approvals,
   :host > .acts-card,
   :host > .alerts-card {
     grid-column: span 6;
   }
 
-  :host > .kpi {
+  :host > .kpi,
+  :host > .kpi--sales,
+  :host > .kpi--open,
+  :host > .kpi--approvals {
     align-self: stretch;
   }
 

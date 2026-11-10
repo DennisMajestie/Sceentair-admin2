@@ -19,97 +19,70 @@
   <p class="overview-empty" role="alert">Dashboard data couldn't be loaded: {{ error }}</p>
 }
 
-@if (flags().stock) {
-    <article class="card kpi">
+@if (flags().sales) {
+  <article class="card kpi kpi--sales">
     <div class="kpi__stat">
-      <span class="kpi__label">Units on hand</span>
+      <span class="kpi__label">Sales this month</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
-          @if (units() !== null) {
-          <span class="sd-num" aria-hidden="true" [attr.data-to]="units()"></span>
-          <span class="sr">{{ count(units() ?? 0) }}</span>
+          @if (totalSales() !== null) {
+            <span class="sd-num" aria-hidden="true" data-kind="currency-full" [attr.data-to]="totalSales()"></span>
+            <span class="sr">{{ money(totalSales() ?? 0) }}</span>
           } @else {
-            <span aria-label="Inventory quantity unavailable">—</span>
+            <span aria-label="Sales data unavailable">—</span>
           }
         </span>
       </span>
     </div>
     <div class="kpi__orb">
-      <app-icon name="grid" [size]="20" />
+      <app-icon name="dollar" [size]="20" />
     </div>
     <div class="kpi__meta">
-      <span class="kpi__info">{{ store.activeSkus() }} products · {{ dashboardData()?.inventory?.stockedVariantCount ?? '—' }} stocked SKUs</span>
+      <span class="kpi__info">{{ numberOfSales() ?? '—' }} orders</span>
     </div>
   </article>
 }
 
-@if (flags().value) {
-  <article class="card kpi">
+@if (flags().open) {
+  <article class="card kpi kpi--open">
     <div class="kpi__stat">
-      <span class="kpi__label">Total stock value</span>
+      <span class="kpi__label">Open orders</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
-        @if (stockValue() !== null) {
-          <span class="sd-num" aria-hidden="true" data-kind="currency-full" [attr.data-to]="stockValue()"></span>
-          <span class="sr">{{ money(stockValue() ?? 0) }}</span>
-        } @else {
-          <span aria-label="Stock value unavailable">—</span>
-        }
+          <span class="sd-num" aria-hidden="true" [attr.data-to]="openOrders()"></span>
+          <span class="sr">{{ count(openOrders()) }}</span>
         </span>
       </span>
     </div>
     <div class="kpi__orb">
-      <app-icon name="diamond" [size]="20" />
+      <app-icon name="orders" [size]="20" />
     </div>
     <div class="kpi__meta">
-      <span class="kpi__info">
-        @if (inventoryValuation(); as valuation) {
-          @if (valuation.totalValue === null) {
-            <span title="Record all production-cost components for the latest completed batch of each stocked SKU.">At cost · costs not recorded</span>
-          } @else {
-            <span title="Latest fully recorded completed batch cost per SKU">Latest recorded batch cost</span>
-          }
-        } @else {
-          At cost
-        }
-      </span>
+      <span class="kpi__info">{{ toShip() }} to dispatch</span>
     </div>
   </article>
 }
 
-@if (flags().low) {
-  <article class="card kpi">
+@if (flags().approvals) {
+  <article class="card kpi kpi--approvals">
     <div class="kpi__stat">
-      <span class="kpi__label">Low stock items</span>
+      <span class="kpi__label">Pending approvals</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
-          @if (lowCount() !== null) {
-            <span class="sd-num" aria-hidden="true" [attr.data-to]="lowCount()"></span>
-            <span class="sr">{{ count(lowCount() ?? 0) }}</span>
+          @if (pendingApprovals() !== null) {
+            <span class="sd-num" aria-hidden="true" [attr.data-to]="pendingApprovals()"></span>
+            <span class="sr">{{ count(pendingApprovals() ?? 0) }}</span>
           } @else {
-            <span aria-label="Low stock count unavailable">—</span>
+            <span aria-label="Pending approvals unavailable">—</span>
           }
-        </span>
-        <span class="kpi__trend trend--bad">
-          <app-icon name="alert" [size]="11" />
-          {{ outCount() ?? '—' }} out
         </span>
       </span>
     </div>
     <div class="kpi__orb">
-      <app-icon name="alert" [size]="20" />
+      <app-icon name="check" [size]="20" />
     </div>
     <div class="kpi__meta">
-      <span class="kpi__info">{{ lowSkus() ?? '—' }} SKUs · {{ lowMaterials() ?? '—' }} materials</span>
-      @if (lowThumbs().length > 0) {
-        <div class="kpi__stack" aria-hidden="true">
-          @for (t of lowThumbs(); track t.id) {
-            <span class="kpi__shot">
-              <app-product-shot [photo]="t.photo" [label]="t.name" />
-            </span>
-          }
-        </div>
-      }
+      <span class="kpi__info">Awaiting your review</span>
     </div>
   </article>
 }
