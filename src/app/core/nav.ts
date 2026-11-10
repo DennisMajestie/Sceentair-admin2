@@ -54,7 +54,7 @@ export const NAV: NavSection[] = [
     label: 'Messages',
     icon: 'mail',
     path: '/messages',
-    pages: [{ label: 'Customer messages', path: '/messages' }],
+    pages: [{ label: 'Messages', path: '/messages' }],
   },
   {
     id: 'purchasing',
@@ -62,7 +62,7 @@ export const NAV: NavSection[] = [
     icon: 'purchasing',
     path: '/purchasing/orders',
     pages: [
-      { label: 'Purchase orders', path: '/purchasing/orders', badge: 'pos' },
+      { label: 'Material purchases', path: '/purchasing/orders', badge: 'pos' },
       { label: 'Materials', path: '/purchasing/materials' },
       { label: 'Suppliers', path: '/purchasing/suppliers' },
     ],
@@ -84,8 +84,8 @@ export const NAV: NavSection[] = [
     icon: 'warehouses',
     path: '/warehouses/inventory',
     pages: [
-      { label: 'Stock ledger', path: '/warehouses/inventory' },
-      { label: 'Locations', path: '/warehouses/locations' },
+      { label: 'Inventory', path: '/warehouses/inventory' },
+      { label: 'Stock summary', path: '/warehouses/locations' },
       { label: 'Cycle counts', path: '/warehouses/counts', badge: 'counts' },
     ],
   },
@@ -119,7 +119,7 @@ export const NAV: NavSection[] = [
     icon: 'dollar',
     path: '/accounting/ledger',
     pages: [
-      { label: 'Ledger', path: '/accounting/ledger' },
+      { label: 'Accounting ledger', path: '/accounting/ledger' },
       { label: 'Approval queue', path: '/approvals' },
       { label: 'Audit log', path: '/audit/log' },
       { label: 'Partners', path: '/partners' },
@@ -131,9 +131,9 @@ export const NAV: NavSection[] = [
     icon: 'analytics',
     path: '/analytics/overview',
     pages: [
-      { label: 'Overview', path: '/analytics/overview' },
+      { label: 'Reports', path: '/analytics/overview' },
       { label: 'Sales', path: '/analytics/sales' },
-      { label: 'Stock', path: '/analytics/stock' },
+      { label: 'Stock health', path: '/analytics/stock' },
     ],
   },
   {

@@ -264,6 +264,8 @@ function describeRefund(state: Record<string, unknown>): string {
     .technical-record p { overflow-wrap: anywhere; }
     .is-bad { color: var(--bad); }
     .mono { font-family: var(--fs-mono, monospace); }
+    .stat { min-width: 0; }
+    .stat__value { overflow-wrap: anywhere; }
   `,
 })
 export class AuditLog {
