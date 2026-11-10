@@ -7,7 +7,7 @@ import { Store } from '../../core/store';
 import { buildCustomerDetail, rememberCustomerOpener, restoreCustomerOpener } from '../../core/customer-detail';
 import { Icon } from '../../ui/icon';
 import { CustomerDetailDrawerComponent } from './customer-detail-drawer';
-import { moneyNgn, lastOrderLines, sortRows, SortDir } from './cs-data';
+import { moneyNgn, lastOrderLines, sortRows, SortDir, synthesizeGuestShoppers } from './cs-data';
 import {
   ApiCustomer,
   CustomersApiService,
@@ -268,9 +268,11 @@ export class CustomerShoppers {
         this.ordersApi.list({ page: 1, limit: 100 }),
       ]);
       if (requestId !== this.listRequestId) return;
+      const baseCustomers = reset ? customerResult.data : [...this.customers(), ...customerResult.data];
+      const unified = synthesizeGuestShoppers(baseCustomers, orderResult.data);
       this.page.set(page);
-      this.customers.update((list) => reset ? customerResult.data : [...list, ...customerResult.data]);
-      this.orders.set(orderResult.data);
+      this.customers.set(unified.customers);
+      this.orders.set(unified.orders);
     } catch (err) {
       if (requestId === this.listRequestId) this.error.set(this.errorMessage(err));
     } finally {
@@ -390,7 +392,27 @@ export class CustomerShoppers {
 
   protected readonly lo = (ts: number | null) => lastOrderLines(ts);
 
-  protected readonly selected = computed(() => buildCustomerDetail(this.store, this.routeId(), 'shopper'));
+  protected readonly selected = computed(() => {
+    const id = this.routeId();
+    if (!id) return null;
+    const fallbackCustomer = this.customers().find((c) => c.id === id);
+    const fallback = fallbackCustomer
+      ? {
+          id: fallbackCustomer.id,
+          name: fallbackCustomer.name,
+          kind: fallbackCustomer.kind,
+          contact: fallbackCustomer.contact,
+          email: fallbackCustomer.email,
+          phone: fallbackCustomer.phone,
+          city: fallbackCustomer.city,
+          region: fallbackCustomer.region,
+          since: Date.parse(fallbackCustomer.since) || 0,
+          tags: fallbackCustomer.tags,
+          note: fallbackCustomer.note,
+        }
+      : null;
+    return buildCustomerDetail(this.store, id, 'shopper', fallback);
+  });
 
   protected tagged(tag: string): number {
     return this.rows().filter((r) => r.tags.includes(tag)).length;

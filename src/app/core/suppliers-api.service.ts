@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL, apiUrl } from './api-config';
+import { normalizeList } from './api-shape';
 
 export interface ApiSupplier {
   id: string;
@@ -43,12 +44,15 @@ export class SuppliersApiService {
   private readonly baseUrl = inject(API_BASE_URL);
 
   list(filters: ApiSupplierFilters = { page: 1, limit: 100 }): Promise<ApiSupplierList> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit);
     return firstValueFrom(
-      this.http.get<ApiSupplierList>(apiUrl(this.baseUrl, 'materials/suppliers'), { params }),
-    );
+      this.http.get<ApiSupplierList | ApiSupplier[]>(
+        apiUrl(this.baseUrl, 'materials/suppliers'),
+        { params },
+      ),
+    ).then((result) => normalizeList<ApiSupplier>(result));
   }
 
   detail(id: string): Promise<ApiSupplier> {

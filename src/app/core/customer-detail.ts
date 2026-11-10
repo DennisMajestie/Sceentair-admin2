@@ -98,16 +98,28 @@ export function buildCustomerDetail(
   store: Store,
   id: string | null,
   expectedKind?: Customer['kind'],
+  fallbackCustomer?: Customer | null,
 ): CustomerDetailData | null {
   if (!id) return null;
-  const customer = store.customerById()[id];
+  const customer = store.customerById()[id] ?? fallbackCustomer;
   if (
     !customer ||
     (customer.kind !== 'stockist' && customer.kind !== 'shopper') ||
     (expectedKind && customer.kind !== expectedKind)
   ) return null;
 
-  const orders = store.orders().filter((order) => order.customerId === customer.id);
+  let orders = store.orders().filter((order) => order.customerId === customer.id);
+  if (orders.length === 0 && customer) {
+    const custEmail = customer.email?.trim().toLowerCase();
+    const custName = customer.name?.trim().toLowerCase();
+    orders = store.orders().filter((order) => {
+      if (order.customerId && order.customerId === customer.id) return true;
+      const orderContact = ((order as any).customerContact || '').toLowerCase();
+      if (custEmail && orderContact.includes(custEmail)) return true;
+      const orderCust = ((order as any).customer || '').toLowerCase();
+      return Boolean(custName && orderCust === custName);
+    });
+  }
   const sortedOrders = [...orders].sort((a, b) => b.createdAt - a.createdAt);
   const completedOrders = orders.filter((order) => order.status !== 'cancelled');
   const revenue = completedOrders.reduce((sum, order) => sum + orderTotal(order), 0);

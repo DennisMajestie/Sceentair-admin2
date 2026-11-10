@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL, apiUrl } from './api-config';
+import { normalizeList } from './api-shape';
 
 export interface Partner {
   id: string;
@@ -57,12 +58,12 @@ export class PartnersApiService {
   private readonly baseUrl = inject(API_BASE_URL);
 
   listPartners(filters: { page: number; limit: number } = { page: 1, limit: 50 }): Promise<PartnerList> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit);
     return firstValueFrom(
-      this.http.get<PartnerList>(apiUrl(this.baseUrl, 'partners'), { params }),
-    );
+      this.http.get<PartnerList | Partner[]>(apiUrl(this.baseUrl, 'partners'), { params }),
+    ).then((result) => normalizeList<Partner>(result));
   }
 
   getPartner(id: string): Promise<Partner> {
@@ -78,12 +79,15 @@ export class PartnersApiService {
   }
 
   listDistributions(filters: { page: number; limit: number } = { page: 1, limit: 50 }): Promise<ProfitDistributionList> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit);
     return firstValueFrom(
-      this.http.get<ProfitDistributionList>(apiUrl(this.baseUrl, 'profit-distributions'), { params }),
-    );
+      this.http.get<ProfitDistributionList | ProfitDistribution[]>(
+        apiUrl(this.baseUrl, 'profit-distributions'),
+        { params },
+      ),
+    ).then((result) => normalizeList<ProfitDistribution>(result));
   }
 
   createDistribution(input: CreateDistributionInput): Promise<ProfitDistribution> {

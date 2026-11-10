@@ -2,6 +2,20 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL, apiUrl } from './api-config';
+import { normalizeList } from './api-shape';
+
+function mapAccount(account: any): WholesaleAccount {
+  return {
+    ...account,
+    userId: account?.userId ?? account?.user?.id ?? '',
+    tierId: account?.tierId ?? account?.tier?.id ?? null,
+    tierName: account?.tierName ?? account?.tier?.name ?? null,
+  } as WholesaleAccount;
+}
+
+function mapTier(tier: any): WholesaleTier {
+  return { ...tier, createdAt: tier?.createdAt ?? '' } as WholesaleTier;
+}
 
 export type WholesaleAccountStatus = 'pending' | 'approved' | 'rejected';
 export type WholesaleBuyerType = 'retailer' | 'online_reseller' | 'institution' | 'distributor' | 'other';
@@ -135,14 +149,20 @@ export class WholesaleApiService {
       .set('limit', filters.limit);
     if (filters.status) params = params.set('status', filters.status);
     return firstValueFrom(
-      this.http.get<WholesaleAccountList>(apiUrl(this.baseUrl, 'wholesale/accounts'), { params }),
-    );
+      this.http.get<WholesaleAccountList | WholesaleAccount[]>(
+        apiUrl(this.baseUrl, 'wholesale/accounts'),
+        { params },
+      ),
+    ).then((result) => {
+      const list = normalizeList<WholesaleAccount>(result);
+      return { data: list.data.map(mapAccount), total: list.total };
+    });
   }
 
   getAccount(id: string): Promise<WholesaleAccount> {
     return firstValueFrom(
       this.http.get<WholesaleAccount>(apiUrl(this.baseUrl, `wholesale/accounts/${encodeURIComponent(id)}`)),
-    );
+    ).then(mapAccount);
   }
 
   reviewAccount(id: string, input: ReviewWholesaleAccountInput): Promise<WholesaleAccount> {
@@ -151,17 +171,23 @@ export class WholesaleApiService {
         apiUrl(this.baseUrl, `wholesale/accounts/${encodeURIComponent(id)}`),
         input,
       ),
-    );
+    ).then(mapAccount);
   }
 
   // Tier management
   listTiers(filters: { page: number; limit: number } = { page: 1, limit: 50 }): Promise<WholesaleTierList> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit);
     return firstValueFrom(
-      this.http.get<WholesaleTierList>(apiUrl(this.baseUrl, 'wholesale/tiers'), { params }),
-    );
+      this.http.get<WholesaleTierList | WholesaleTier[]>(
+        apiUrl(this.baseUrl, 'wholesale/tiers'),
+        { params },
+      ),
+    ).then((result) => {
+      const list = normalizeList<WholesaleTier>(result);
+      return { data: list.data.map(mapTier), total: list.total };
+    });
   }
 
   createTier(input: CreateWholesaleTierInput): Promise<WholesaleTier> {
@@ -187,12 +213,15 @@ export class WholesaleApiService {
 
   // Pricing
   listPricing(filters: { page: number; limit: number } = { page: 1, limit: 100 }): Promise<WholesalePricingList> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit);
     return firstValueFrom(
-      this.http.get<WholesalePricingList>(apiUrl(this.baseUrl, 'wholesale/pricing'), { params }),
-    );
+      this.http.get<WholesalePricingList | WholesalePricing[]>(
+        apiUrl(this.baseUrl, 'wholesale/pricing'),
+        { params },
+      ),
+    ).then((result) => normalizeList<WholesalePricing>(result));
   }
 
   // Stock
@@ -204,17 +233,23 @@ export class WholesaleApiService {
       }
     }
     return firstValueFrom(
-      this.http.get<WholesaleStockList>(apiUrl(this.baseUrl, 'wholesale/stock'), { params }),
-    );
+      this.http.get<WholesaleStockList | WholesaleStockItem[]>(
+        apiUrl(this.baseUrl, 'wholesale/stock'),
+        { params },
+      ),
+    ).then((result) => normalizeList<WholesaleStockItem>(result));
   }
 
   // Invoices
   listInvoices(filters: { page: number; limit: number } = { page: 1, limit: 50 }): Promise<WholesaleInvoiceList> {
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', filters.page)
       .set('limit', filters.limit);
     return firstValueFrom(
-      this.http.get<WholesaleInvoiceList>(apiUrl(this.baseUrl, 'wholesale/invoices'), { params }),
-    );
+      this.http.get<WholesaleInvoiceList | WholesaleInvoice[]>(
+        apiUrl(this.baseUrl, 'wholesale/invoices'),
+        { params },
+      ),
+    ).then((result) => normalizeList<WholesaleInvoice>(result));
   }
 }

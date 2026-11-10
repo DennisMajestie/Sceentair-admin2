@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { lastOrderLines, moneyNgn, sortRows } from './cs-data';
+import { lastOrderLines, moneyNgn, sortRows, synthesizeGuestShoppers } from './cs-data';
 import {
   ApiCustomer,
   ApiCustomerList,
@@ -135,6 +135,81 @@ describe('customers section — shared helpers', () => {
     expect(beyond.primary).toMatch(/Oct 12/);
     expect(beyond.full).toMatch(/Oct 12/);
   });
+
+  it('synthesizeGuestShoppers merges guest storefront orders into shopper accounts', () => {
+    const existingShopper: ApiCustomer = {
+      id: 'c-amara',
+      name: 'Amara Nwosu',
+      kind: 'shopper',
+      contact: 'Amara Nwosu',
+      email: 'amara@example.com',
+      phone: '08011111111',
+      city: 'Raleigh',
+      region: 'NC',
+      since: '2026-08-01T00:00:00Z',
+      tags: ['subscriber'],
+      note: '',
+    };
+
+    const guestOrder1: ApiOrder = {
+      id: 'ord-1',
+      customer: null,
+      guestName: 'Dennis Majesty',
+      guestEmail: 'dennis@example.com',
+      channel: 'retail',
+      source: null,
+      status: 'delivered',
+      paymentStatus: 'paid',
+      totalAmount: 78000,
+      shippingAddress: { line: '10 St', city: 'Lagos', state: 'Lagos', phone: '08022222222' },
+      deliveryMethod: 'freight',
+      deliveredAt: '2026-11-07T12:00:00Z',
+      items: [],
+      createdAt: '2026-11-07T10:00:00Z',
+      updatedAt: '2026-11-07T10:00:00Z',
+    };
+
+    const guestOrder2: ApiOrder = {
+      ...guestOrder1,
+      id: 'ord-2',
+      totalAmount: 11000,
+      createdAt: '2026-11-06T10:00:00Z',
+    };
+
+    const guestOrder3: ApiOrder = {
+      id: 'ord-3',
+      customer: null,
+      guestName: 'Majesty Sochima',
+      guestEmail: 'majesty@example.com',
+      channel: 'retail',
+      source: null,
+      status: 'cancelled',
+      paymentStatus: 'refunded',
+      totalAmount: 191000,
+      shippingAddress: { line: '12 St', city: 'Abuja', state: 'FCT', phone: '08033333333' },
+      deliveryMethod: 'freight',
+      deliveredAt: null,
+      items: [],
+      createdAt: '2026-11-07T08:00:00Z',
+      updatedAt: '2026-11-07T08:00:00Z',
+    };
+
+    const { customers, orders } = synthesizeGuestShoppers([existingShopper], [guestOrder1, guestOrder2, guestOrder3]);
+
+    expect(customers.length).toBe(3);
+    const dennis = customers.find((c) => c.name === 'Dennis Majesty');
+    expect(dennis).toBeDefined();
+    expect(dennis?.city).toBe('Lagos');
+    expect(dennis?.region).toBe('Lagos');
+    expect(dennis?.since).toBe('2026-11-06T10:00:00Z');
+
+    const sochima = customers.find((c) => c.name === 'Majesty Sochima');
+    expect(sochima).toBeDefined();
+    expect(sochima?.city).toBe('Abuja');
+
+    const dennisOrders = orders.filter((o) => o.customer?.id === dennis?.id);
+    expect(dennisOrders.length).toBe(2);
+  });
 });
 
 describe('Customers page (combined stockists/shoppers)', () => {
@@ -187,5 +262,39 @@ describe('Customers page (combined stockists/shoppers)', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.every((r) => Array.isArray(r.monthly) && r.monthly.length === 6)).toBeTrue();
     expect(rows.every((r) => typeof r.monthSpend === 'number')).toBeTrue();
+  });
+
+  it('includes synthesized guest shoppers when view is shoppers', async () => {
+    const customersApi = makeCustomersApi({ data: [SHOPPER], total: 1 });
+    const guestOrder: ApiOrder = {
+      id: 'ord-dennis',
+      customer: null,
+      guestName: 'Dennis Majesty',
+      guestEmail: 'dennis@example.com',
+      channel: 'retail',
+      source: null,
+      status: 'delivered',
+      paymentStatus: 'paid',
+      totalAmount: 78000,
+      shippingAddress: { line: '10 St', city: 'Lagos', state: 'Lagos', phone: '08022222222' },
+      deliveryMethod: 'freight',
+      deliveredAt: '2026-11-07T12:00:00Z',
+      items: [],
+      createdAt: '2026-11-07T10:00:00Z',
+      updatedAt: '2026-11-07T10:00:00Z',
+    };
+    const ordersApi = makeOrdersApi({ data: [guestOrder], total: 1 });
+    const fixture = setup(customersApi, ordersApi);
+    const comp = fixture.componentInstance;
+
+    (comp as any).view.set('shoppers');
+    await (comp as any).loadCustomers(true);
+    await fixture.whenStable();
+
+    const rows = (comp as any).rows();
+    expect(rows.some((r: any) => r.name === 'Dennis Majesty')).toBeTrue();
+    const dennisRow = rows.find((r: any) => r.name === 'Dennis Majesty');
+    expect(dennisRow.orders).toBe(1);
+    expect(dennisRow.spend).toBe(78000);
   });
 });

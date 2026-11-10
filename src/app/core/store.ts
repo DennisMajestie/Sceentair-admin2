@@ -15,6 +15,7 @@ import { ApprovalsApiService } from './approvals-api.service';
 import { AuditApiService } from './audit-api.service';
 import { AuthService } from './auth.service';
 import { BusinessApiService } from './business-api.service';
+import { synthesizeGuestShoppers } from '../sections/customers/cs-data';
 import {
   Batch,
   CountStatus,
@@ -548,47 +549,47 @@ export class Store {
       this.catalogueApi
         .list({ page: 1, limit: 100 })
         .then((r) => (next.products = r.data.map(mapProduct)))
-        .catch(() => {}),
+        .catch(() => { }),
       this.materialsApi
         .list()
         .then((r) => (next.materials = r.data.map(mapMaterial)))
-        .catch(() => {}),
+        .catch(() => { }),
       this.suppliersApi
         .list()
         .then((r) => (next.suppliers = r.data.map(mapSupplier)))
-        .catch(() => {}),
-      this.customersApi
-        .list({ page: 1, limit: 100 })
-        .then((r) => (next.customers = r.data.map(mapCustomer)))
-        .catch(() => {}),
-      this.ordersApi
-        .list({ page: 1, limit: 100 })
-        .then((r) => (next.orders = r.data.map(mapOrder)))
-        .catch(() => {}),
+        .catch(() => { }),
+      Promise.all([
+        this.customersApi.list({ page: 1, limit: 100 }).catch(() => ({ data: [] as ApiCustomer[], total: 0 })),
+        this.ordersApi.list({ page: 1, limit: 100 }).catch(() => ({ data: [] as ApiOrder[], total: 0 })),
+      ]).then(([cRes, oRes]) => {
+        const unified = synthesizeGuestShoppers(cRes.data, oRes.data);
+        next.customers = unified.customers.map(mapCustomer);
+        next.orders = unified.orders.map(mapOrder);
+      }),
       this.inventoryApi
         .counts()
         .then((r) => (next.counts = r.data.map(mapCount)))
-        .catch(() => {}),
-      this.helpApi.tickets().then((r) => (next.tickets = r.data.map(mapTicket))).catch(() => {}),
+        .catch(() => { }),
+      this.helpApi.tickets().then((r) => (next.tickets = r.data.map(mapTicket))).catch(() => { }),
       this.materialsApi
         .purchases(1, 100)
         .then((r) => (next.pos = r.data.map(mapPurchase)))
-        .catch(() => {}),
+        .catch(() => { }),
       this.usersApi
         .list(1, 100)
         .then((r) => (next.team = r.data.map(mapTeammate)))
-        .catch(() => {}),
+        .catch(() => { }),
       this.notificationsApi
         .list(1, 50)
         .then((r) => {
           const notices = r.data.map(mapNotice);
           this.notices.set(notices);
         })
-        .catch(() => {}),
+        .catch(() => { }),
       this.auditApi
         .list(1, 50)
         .then((r) => (next.activity = r.data.map(mapActivity)))
-        .catch(() => {}),
+        .catch(() => { }),
       this.businessApi
         .getProfile()
         .then((profile) => {
@@ -627,34 +628,34 @@ export class Store {
             },
           ];
         })
-        .catch(() => {}),
+        .catch(() => { }),
       this.notificationsApi
         .getPreferences()
         .then((prefs) => {
           next.settings = { ...next.settings, notify: prefs };
         })
-        .catch(() => {}),
+        .catch(() => { }),
       this.accountingApi
         .list({ page: 1, limit: 100 })
         .then((r: ApiLedgerList) => (next.ledgerEntries = r.data.map(mapLedgerEntry)))
-        .catch(() => {}),
+        .catch(() => { }),
       this.approvalsApi
         .list({ page: 1, limit: 100 })
         .then((r) => {
           next.approvals = r.data.map(mapApproval);
         })
-        .catch(() => {}),
+        .catch(() => { }),
     ]);
 
     await Promise.all([
       this.productionApi
         .list(1, 100)
         .then((r) => (next.batches = r.data.map((batch) => mapBatch(batch, next.products))))
-        .catch(() => {}),
+        .catch(() => { }),
       this.returnsApi
         .list(1, 100)
         .then((r) => (next.returns = r.data.map((item) => mapReturn(item, next.products))))
-        .catch(() => {}),
+        .catch(() => { }),
       this.inventoryApi
         .summary()
         .then((items) => {
@@ -673,7 +674,7 @@ export class Store {
             },
           }));
         })
-        .catch(() => {}),
+        .catch(() => { }),
       this.materialsApi
         .valuation()
         .then((rows) => {
@@ -685,7 +686,7 @@ export class Store {
               : material;
           });
         })
-        .catch(() => {}),
+        .catch(() => { }),
     ]);
     this.state.set(next);
   }
@@ -1133,10 +1134,10 @@ export class Store {
         orders: s.orders.map((o) =>
           o.id === orderId
             ? {
-                ...o,
-                status,
-                history: [...o.history, { at: Date.now(), to: status, by: s.settings.me.id }],
-              }
+              ...o,
+              status,
+              history: [...o.history, { at: Date.now(), to: status, by: s.settings.me.id }],
+            }
             : o,
         ),
       };

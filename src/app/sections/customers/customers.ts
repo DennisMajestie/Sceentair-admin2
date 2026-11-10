@@ -11,7 +11,7 @@ import {
   CustomersApiService,
 } from '../../core/customers-api.service';
 import { ApiOrder, OrdersApiService } from '../../core/orders-api.service';
-import { moneyNgn, lastOrderLines, sortRows, SortDir } from './cs-data';
+import { moneyNgn, lastOrderLines, sortRows, SortDir, synthesizeGuestShoppers } from './cs-data';
 
 type View = 'stockists' | 'shoppers';
 type Filter = 'all' | 'vip' | 'subscriber' | 'net30' | 'new' | 'none';
@@ -419,7 +419,11 @@ export class Customers {
     restoreCustomerOpener(initial === 'stockists' ? 'stockist' : 'shopper');
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (!(e instanceof NavigationStart)) return;
-      this.view.set(e.url.includes('/shoppers') ? 'shoppers' : 'stockists');
+      const nextView = e.url.includes('/shoppers') ? 'shoppers' : 'stockists';
+      if (this.view() !== nextView) {
+        this.view.set(nextView);
+        void this.loadCustomers();
+      }
     });
     void this.loadCustomers();
   }
@@ -442,8 +446,11 @@ export class Customers {
         this.ordersApi.list({ page: 1, limit: 100 }),
       ]);
       if (requestId !== this.listRequestId) return;
-      this.customers.set(customerResult.data);
-      this.orders.set(orderResult.data);
+      const unified = this.view() === 'shoppers'
+        ? synthesizeGuestShoppers(customerResult.data, orderResult.data)
+        : { customers: customerResult.data, orders: orderResult.data };
+      this.customers.set(unified.customers);
+      this.orders.set(unified.orders);
     } catch (err) {
       if (requestId === this.listRequestId) this.error.set(this.errorMessage(err));
     } finally {

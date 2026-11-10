@@ -184,24 +184,24 @@ function camelize<T>(value: unknown): T {
   return value as T;
 }
 
-function mapCoupon(c: ApiCoupon): Coupon {
+function mapCoupon(c: any): Coupon {
   return {
     id: c.id,
     code: c.code,
     name: c.name,
-    description: c.description,
+    description: c.description ?? null,
     type: c.type,
     value: c.value,
-    maxDiscount: c.max_discount,
-    minSpend: c.min_spend,
-    startsAt: c.starts_at,
-    expiresAt: c.expires_at,
-    usageCap: c.usage_cap,
-    perCustomerCap: c.per_customer_cap,
-    appliesToSaleItems: c.applies_to_sale_items,
-    timesUsed: c.times_used,
-    createdAt: c.created_at,
-    updatedAt: c.updated_at,
+    maxDiscount: c.maxDiscount ?? c.max_discount ?? null,
+    minSpend: c.minSpend ?? c.min_spend ?? null,
+    startsAt: c.startsAt ?? c.starts_at ?? null,
+    expiresAt: c.expiresAt ?? c.expires_at ?? null,
+    usageCap: c.usageCap ?? c.usage_cap ?? null,
+    perCustomerCap: c.perCustomerCap ?? c.per_customer_cap ?? 1,
+    appliesToSaleItems: c.appliesToSaleItems ?? c.applies_to_sale_items ?? false,
+    timesUsed: c.timesUsed ?? c.times_used ?? 0,
+    createdAt: c.createdAt ?? c.created_at,
+    updatedAt: c.updatedAt ?? c.updated_at,
   };
 }
 
@@ -213,8 +213,18 @@ export class CouponsApiService {
   mine(page = 1, limit = 50): Promise<Coupon[]> {
     const params = new HttpParams().set('page', page).set('limit', limit);
     return firstValueFrom(
-      this.http.get<ApiCouponList>(apiUrl(this.baseUrl, 'coupons/mine'), { params }),
-    ).then((r) => r.data.map(mapCoupon));
+      this.http.get<unknown>(apiUrl(this.baseUrl, 'coupons/mine'), { params }),
+    ).then((r) => {
+      const raw = r as Record<string, unknown>;
+      const list: unknown[] = Array.isArray(r)
+        ? r
+        : Array.isArray(raw?.['data'])
+          ? (raw['data'] as unknown[])
+          : ['available', 'used', 'expired', 'revoked'].flatMap((key) =>
+              Array.isArray(raw?.[key]) ? (raw[key] as unknown[]) : [],
+            );
+      return camelize<Coupon[]>(list).map(mapCoupon);
+    });
   }
 
   claim(input: ClaimCouponInput): Promise<ClaimCouponResult> {
