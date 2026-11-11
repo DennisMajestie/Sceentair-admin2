@@ -57,6 +57,28 @@ describe('PartnersApiService', () => {
     expect(result.data[0].investedAmount).toBe(2500000);
   });
 
+  it('flattens the nested user object the live API returns', async () => {
+    const { http, service } = init();
+    const promise = service.listPartners({ page: 1, limit: 50 });
+    const req = http.expectOne('/api/v1/partners?page=1&limit=50');
+    req.flush({
+      data: [
+        {
+          id: 'pt-2',
+          user: { id: 'u-9', name: 'Test Partner', email: 'partner@seentair.test' },
+          equityPercentage: 10,
+          investedAmount: 1000000,
+          createdAt: '2026-05-01T00:00:00Z',
+        },
+      ],
+      total: 1,
+    });
+    const result = await promise;
+    expect(result.data[0].userName).toBe('Test Partner');
+    expect(result.data[0].userEmail).toBe('partner@seentair.test');
+    expect(result.data[0].userId).toBe('u-9');
+  });
+
   it('GETs one partner via encode-safe id and POSTs a new partner', async () => {
     const { http, service } = init();
     const getPromise = service.getPartner('pt 1');

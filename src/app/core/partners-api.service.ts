@@ -52,6 +52,30 @@ export interface CreateDistributionInput {
   createdBy: string | null;
 }
 
+export interface ApiPartner {
+  id: string;
+  userId?: string;
+  user?: { id?: string; name?: string | null; email?: string | null } | null;
+  userName?: string | null;
+  userEmail?: string | null;
+  equityPercentage: number;
+  investedAmount: number;
+  createdAt: string;
+}
+
+/** The API nests the linked user; the UI expects flat name/email fields. */
+function mapPartner(row: ApiPartner): Partner {
+  return {
+    id: row.id,
+    userId: row.userId ?? row.user?.id ?? '',
+    userName: row.userName ?? row.user?.name ?? null,
+    userEmail: row.userEmail ?? row.user?.email ?? null,
+    equityPercentage: row.equityPercentage,
+    investedAmount: row.investedAmount,
+    createdAt: row.createdAt,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class PartnersApiService {
   private readonly http = inject(HttpClient);
@@ -63,13 +87,16 @@ export class PartnersApiService {
       .set('limit', filters.limit);
     return firstValueFrom(
       this.http.get<PartnerList | Partner[]>(apiUrl(this.baseUrl, 'partners'), { params }),
-    ).then((result) => normalizeList<Partner>(result));
+    ).then((result) => {
+      const list = normalizeList<ApiPartner>(result);
+      return { ...list, data: list.data.map(mapPartner) };
+    });
   }
 
   getPartner(id: string): Promise<Partner> {
     return firstValueFrom(
-      this.http.get<Partner>(apiUrl(this.baseUrl, `partners/${encodeURIComponent(id)}`)),
-    );
+      this.http.get<ApiPartner>(apiUrl(this.baseUrl, `partners/${encodeURIComponent(id)}`)),
+    ).then(mapPartner);
   }
 
   createPartner(input: CreatePartnerInput): Promise<Partner> {
@@ -104,11 +131,11 @@ export class PartnersApiService {
   }> {
     return firstValueFrom(
       this.http.get<{
-        partner: Partner;
+        partner: ApiPartner;
         distributions: ProfitDistribution[];
         totalInvested: number;
         totalDistributed: number;
       }>(apiUrl(this.baseUrl, `partners/${encodeURIComponent(id)}/dashboard`)),
-    );
+    ).then((result) => ({ ...result, partner: mapPartner(result.partner) }));
   }
 }
