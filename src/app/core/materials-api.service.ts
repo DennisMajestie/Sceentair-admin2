@@ -68,6 +68,7 @@ export interface RecordPurchaseInput {
   note?: string | null;
   recordedBy?: string | null;
   purchasedAt?: string | null;
+  approvalRequestId?: string;
 }
 
 export interface RecordUsageInput {
@@ -77,6 +78,14 @@ export interface RecordUsageInput {
   recordedBy?: string | null;
   usedAt?: string | null;
   batchId?: string | null;
+}
+
+export interface CreateMaterialInput {
+  name: string;
+  unit: string;
+  category?: string | null;
+  storageLocation?: string | null;
+  reorderThreshold?: number | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -120,11 +129,18 @@ export class MaterialsApiService {
     );
   }
 
+  create(input: CreateMaterialInput): Promise<ApiMaterial> {
+    return firstValueFrom(
+      this.http.post<ApiMaterial>(apiUrl(this.baseUrl, 'materials'), input),
+    );
+  }
+
   purchase(input: RecordPurchaseInput): Promise<ApiPurchase> {
+    const { materialId, ...body } = input;
     return firstValueFrom(
       this.http.post<ApiPurchase>(
-        apiUrl(this.baseUrl, `materials/${encodeURIComponent(input.materialId)}/purchase`),
-        input,
+        apiUrl(this.baseUrl, `materials/${encodeURIComponent(materialId)}/purchase`),
+        body,
       ),
     );
   }

@@ -110,11 +110,7 @@ describe('PartnersApiService', () => {
     const input = {
       period: '2026-Q2',
       totalProfit: 800000,
-      reinvestmentAmount: 320000,
-      dividendPool: 320000,
-      reserveAmount: 160000,
-      perPartnerBreakdown: { 'pt-1': 40000 },
-      createdBy: 'u-1',
+      approvalRequestId: 'ap-1',
     } as const;
     const createPromise = service.createDistribution(input);
     const createReq = http.expectOne('/api/v1/profit-distributions');

@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { map } from 'rxjs';
 import { date as fmtDate, money as fmtMoney } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { ToastService } from '../../core/toast';
 import {
   ApiMaterial,
   MaterialKind,
@@ -45,7 +47,7 @@ interface MaterialRow {
 @Component({
   selector: 'app-purchasing-materials',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [RouterLink, FormsModule, Icon, Drawer],
   template: `
     <div class="head">
       <div class="head__text">
@@ -57,6 +59,10 @@ interface MaterialRow {
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" routerLink="/purchasing/suppliers">Suppliers</a>
+        <button type="button" class="btn btn--primary" (click)="openCreate()">
+          <app-icon name="plus" [size]="15" />
+          New material
+        </button>
       </div>
     </div>
 
@@ -180,6 +186,44 @@ interface MaterialRow {
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New material">
+      <ng-container drawerTitle><div class="dtitle"><strong>New material</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="createMaterial()">
+        <p class="cnote">Register a raw material so purchasing and production can track it.</p>
+
+        <label class="field"><span class="field__label">Name</span>
+          <input type="text" [(ngModel)]="createForm.name" name="materialName" placeholder="e.g. Cotton poplin 4oz" required />
+        </label>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Unit</span>
+            <input type="text" [(ngModel)]="createForm.unit" name="materialUnit" placeholder="e.g. metres" required />
+          </label>
+          <label class="field"><span class="field__label">Reorder threshold</span>
+            <input type="number" min="0" step="1" [(ngModel)]="createForm.reorderThreshold" name="materialReorder" />
+          </label>
+        </div>
+        <label class="field"><span class="field__label">Kind</span>
+          <select [(ngModel)]="createForm.category" name="materialCategory">
+            <option value="">Uncategorised</option>
+            @for (f of filters; track f.id) {
+              @if (f.id !== 'all') {
+                <option [value]="f.id">{{ f.label }}</option>
+              }
+            }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Storage location</span>
+          <input type="text" [(ngModel)]="createForm.storageLocation" name="materialLocation" placeholder="e.g. C3-R1" />
+        </label>
+        @if (createError()) {
+          <p class="field-err">{{ createError() }}</p>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="creatingBusy() || !createForm.name.trim() || !createForm.unit.trim()">
+          {{ creatingBusy() ? 'Creating…' : 'Create material' }}
+        </button>
+      </form>
+    </app-drawer>
   `,
   styles: `
     .clickable { cursor: pointer; }
@@ -200,10 +244,19 @@ interface MaterialRow {
     .notice app-icon { color: var(--primary); }
     .cs-skel { display: grid; gap: 8px; }
     .cs-row { height: 58px; border-radius: 8px; background: var(--well); }
+    .create-form { display: grid; gap: 12px; }
+    .cgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .cnote { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: var(--fs-sm); margin: 0; }
+    .field { display: grid; gap: 5px; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
+    .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
+    .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
+    @media (max-width: 700px) { .cgrid { grid-template-columns: 1fr; } }
   `,
 })
 export class PurchasingMaterials {
   private readonly materialsApi = inject(MaterialsApiService);
+  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -332,5 +385,51 @@ export class PurchasingMaterials {
 
   protected close(): void {
     this.router.navigate(['/purchasing/materials']);
+  }
+
+  protected readonly creating = signal(false);
+  protected readonly creatingBusy = signal(false);
+  protected readonly createError = signal<string | null>(null);
+  protected readonly createForm = {
+    name: '',
+    unit: '',
+    category: '',
+    storageLocation: '',
+    reorderThreshold: 0,
+  };
+
+  protected openCreate(): void {
+    this.createForm.name = '';
+    this.createForm.unit = '';
+    this.createForm.category = '';
+    this.createForm.storageLocation = '';
+    this.createForm.reorderThreshold = 0;
+    this.createError.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected async createMaterial(): Promise<void> {
+    this.creatingBusy.set(true);
+    this.createError.set(null);
+    try {
+      await this.materialsApi.create({
+        name: this.createForm.name.trim(),
+        unit: this.createForm.unit.trim(),
+        category: this.createForm.category || null,
+        storageLocation: this.createForm.storageLocation.trim() || null,
+        reorderThreshold: this.createForm.reorderThreshold || 0,
+      });
+      this.toast.show('Material created', 'good');
+      this.creating.set(false);
+      await this.loadMaterials();
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'Could not create the material.');
+    } finally {
+      this.creatingBusy.set(false);
+    }
   }
 }

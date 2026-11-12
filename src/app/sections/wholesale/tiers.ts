@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput, type UpdateWholesaleTierInput } from '../../core/wholesale-api.service';
+import { ToastService } from '../../core/toast';
 
 @Component({
   selector: 'app-wholesale-tiers',
@@ -18,6 +19,10 @@ import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput,
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" (click)="load()">Refresh</a>
+        <button type="button" class="btn btn--primary" (click)="openCreate()">
+          <app-icon name="plus" [size]="15" />
+          New tier
+        </button>
       </div>
     </div>
 
@@ -118,6 +123,27 @@ import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput,
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New wholesale tier">
+      <ng-container drawerTitle><div class="dtitle"><strong>New wholesale tier</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="createTier()">
+        <label class="field"><span class="field__label">Name</span>
+          <input type="text" [(ngModel)]="createForm.name" name="tierName" placeholder="e.g. Gold wholesale" required />
+        </label>
+        <label class="field"><span class="field__label">Discount %</span>
+          <input type="number" min="0" max="100" step="0.01" [(ngModel)]="createForm.discountPercent" name="tierDiscount" required />
+        </label>
+        <label class="field"><span class="field__label">Rule description</span>
+          <input type="text" [(ngModel)]="createForm.ruleDescription" name="tierRule" placeholder="e.g. 50+ units per quarter" />
+        </label>
+        @if (createError()) {
+          <p class="field-err">{{ createError() }}</p>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="creatingBusy() || !createForm.name.trim()">
+          {{ creatingBusy() ? 'Creating…' : 'Create tier' }}
+        </button>
+      </form>
+    </app-drawer>
   `,
   styles: `
     .tier-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -148,6 +174,11 @@ import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput,
     .edit-actions { display: flex; gap: 8px; margin-top: 8px; }
     .edit-actions .btn--ghost.delete { color: var(--bad); }
     .edit-error { color: var(--bad); font-size: var(--fs-xs); margin-top: 4px; }
+    .create-form { display: grid; gap: 12px; }
+    .field { display: grid; gap: 5px; }
+    .field input { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
+    .field input:focus-visible { outline: 2px solid var(--primary); }
+    .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
     @media (max-width: 1100px) { .tier-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .tier-grid { grid-template-columns: 1fr; } }
   `,
@@ -156,6 +187,7 @@ export class WholesaleTiers {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly wholesaleApi = inject(WholesaleApiService);
+  private readonly toast = inject(ToastService);
 
   protected readonly tiers = signal<WholesaleTier[]>([]);
   protected readonly query = signal('');
@@ -163,6 +195,11 @@ export class WholesaleTiers {
   protected readonly editDiscount = signal(0);
   protected readonly editDescription = signal('');
   protected readonly editError = signal<string | null>(null);
+
+  protected readonly creating = signal(false);
+  protected readonly creatingBusy = signal(false);
+  protected readonly createError = signal<string | null>(null);
+  protected readonly createForm = { name: '', discountPercent: 0, ruleDescription: '' };
 
   private readonly routeId = this.route.snapshot.paramMap.get('id');
 
@@ -230,5 +267,46 @@ export class WholesaleTiers {
 
   protected close(): void {
     this.router.navigate(['/wholesale/tiers']);
+  }
+
+  protected openCreate(): void {
+    this.createForm.name = '';
+    this.createForm.discountPercent = 0;
+    this.createForm.ruleDescription = '';
+    this.createError.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected async createTier(): Promise<void> {
+    const name = this.createForm.name.trim();
+    const discount = Number(this.createForm.discountPercent);
+    if (!name) {
+      this.createError.set('A tier name is required.');
+      return;
+    }
+    if (!Number.isFinite(discount) || discount < 0 || discount > 100) {
+      this.createError.set('Discount must be between 0 and 100.');
+      return;
+    }
+    this.creatingBusy.set(true);
+    this.createError.set(null);
+    try {
+      await this.wholesaleApi.createTier({
+        name,
+        discountPercent: discount,
+        ruleDescription: this.createForm.ruleDescription.trim() || null,
+      });
+      this.toast.show('Wholesale tier created', 'good');
+      this.creating.set(false);
+      await this.load();
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'Could not create the tier.');
+    } finally {
+      this.creatingBusy.set(false);
+    }
   }
 }

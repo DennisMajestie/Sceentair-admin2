@@ -5,7 +5,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
-import { MarketingApiService, type Campaign, type CampaignList } from '../../core/marketing-api.service';
+import { ToastService } from '../../core/toast';
+import { MarketingApiService, type Campaign, type CampaignList, type CampaignType } from '../../core/marketing-api.service';
 
 @Component({
   selector: 'app-marketing-campaigns',
@@ -20,6 +21,10 @@ import { MarketingApiService, type Campaign, type CampaignList } from '../../cor
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" (click)="load()">Refresh</a>
+        <button type="button" class="btn btn--primary" (click)="openCreate()">
+          <app-icon name="plus" [size]="15" />
+          New campaign
+        </button>
       </div>
     </div>
 
@@ -87,6 +92,44 @@ import { MarketingApiService, type Campaign, type CampaignList } from '../../cor
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New campaign">
+      <ng-container drawerTitle><div class="dtitle"><strong>New campaign</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="createCampaign()">
+        <label class="field"><span class="field__label">Name</span>
+          <input type="text" [(ngModel)]="createForm.name" name="campaignName" placeholder="e.g. December gifting push" required />
+        </label>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Type</span>
+            <select [(ngModel)]="createForm.type" name="campaignType">
+              @for (t of campaignTypes; track t) {
+                <option [value]="t">{{ typeLabel(t) }}</option>
+              }
+            </select>
+          </label>
+          <label class="field"><span class="field__label">Channel</span>
+            <input type="text" [(ngModel)]="createForm.channel" name="campaignChannel" placeholder="e.g. Instagram" />
+          </label>
+        </div>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Discount %</span>
+            <input type="number" min="0" max="100" step="0.01" [(ngModel)]="createForm.discountPercent" name="campaignDiscount" placeholder="optional" />
+          </label>
+          <label class="field"><span class="field__label">Start date</span>
+            <input type="date" [(ngModel)]="createForm.startDate" name="campaignStart" required />
+          </label>
+        </div>
+        <label class="field"><span class="field__label">End date</span>
+          <input type="date" [(ngModel)]="createForm.endDate" name="campaignEnd" required />
+        </label>
+        @if (createError()) {
+          <p class="field-err">{{ createError() }}</p>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="creatingBusy() || !createForm.name.trim() || !createForm.startDate || !createForm.endDate">
+          {{ creatingBusy() ? 'Creating…' : 'Create campaign' }}
+        </button>
+      </form>
+    </app-drawer>
   `,
   styles: `
     .campaign-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -108,17 +151,37 @@ import { MarketingApiService, type Campaign, type CampaignList } from '../../cor
     .facts div { display: grid; gap: 2px; }
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+    .create-form { display: grid; gap: 12px; }
+    .cgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
+    .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
+    .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
     @media (max-width: 1100px) { .campaign-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 700px) { .campaign-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .campaign-grid { grid-template-columns: 1fr; } .cgrid { grid-template-columns: 1fr; } }
   `,
 })
 export class MarketingCampaigns {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly marketingApi = inject(MarketingApiService);
+  private readonly toast = inject(ToastService);
 
   protected readonly campaigns = signal<Campaign[]>([]);
   protected readonly query = signal('');
+
+  protected readonly creating = signal(false);
+  protected readonly creatingBusy = signal(false);
+  protected readonly createError = signal<string | null>(null);
+  protected readonly campaignTypes: CampaignType[] = ['campaign', 'promotion', 'loyalty', 'visibility_boost'];
+  protected readonly createForm = {
+    name: '',
+    type: 'campaign' as CampaignType,
+    channel: '',
+    discountPercent: null as number | null,
+    startDate: '',
+    endDate: '',
+  };
 
   private readonly routeId = toSignal(this.route.paramMap.pipe(map((p: ParamMap) => p.get('id'))), {
     initialValue: this.route.snapshot.paramMap.get('id'),
@@ -151,5 +214,66 @@ export class MarketingCampaigns {
 
   protected close(): void {
     this.router.navigate(['/marketing/campaigns']);
+  }
+
+  protected typeLabel(type: CampaignType): string {
+    switch (type) {
+      case 'campaign':
+        return 'Campaign';
+      case 'promotion':
+        return 'Promotion';
+      case 'loyalty':
+        return 'Loyalty';
+      case 'visibility_boost':
+        return 'Visibility boost';
+    }
+  }
+
+  protected openCreate(): void {
+    this.createForm.name = '';
+    this.createForm.type = 'campaign';
+    this.createForm.channel = '';
+    this.createForm.discountPercent = null;
+    this.createForm.startDate = new Date().toISOString().slice(0, 10);
+    this.createForm.endDate = '';
+    this.createError.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected async createCampaign(): Promise<void> {
+    if (!this.createForm.name.trim() || !this.createForm.startDate || !this.createForm.endDate) {
+      this.createError.set('A name, start date and end date are required.');
+      return;
+    }
+    if (this.createForm.endDate < this.createForm.startDate) {
+      this.createError.set('The end date must be on or after the start date.');
+      return;
+    }
+    this.creatingBusy.set(true);
+    this.createError.set(null);
+    try {
+      await this.marketingApi.create({
+        name: this.createForm.name.trim(),
+        type: this.createForm.type,
+        channel: this.createForm.channel.trim() || null,
+        discountPercent:
+          this.createForm.discountPercent === null || this.createForm.discountPercent === undefined
+            ? null
+            : Number(this.createForm.discountPercent),
+        startDate: this.createForm.startDate,
+        endDate: this.createForm.endDate,
+      });
+      this.toast.show('Campaign created', 'good');
+      this.creating.set(false);
+      await this.load();
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'Could not create the campaign.');
+    } finally {
+      this.creatingBusy.set(false);
+    }
   }
 }

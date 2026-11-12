@@ -45,11 +45,7 @@ export interface ProfitDistributionList {
 export interface CreateDistributionInput {
   period: string;
   totalProfit: number;
-  reinvestmentAmount: number;
-  dividendPool: number;
-  reserveAmount: number;
-  perPartnerBreakdown: Record<string, number>;
-  createdBy: string | null;
+  approvalRequestId: string;
 }
 
 export interface ApiPartner {

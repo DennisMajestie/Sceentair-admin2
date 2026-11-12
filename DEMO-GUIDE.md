@@ -214,9 +214,12 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 2. **Hard refresh = sign-out risk.** Token is in memory. Use in-app navigation. If you do land on `/signin`, sign in again calmly; nothing is lost.
 3. **Silent API failures.** The global store swallows load errors (`.catch(() => {})`), so a failing endpoint looks like an empty page. If a page that should have data is empty, assume a backend problem and switch to a data-rich page (Inventory, Audit log, Sales) instead of debugging live.
 4. **Local API only.** Do not demo the Render URL; it is dead. `index.html` points at `localhost:3000`.
-5. **Dashboard refactor is uncommitted WIP** (`sections/dashboard/overview.*` + two new specs). It compiles and renders; just don't `git stash`/`checkout` during the call.
+5. **Create flows are new code.** Materials, Material purchases, Marketing campaigns, Partners (add + record distribution), Wholesale tiers and Cycle counts now have working "New …" drawers that write real rows through the API. They were verified end-to-end against the local backend.
 6. **Port collisions** are the most likely failure: two API instances on 3000 make responses flap. Run the pre-flight port check.
-7. **Empty-state verbs.** "New" / "Create" buttons open drawers and forms even with no data, which is a good fallback demo beat when a list is empty.
+7. **Empty-state verbs.** "New" / "Create" buttons open drawers and forms even with no data, which is a good fallback demo beat when a list is empty. Note the topbar global "New" menu only navigates to the module page - use the page's own button.
+8. **API rate limit is 300 requests/minute.** Clicking through many pages quickly (or re-running scripts) returns `429` and lists look empty. Wait ~60 seconds or reload; nothing is broken.
+9. **Approvals.** Signed in as the owner (`owner@seentair.test`), purchasing/distribution/stock-disposal approvals self-approve instantly. On a lower-privilege login they stay pending and the gated action shows an explanatory message - approve first in Approvals.
+10. **Cycle counts have no number/status in the API.** The UI generates `CNT-XXXXXXXX` ids and treats every count as done; do not promise scheduled/active count states in the demo.
 
 ---
 
@@ -248,6 +251,7 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 - Activity feed rebuilt: audit `kind` is now derived from the endpoint path, auth/login noise is filtered out, and the feed blends orders (with customer names), stock movements, production batches, cycle counts, purchases and returns from live store data. Inventory movements now hydrate from the API (previously always empty).
 - Partners page fixed: the API nests the linked user object; the service now flattens it so names/emails render instead of raw UUIDs.
 - Demo data seeder (`seed-demo.mjs`): populates every previously-empty module through the real API with approval-gated flows intact. Includes a one-time DB patch (demo customer password reset, one order's `delivered_at` moved inside the 12-hour return window) applied directly against `seentair_dev`.
+- Added the six missing create flows and verified each one creates a real row against the local API: new material, purchase order (approval + `POST materials/:id/purchase`), marketing campaign, partner add + profit distribution, wholesale tier, and cycle count (with stock-disposal approval on decreasing lines). Fixed the purchase payload (material id is a path param, not body), made the counts page resilient to the API's missing `number`/`status` fields, and made the count detail drawer route-driven (`/warehouses/counts/:id`).
 
 ---
 
@@ -257,5 +261,6 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 - [ ] Login succeeds, `/audit-log/verify` shows 179/179/0
 - [ ] `node guide-shots.mjs` ends with `DONE` and no `OVERFLOW`
 - [ ] Spot-check two seeded pages (Material purchases, Partners) show rows, not empty states
+- [ ] Open one create drawer (e.g. Partners → Add partner) and confirm the form renders
 - [ ] One browser tab, light mode, notifications off
 - [ ] Keep this file and the `../screenshots/guide` folder open on a second screen

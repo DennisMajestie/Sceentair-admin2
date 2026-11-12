@@ -1,8 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Store } from '../../core/store';
+import { MaterialsApiService } from '../../core/materials-api.service';
+import { ApprovalsApiService } from '../../core/approvals-api.service';
+import { ToastService } from '../../core/toast';
 import {
   date as fmtDate,
   initials,
@@ -15,7 +19,7 @@ import { Drawer } from '../../ui/drawer';
 @Component({
   selector: 'app-purchasing-orders',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [RouterLink, FormsModule, Icon, Drawer],
   template: `
     <div class="head">
       <div class="head__text">
@@ -28,6 +32,10 @@ import { Drawer } from '../../ui/drawer';
       <div class="head__actions">
         <a class="btn btn--ghost" routerLink="/purchasing/materials">Materials</a>
         <a class="btn btn--ghost" routerLink="/purchasing/suppliers">Suppliers</a>
+        <button type="button" class="btn btn--primary" (click)="openCreate()">
+          <app-icon name="plus" [size]="15" />
+          New purchase
+        </button>
       </div>
     </div>
 
@@ -151,6 +159,48 @@ import { Drawer } from '../../ui/drawer';
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New purchase">
+      <ng-container drawerTitle><div class="dtitle"><strong>New purchase</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="createPurchase()">
+        <p class="cnote">Purchases are approval-gated — the owner's request is approved instantly; staff requests wait for a manager.</p>
+
+        <label class="field"><span class="field__label">Material</span>
+          <select [(ngModel)]="createForm.materialId" name="poMaterial" required>
+            <option value="">Select material…</option>
+            @for (m of store.materials(); track m.id) {
+              <option [value]="m.id">{{ m.name }} — {{ m.onHand }} {{ m.unit }} on hand</option>
+            }
+          </select>
+        </label>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Quantity</span>
+            <input type="number" min="1" step="1" [(ngModel)]="createForm.quantity" name="poQuantity" required />
+          </label>
+          <label class="field"><span class="field__label">Unit cost</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="createForm.cost" name="poCost" required />
+          </label>
+        </div>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Supplier</span>
+            <input type="text" [(ngModel)]="createForm.supplierName" name="poSupplier" placeholder="e.g. Aba Textile Mills" />
+          </label>
+          <label class="field"><span class="field__label">Lead time (days)</span>
+            <input type="number" min="0" step="1" [(ngModel)]="createForm.leadTimeDays" name="poLead" />
+          </label>
+        </div>
+        <label class="field"><span class="field__label">Note</span>
+          <input type="text" [(ngModel)]="createForm.note" name="poNote" placeholder="optional" />
+        </label>
+        <p class="ctotal">Total <strong>{{ money(createTotal()) }}</strong></p>
+        @if (createError()) {
+          <p class="field-err">{{ createError() }}</p>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="creatingBusy() || !createForm.materialId || createForm.quantity < 1">
+          {{ creatingBusy() ? 'Recording…' : 'Record purchase' }}
+        </button>
+      </form>
+    </app-drawer>
   `,
   styles: `
     .po-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -179,12 +229,24 @@ import { Drawer } from '../../ui/drawer';
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dnote { font-size: var(--fs-md); color: var(--muted); }
     .dmaterials { justify-self: start; }
+    .create-form { display: grid; gap: 12px; }
+    .cgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .cnote { padding: 12px 14px; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: var(--fs-sm); margin: 0; }
+    .ctotal { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+    .ctotal strong { color: var(--text); font-size: var(--fs-lg); }
+    .field { display: grid; gap: 5px; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
+    .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
+    .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
     @media (max-width: 1100px) { .po-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 700px) { .po-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 700px) { .po-grid { grid-template-columns: 1fr; } .cgrid { grid-template-columns: 1fr; } }
   `,
 })
 export class PurchasingOrders {
   protected readonly store = inject(Store);
+  private readonly materialsApi = inject(MaterialsApiService);
+  private readonly approvalsApi = inject(ApprovalsApiService);
+  private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -287,5 +349,79 @@ export class PurchasingOrders {
 
   protected close(): void {
     this.router.navigate(['/purchasing/orders']);
+  }
+
+  protected readonly creating = signal(false);
+  protected readonly creatingBusy = signal(false);
+  protected readonly createError = signal<string | null>(null);
+  protected readonly createForm = {
+    materialId: '',
+    quantity: 0,
+    cost: 0,
+    supplierName: '',
+    leadTimeDays: 0,
+    note: '',
+  };
+
+  protected openCreate(): void {
+    this.createForm.materialId = '';
+    this.createForm.quantity = 1;
+    this.createForm.cost = 0;
+    this.createForm.supplierName = '';
+    this.createForm.leadTimeDays = 0;
+    this.createForm.note = '';
+    this.createError.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected createTotal(): number {
+    return (Number(this.createForm.quantity) || 0) * (Number(this.createForm.cost) || 0);
+  }
+
+  protected async createPurchase(): Promise<void> {
+    const quantity = Math.round(Number(this.createForm.quantity));
+    const cost = Number(this.createForm.cost);
+    if (!this.createForm.materialId || !Number.isFinite(quantity) || quantity < 1 || !Number.isFinite(cost) || cost < 0) {
+      this.createError.set('Choose a material and enter a quantity of at least 1 and a cost of 0 or more.');
+      return;
+    }
+    this.creatingBusy.set(true);
+    this.createError.set(null);
+    try {
+      const approval = await this.approvalsApi.create({
+        actionType: 'purchasing',
+        payload: {
+          materialId: this.createForm.materialId,
+          quantity,
+          cost,
+          note: this.createForm.note.trim() || null,
+        },
+      });
+      if (approval.status !== 'approved') {
+        this.createError.set('Purchase request submitted — a manager must approve it in Approvals before the purchase is recorded.');
+        await this.store.load();
+        return;
+      }
+      await this.materialsApi.purchase({
+        materialId: this.createForm.materialId,
+        quantity,
+        cost,
+        supplierName: this.createForm.supplierName.trim() || null,
+        leadTimeDays: this.createForm.leadTimeDays ? Math.round(Number(this.createForm.leadTimeDays)) : null,
+        note: this.createForm.note.trim() || null,
+        approvalRequestId: approval.id,
+      });
+      this.toast.show('Purchase recorded', 'good');
+      this.creating.set(false);
+      await this.store.load();
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'Could not record the purchase.');
+    } finally {
+      this.creatingBusy.set(false);
+    }
   }
 }
