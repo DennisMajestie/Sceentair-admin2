@@ -11,9 +11,9 @@ export interface ApiApproval {
   id: string;
   actionType: ApprovalActionType;
   payload: Record<string, unknown> | null;
-  requestedBy: string | null;
+  requestedBy: string | { id?: string; name?: string | null; email?: string | null } | null;
   status: ApprovalStatus;
-  approvedBy: string | null;
+  approvedBy: string | { id?: string; name?: string | null; email?: string | null } | null;
   justification: string | null;
   decidedAt: string | null;
   createdAt: string;
@@ -35,7 +35,17 @@ export interface ApprovalFilters {
 
 export interface DecideApprovalInput {
   decision: ApprovalDecision;
-  resolution: string;
+  justification?: string;
+}
+
+/** Approvals embed the requester/approver relation; render a readable name. */
+export function approvalActorName(
+  actor: ApiApproval['requestedBy'],
+  fallback = '—',
+): string {
+  if (!actor) return fallback;
+  if (typeof actor === 'string') return actor;
+  return actor.name ?? actor.email ?? actor.id ?? fallback;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -60,9 +70,10 @@ export class ApprovalsApiService {
     );
   }
 
-  create(
-    dto: { actionType: ApprovalActionType; payload?: Record<string, unknown>; justification?: string },
-  ): Promise<ApiApproval> {
+  create(dto: {
+    actionType: ApprovalActionType;
+    payload?: Record<string, unknown>;
+  }): Promise<ApiApproval> {
     return firstValueFrom(
       this.http.post<ApiApproval>(apiUrl(this.baseUrl, 'approvals'), dto),
     );

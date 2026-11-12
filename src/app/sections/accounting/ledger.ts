@@ -11,8 +11,11 @@ import { ToastService } from '../../core/toast';
 import {
   AccountingApiService,
   type ApiLedgerEntry,
+  type ApiLedgerReport,
   type LedgerEntryType,
+  type LedgerReportType,
 } from '../../core/accounting-api.service';
+import { ApprovalsApiService } from '../../core/approvals-api.service';
 
 function errorText(err: unknown): string {
   const raw = err as { error?: { message?: unknown }; message?: unknown };
@@ -48,6 +51,22 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
   tax: 'muted',
 };
 
+/** Sales and purchases are written by their own flows; manual entries move funds. */
+const MANUAL_TYPES: { id: LedgerEntryType; label: string }[] = [
+  { id: 'investment', label: 'Investment (money in)' },
+  { id: 'expense', label: 'Expense' },
+  { id: 'payroll', label: 'Payroll' },
+  { id: 'tax', label: 'Tax' },
+];
+
+const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
+  { id: 'income', label: 'Income' },
+  { id: 'expenditure', label: 'Expenditure' },
+  { id: 'investment', label: 'Investment' },
+  { id: 'loss', label: 'Loss' },
+  { id: 'profit', label: 'Profit' },
+];
+
 @Component({
   selector: 'app-accounting-ledger',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +81,10 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
         </p>
       </div>
       <div class="head__actions">
+        <button type="button" class="btn btn--ghost" (click)="openReport()">
+          <app-icon name="analytics" [size]="15" />
+          Run report
+        </button>
         <button type="button" class="btn btn--primary" (click)="openForm()">
           <app-icon name="plus" [size]="15" />
           Record entry
@@ -75,16 +98,17 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
         <div class="entry-bar__fields">
           <label class="field"><span class="field__label">Type</span>
             <select [(ngModel)]="entryForm.type" name="ledgerType">
-              <option value="income">Income</option>
-              <option value="expenditure">Expenditure</option>
+              @for (type of manualTypes; track type.id) {
+                <option [value]="type.id">{{ type.label }}</option>
+              }
             </select>
           </label>
           <label class="field"><span class="field__label">Amount</span><input type="number" min="0.01" step="0.01" [(ngModel)]="entryForm.amount" name="ledgerAmount" required /></label>
-          <label class="field"><span class="field__label">Occurred at</span><input type="date" [(ngModel)]="entryForm.occurredAt" name="ledgerOccurredAt" /></label>
-          <label class="field entry-bar__note"><span class="field__label">Note</span><input type="text" [(ngModel)]="entryForm.note" name="ledgerNote" placeholder="What was recorded" required /></label>
+          <label class="field entry-bar__note"><span class="field__label">Category / note</span><input type="text" [(ngModel)]="entryForm.note" name="ledgerNote" placeholder="What was recorded" required /></label>
         </div>
+        <p class="field__hint">Saving creates a fund-movement approval. Owners record immediately; staff wait for approval.</p>
         <div class="entry-bar__actions">
-          <button type="submit" class="btn btn--primary" [disabled]="saving()">Save entry</button>
+          <button type="submit" class="btn btn--primary" [disabled]="saving()">{{ saving() ? 'Saving…' : 'Save entry' }}</button>
           <button type="button" class="btn btn--ghost" (click)="closeForm()">Cancel</button>
         </div>
       </form>
@@ -196,6 +220,54 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="reportOpen()" (close)="closeReport()" label="Accounting report">
+      <ng-container drawerTitle>
+        <strong>Accounting report</strong>
+      </ng-container>
+      <div class="dbody">
+        <div class="report-form">
+          <label class="field"><span class="field__label">Report</span>
+            <select [(ngModel)]="reportForm.type" name="reportType">
+              @for (type of reportTypes; track type.id) {
+                <option [value]="type.id">{{ type.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="field"><span class="field__label">From</span><input type="date" [(ngModel)]="reportForm.from" name="reportFrom" /></label>
+          <label class="field"><span class="field__label">To</span><input type="date" [(ngModel)]="reportForm.to" name="reportTo" /></label>
+        </div>
+        <div class="entry-bar__actions">
+          <button type="button" class="btn btn--primary" (click)="runReport()" [disabled]="reportBusy()">
+            {{ reportBusy() ? 'Running…' : 'Run report' }}
+          </button>
+        </div>
+        @if (reportError()) {
+          <p class="field__hint" role="alert">{{ reportError() }}</p>
+        }
+        @if (reportResult(); as report) {
+          <div class="dsummary">
+            <div>
+              <span class="stat__label">{{ report.type }} total</span>
+              <span class="dmeta">{{ report.entries.length }} entries · {{ report.period.from ? date(parseDate(report.period.from)) : 'all time' }} to {{ report.period.to ? date(parseDate(report.period.to)) : 'now' }}</span>
+            </div>
+            <div class="dright">
+              <strong class="dtotal">{{ money(report.total) }}</strong>
+            </div>
+          </div>
+          <dl class="facts">
+            @for (entry of report.entries.slice(0, 12); track entry.id) {
+              <div>
+                <dt>{{ categoryLabel(entry.category) }} · {{ date(parseDate(entry.entryAt)) }}</dt>
+                <dd>{{ money(entry.amount) }}</dd>
+              </div>
+            } @empty {
+              <div><dt>No entries</dt><dd>—</dd></div>
+            }
+          </dl>
+        }
+      </div>
+    </app-drawer>
   `,
   styles: `
     .ledger-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -219,6 +291,8 @@ const TYPE_TONE: Record<LedgerEntryType, string> = {
     .entry-bar__fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .entry-bar__note { grid-column: 1 / -1; }
     .entry-bar__actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .field__hint { color: var(--faint); font-size: var(--fs-xs); }
+    .report-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .field { display: grid; gap: 5px; min-width: 0; }
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
@@ -236,6 +310,7 @@ export class AccountingLedger {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly accountingApi = inject(AccountingApiService);
+  private readonly approvalsApi = inject(ApprovalsApiService);
   private readonly toasts = inject(ToastService);
 
   protected readonly date = fmtDate;
@@ -250,13 +325,24 @@ export class AccountingLedger {
   protected readonly formOpen = signal(false);
   protected readonly saving = signal(false);
   protected readonly entryForm = {
-    type: 'income' as 'income' | 'expenditure',
+    type: 'expense' as LedgerEntryType,
     amount: 0,
     note: '',
-    occurredAt: '',
+  };
+
+  protected readonly reportOpen = signal(false);
+  protected readonly reportBusy = signal(false);
+  protected readonly reportError = signal<string | null>(null);
+  protected readonly reportResult = signal<ApiLedgerReport | null>(null);
+  protected readonly reportForm = {
+    type: 'income' as LedgerReportType,
+    from: '',
+    to: '',
   };
 
   protected readonly entryTypes = ENTRY_TYPES;
+  protected readonly manualTypes = MANUAL_TYPES;
+  protected readonly reportTypes = REPORT_TYPES;
 
   private readonly routeId = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), {
     initialValue: this.route.snapshot.paramMap.get('id'),
@@ -289,6 +375,10 @@ export class AccountingLedger {
 
   protected readonly tone = (type: LedgerEntryType): string => TYPE_TONE[type] ?? 'muted';
 
+  protected parseDate(value: string): number {
+    return Date.parse(value) || 0;
+  }
+
   /** Resolve a ledger actor id to a teammate name; never leak the raw uuid. */
   protected personName(id: string | null): string {
     if (!id) return '—';
@@ -319,30 +409,67 @@ export class AccountingLedger {
       this.toasts.show('Amount must be greater than zero.', 'bad');
       return;
     }
-    const note = this.entryForm.note.trim();
-    if (!note) {
-      this.toasts.show('Note is required.', 'bad');
+    const category = this.entryForm.note.trim();
+    if (!category) {
+      this.toasts.show('Category / note is required.', 'bad');
       return;
     }
     this.saving.set(true);
     try {
+      const approval = await this.approvalsApi.create({
+        actionType: 'fund_movement',
+        payload: { type: this.entryForm.type, amount, category },
+      });
+      if (approval.status !== 'approved') {
+        this.toasts.show(
+          'Entry submitted - an owner or manager must approve the fund movement before it is recorded.',
+          'info',
+        );
+        this.formOpen.set(false);
+        return;
+      }
       await this.accountingApi.recordEntry({
         type: this.entryForm.type,
         amount,
-        note,
-        ...(this.entryForm.occurredAt ? { occurredAt: this.entryForm.occurredAt } : {}),
+        category,
+        approvalRequestId: approval.id,
       });
       this.toasts.show('Ledger entry recorded', 'good');
       this.formOpen.set(false);
-      this.entryForm.type = 'income';
+      this.entryForm.type = 'expense';
       this.entryForm.amount = 0;
       this.entryForm.note = '';
-      this.entryForm.occurredAt = '';
       void this.store.load();
     } catch (err) {
       this.toasts.show(errorText(err), 'bad');
     } finally {
       this.saving.set(false);
+    }
+  }
+
+  protected openReport(): void {
+    this.reportError.set(null);
+    this.reportOpen.set(true);
+  }
+
+  protected closeReport(): void {
+    this.reportOpen.set(false);
+  }
+
+  protected async runReport(): Promise<void> {
+    this.reportBusy.set(true);
+    this.reportError.set(null);
+    try {
+      const report = await this.accountingApi.report(
+        this.reportForm.type,
+        this.reportForm.from || undefined,
+        this.reportForm.to || undefined,
+      );
+      this.reportResult.set(report);
+    } catch (err) {
+      this.reportError.set(errorText(err));
+    } finally {
+      this.reportBusy.set(false);
     }
   }
 }

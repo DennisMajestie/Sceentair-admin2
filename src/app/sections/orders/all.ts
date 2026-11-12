@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { distinctUntilChanged, map } from 'rxjs';
@@ -13,6 +14,7 @@ import {
   ApiOrderStatus,
   ApiPublicConfig,
   ApiTracking,
+  OfflinePaymentMethod,
   OrdersApiService,
 } from '../../core/orders-api.service';
 
@@ -39,7 +41,7 @@ const API_FLOW: ApiOrderStatus[] = [
 @Component({
   selector: 'app-orders-all',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [RouterLink, Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
@@ -250,7 +252,28 @@ const API_FLOW: ApiOrderStatus[] = [
             <div class="notice" role="status">
               <app-icon name="alert" [size]="14" />
               <span>Payment is still due for this order.</span>
+              <button type="button" class="btn btn--tiny" (click)="openPayment(o)">Record payment</button>
             </div>
+            @if (paymentOpen()) {
+              <div class="pay-form">
+                <label class="field"><span class="field__label">Method</span>
+                  <select [(ngModel)]="paymentForm.method" name="payMethod">
+                    <option value="cash">Cash</option>
+                    <option value="pos">POS terminal</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                  </select>
+                </label>
+                <label class="field"><span class="field__label">Amount ({{ money(o.total) }})</span>
+                  <input type="number" min="0.01" step="0.01" [(ngModel)]="paymentForm.amount" name="payAmount" />
+                </label>
+                <div class="pay-form__actions">
+                  <button type="button" class="btn" (click)="cancelPayment()">Cancel</button>
+                  <button type="button" class="btn btn--primary" [disabled]="paymentBusy()" (click)="submitPayment(o)">
+                    {{ paymentBusy() ? 'Recording…' : 'Record payment' }}
+                  </button>
+                </div>
+              </div>
+            }
           }
 
           <h3 class="dlabel">Items</h3>
@@ -442,6 +465,10 @@ const API_FLOW: ApiOrderStatus[] = [
     .summary__card strong { font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
     .notice { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs); }
     .notice app-icon { color: var(--primary); }
+    .notice .btn--tiny { margin-left: auto; }
+    .btn--tiny { padding: 4px 10px; font-size: var(--fs-xs); border: 1px solid var(--line-2); border-radius: var(--sd-r-pill); background: none; color: var(--text); cursor: pointer; }
+    .pay-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--sd-r-card); background: var(--surface); }
+    .pay-form__actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
     .dlabel {
       margin: 2px 0 -5px;
       font-size: var(--fs-2xs);
@@ -520,6 +547,12 @@ export class OrdersAll {
   protected readonly error = signal<string | null>(null);
   protected readonly orders = signal<ApiOrder[]>([]);
   protected readonly selectedOrder = signal<ApiOrder | null>(null);
+  protected readonly paymentOpen = signal(false);
+  protected readonly paymentBusy = signal(false);
+  protected readonly paymentForm = {
+    method: 'cash' as OfflinePaymentMethod,
+    amount: 0,
+  };
   protected readonly tracking = signal<ApiTracking | null>(null);
   protected readonly totalOrders = signal(0);
   private readonly page = signal(0);
@@ -749,7 +782,42 @@ export class OrdersAll {
     return 'No further status action';
   }
 
+  protected openPayment(order: { id: string; total: number }): void {
+    this.paymentForm.method = 'cash';
+    this.paymentForm.amount = order.total;
+    this.paymentOpen.set(true);
+  }
+
+  protected cancelPayment(): void {
+    this.paymentOpen.set(false);
+  }
+
+  protected async submitPayment(order: { id: string; total: number }): Promise<void> {
+    const amount = Number(this.paymentForm.amount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.toasts.show('Enter the amount received.', 'bad');
+      return;
+    }
+    if (Math.abs(amount - order.total) > 0.009) {
+      this.toasts.show(`The amount must match the order total (${order.total}).`, 'bad');
+      return;
+    }
+    this.paymentBusy.set(true);
+    try {
+      await this.api.recordPayment(order.id, { method: this.paymentForm.method, amount });
+      this.toasts.show('Payment recorded', 'good');
+      this.paymentOpen.set(false);
+      await this.loadDetail(order.id);
+      void this.loadOrders(true);
+    } catch (error) {
+      this.toasts.show(this.errorMessage(error), 'bad');
+    } finally {
+      this.paymentBusy.set(false);
+    }
+  }
+
   protected close(): void {
+    this.paymentOpen.set(false);
     this.router.navigate(['/orders/all']);
   }
 
@@ -788,6 +856,7 @@ export class OrdersAll {
     const requestId = ++this.detailRequestId;
     this.detailLoading.set(true);
     this.error.set(null);
+    this.paymentOpen.set(false);
     this.selectedOrder.set(null);
     this.tracking.set(null);
     try {

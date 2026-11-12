@@ -1,16 +1,27 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import {
   ApprovalsApiService,
+  approvalActorName,
   type ApprovalActionType,
   type ApprovalStatus,
   type ApprovalDecision,
 } from '../../core/approvals-api.service';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { ToastService } from '../../core/toast';
 import { date as fmtDate } from '../../core/format';
+
+function errorText(err: unknown): string {
+  if (err && typeof err === 'object' && 'error' in err) {
+    const body = (err as { error?: { message?: string | string[] } }).error;
+    if (body?.message) return Array.isArray(body.message) ? body.message.join(', ') : body.message;
+  }
+  return 'Something went wrong. Please try again.';
+}
 
 interface ApprovalRow {
   id: string;
@@ -41,7 +52,7 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
 @Component({
   selector: 'app-approvals-pending',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [RouterLink, Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
@@ -52,6 +63,9 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
         </p>
       </div>
       <div class="head__actions">
+        <button type="button" class="btn" (click)="openRequest()">
+          <app-icon name="plus" [size]="14" /> New request
+        </button>
         <a class="btn btn--ghost" (click)="load()">Refresh</a>
       </div>
     </div>
@@ -161,6 +175,10 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
           }
 
           @if (a.status === 'pending') {
+            <label class="field">
+              <span class="field__label">Decision note (optional)</span>
+              <input type="text" [(ngModel)]="decisionNote" name="approvalNote" placeholder="Reason for the decision" />
+            </label>
             <div class="ddecide">
               <button type="button" class="btn" (click)="decide(a.id, 'approved')">
                 Approve
@@ -172,6 +190,38 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
           }
         </div>
       }
+    </app-drawer>
+
+    <app-drawer [open]="requestOpen()" (close)="closeRequest()" label="New approval request">
+      <ng-container drawerTitle>
+        <strong>New approval request</strong>
+      </ng-container>
+      <div class="dbody">
+        <label class="field">
+          <span class="field__label">Action</span>
+          <select [(ngModel)]="requestForm.actionType" name="approvalAction">
+            @for (type of actionTypes; track type.id) {
+              <option [value]="type.id">{{ type.label }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span class="field__label">Details (JSON, optional)</span>
+          <textarea rows="6" [(ngModel)]="requestForm.payload" name="approvalPayload" class="mono" placeholder='{ "reference": "INV-1042" }'></textarea>
+        </label>
+        <p class="dnote">
+          Owners are auto-approved; staff requests wait for an owner or manager in this queue.
+        </p>
+        @if (requestError()) {
+          <p class="dnote" role="alert">{{ requestError() }}</p>
+        }
+        <div class="ddecide">
+          <button type="button" class="btn" (click)="submitRequest()" [disabled]="requestBusy()">
+            {{ requestBusy() ? 'Submitting…' : 'Submit request' }}
+          </button>
+          <button type="button" class="btn btn--ghost" (click)="closeRequest()">Cancel</button>
+        </div>
+      </div>
     </app-drawer>
   `,
   styles: `
@@ -208,12 +258,26 @@ export class ApprovalsPending {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly approvalsApi = inject(ApprovalsApiService);
+  private readonly toasts = inject(ToastService);
 
   protected readonly date = fmtDate;
 
   protected readonly query = signal('');
   protected readonly status = signal<ApprovalStatus | 'all'>('all');
   protected readonly approvals = signal<ApprovalRow[]>([]);
+
+  protected decisionNote = '';
+  protected readonly requestOpen = signal(false);
+  protected readonly requestBusy = signal(false);
+  protected readonly requestError = signal<string | null>(null);
+  protected readonly requestForm = {
+    actionType: 'production_start' as ApprovalActionType,
+    payload: '',
+  };
+
+  protected readonly actionTypes: { id: ApprovalActionType; label: string }[] = (
+    Object.keys(ACTION_LABELS) as ApprovalActionType[]
+  ).map((id) => ({ id, label: ACTION_LABELS[id] }));
 
   protected readonly statuses: { id: ApprovalStatus | 'all'; label: string }[] = [
     { id: 'all', label: 'All' },
@@ -231,20 +295,24 @@ export class ApprovalsPending {
   }
 
   async load(): Promise<void> {
-    const result = await this.approvalsApi.list({ page: 1, limit: 100 });
-    this.approvals.set(
-      result.data.map((a) => ({
-        id: a.id,
-        actionType: a.actionType,
-        payload: a.payload,
-        requestedBy: a.requestedBy,
-        status: a.status,
-        approvedBy: a.approvedBy,
-        justification: a.justification,
-        decidedAt: Date.parse(a.decidedAt ?? '') || null,
-        createdAt: Date.parse(a.createdAt) || 0,
-      })),
-    );
+    try {
+      const result = await this.approvalsApi.list({ page: 1, limit: 100 });
+      this.approvals.set(
+        result.data.map((a) => ({
+          id: a.id,
+          actionType: a.actionType,
+          payload: a.payload,
+          requestedBy: a.requestedBy ? approvalActorName(a.requestedBy) : null,
+          status: a.status,
+          approvedBy: a.approvedBy ? approvalActorName(a.approvedBy) : null,
+          justification: a.justification,
+          decidedAt: Date.parse(a.decidedAt ?? '') || null,
+          createdAt: Date.parse(a.createdAt) || 0,
+        })),
+      );
+    } catch (err) {
+      this.toasts.show(errorText(err), 'bad');
+    }
   }
 
   protected readonly actionLabel = (type: ApprovalActionType): string => ACTION_LABELS[type] ?? type;
@@ -283,8 +351,68 @@ export class ApprovalsPending {
   }
 
   protected async decide(id: string, decision: ApprovalDecision): Promise<void> {
-    await this.approvalsApi.decide(id, { decision, resolution: `Decided ${decision} via Vessa admin` });
-    await this.load();
+    try {
+      const note = this.decisionNote.trim();
+      await this.approvalsApi.decide(id, {
+        decision,
+        ...(note ? { justification: note } : {}),
+      });
+      this.decisionNote = '';
+      this.toasts.show(`Request ${decision}`, decision === 'approved' ? 'good' : 'bad');
+      await this.load();
+    } catch (err) {
+      this.toasts.show(errorText(err), 'bad');
+    }
+  }
+
+  protected openRequest(): void {
+    this.requestError.set(null);
+    this.requestForm.actionType = 'production_start';
+    this.requestForm.payload = '';
+    this.requestOpen.set(true);
+  }
+
+  protected closeRequest(): void {
+    this.requestOpen.set(false);
+    this.requestError.set(null);
+  }
+
+  protected async submitRequest(): Promise<void> {
+    const raw = this.requestForm.payload.trim();
+    let payload: Record<string, unknown> | undefined;
+    if (raw) {
+      try {
+        const parsed: unknown = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          this.requestError.set('Details must be a JSON object, e.g. { "reference": "INV-1" }.');
+          return;
+        }
+        payload = parsed as Record<string, unknown>;
+      } catch {
+        this.requestError.set('Details are not valid JSON.');
+        return;
+      }
+    }
+    this.requestBusy.set(true);
+    this.requestError.set(null);
+    try {
+      const approval = await this.approvalsApi.create({
+        actionType: this.requestForm.actionType,
+        ...(payload ? { payload } : {}),
+      });
+      this.requestOpen.set(false);
+      this.toasts.show(
+        approval.status === 'approved'
+          ? 'Request created and approved'
+          : 'Request submitted for approval',
+        approval.status === 'approved' ? 'good' : 'info',
+      );
+      await this.load();
+    } catch (err) {
+      this.requestError.set(errorText(err));
+    } finally {
+      this.requestBusy.set(false);
+    }
   }
 
   protected open(id: string): void {

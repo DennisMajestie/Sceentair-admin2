@@ -372,13 +372,20 @@ function mapLedgerEntry(e: ApiLedgerEntry): LedgerEntry {
 }
 
 function mapApproval(a: import('./approvals-api.service').ApiApproval): Approval {
+  const actorName = (
+    actor: import('./approvals-api.service').ApiApproval['requestedBy'],
+  ): string | null => {
+    if (!actor) return null;
+    if (typeof actor === 'string') return actor;
+    return actor.name ?? actor.email ?? actor.id ?? null;
+  };
   return {
     id: a.id,
     actionType: a.actionType,
     payload: a.payload,
-    requestedBy: a.requestedBy,
+    requestedBy: actorName(a.requestedBy),
     status: a.status,
-    approvedBy: a.approvedBy,
+    approvedBy: actorName(a.approvedBy),
     justification: a.justification,
     decidedAt: Date.parse(a.decidedAt ?? '') || null,
     createdAt: Date.parse(a.createdAt) || 0,

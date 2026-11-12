@@ -91,7 +91,7 @@ Sign in on `/signin`. Point out: branded split layout, password visibility toggl
 
 ### 2.2 Orders (4 min)
 
-1. **All orders** - filter by status/channel, open an order drawer, walk through line items, customer, payment, fulfilment, status actions.
+1. **All orders** - filter by status/channel, open an order drawer, walk through line items, customer, payment, fulfilment, status actions. On an unpaid order, use **Record payment** (cash/POS/bank transfer) to capture the balance live.
 2. **Board** - kanban across the order lifecycle; the visual "wow" moment for operations.
 3. **Returns** - RMA queue and resolution (1 pending return seeded: "size runs small"; resolve it live for the refund flow, or narrate).
 4. **Deliveries** - shipment list, tracking, cost, create delivery (1 pending GIG Logistics leg seeded; advance it In transit -> Delivered live).
@@ -99,7 +99,7 @@ Sign in on `/signin`. Point out: branded split layout, password visibility toggl
 
 ### 2.3 Products (3 min)
 
-1. **Product catalog** - 19 seeded products, search/filter, category chips, product editor with media, pricing, variants, stock.
+1. **Product catalog** - 19 seeded products, search/filter, category chips, product editor with media, pricing, variants, stock. Changing a base price files a `price_change` approval; the owner's approval is instant, a lower-privilege login must approve it first.
 2. **Batches** - production batches per SKU with yield/efficiency.
 3. **Review moderation** - approve/reject customer reviews (empty; narrate).
 
@@ -117,7 +117,7 @@ Sign in on `/signin`. Point out: branded split layout, password visibility toggl
 
 ### 2.6 Purchasing (1 min)
 
-Material purchases (3 POs across Aba Textile Union and Lagos Trim House), 4 materials with stock/reorder data, 3 suppliers with compliance scores. Good beat: open a PO and trace its approval trail.
+Material purchases (3 POs across Aba Textile Union and Lagos Trim House), 4 materials with stock/reorder data, 3 suppliers with compliance scores. Good beats: open a PO and trace its approval trail, or use **Record usage** on Materials to consume a batch and watch on-hand drop.
 
 ### 2.7 Customers, wholesale (3 min)
 
@@ -128,12 +128,12 @@ Material purchases (3 POs across Aba Textile Union and Lagos Trim House), 4 mate
 
 ### 2.8 Marketing (2 min)
 
-Campaigns (3 seeded: launch, pop-up, loyalty), Coupon campaigns (1 live "Early access: Drop 05" banner). Coupon wallet lists the *signed-in user's* coupons, so it is empty for the owner - say so, then issue a coupon to a customer from the campaigns page if asked. Media library: upload a photo live; it is session-only by design.
+Campaigns (3 seeded: launch, pop-up, loyalty), Coupon campaigns (1 live "Early access: Drop 05" banner). Coupon wallet lists the *signed-in user's* coupons, so it is empty for the owner - say so, then use **Issue** on a coupon to send it to a customer or wholesaler account from the campaigns page. Media library: upload a photo live; it is session-only by design.
 
 ### 2.9 Finance (4 min) - the differentiator
 
-1. **Accounting ledger** - 7 entries: sales, payroll, investment, expense; open one for its audit trail.
-2. **Approval queue** - the owner self-approves instantly (no one sits above them), so the queue is empty by design; narrate how a partner's request would park here.
+1. **Accounting ledger** - 7 entries: sales, payroll, investment, expense; open one for its audit trail, use **Record entry** (an expense auto-files and clears a fund-movement approval), and open **Run report** for income/expenditure/loss/profit totals.
+2. **Approval queue** - the owner self-approves instantly (no one sits above them), so the queue is empty by design; narrate how a partner's request would park here. **New request** files one from the UI, and pending requests take an optional decision note.
 3. **Audit log** - 179 entries, hash-chained. Scroll the cards, open one to show before/after state and payload, then show the stat row: **Total entries 179, Valid blocks 179, Broken blocks 0, Head hash**. This is the "nobody can quietly edit history" story.
 4. **Partners** - 1 equity partner (12.5%, N5m invested) with profit-distribution flow.
 
@@ -214,11 +214,11 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 2. **Hard refresh = sign-out risk.** Token is in memory. Use in-app navigation. If you do land on `/signin`, sign in again calmly; nothing is lost.
 3. **Silent API failures.** The global store swallows load errors (`.catch(() => {})`), so a failing endpoint looks like an empty page. If a page that should have data is empty, assume a backend problem and switch to a data-rich page (Inventory, Audit log, Sales) instead of debugging live.
 4. **Local API only.** Do not demo the Render URL; it is dead. `index.html` points at `localhost:3000`.
-5. **Create flows are new code.** Materials, Material purchases, Marketing campaigns, Partners (add + record distribution), Wholesale tiers and Cycle counts now have working "New …" drawers that write real rows through the API. They were verified end-to-end against the local backend.
+5. **Create and action flows are new code.** Materials (+ record usage), Material purchases, Marketing campaigns (+ coupon issue), Partners (add + record distribution), Wholesale tiers, Cycle counts, Orders (record payment), Accounting ledger (record entry + reports), Products (price-change approval), Approvals (new request) and the dashboard all write real rows through the API. Verified end-to-end against the local backend.
 6. **Port collisions** are the most likely failure: two API instances on 3000 make responses flap. Run the pre-flight port check.
 7. **Empty-state verbs.** "New" / "Create" buttons open drawers and forms even with no data, which is a good fallback demo beat when a list is empty. Note the topbar global "New" menu only navigates to the module page - use the page's own button.
 8. **API rate limit is 300 requests/minute.** Clicking through many pages quickly (or re-running scripts) returns `429` and lists look empty. Wait ~60 seconds or reload; nothing is broken.
-9. **Approvals.** Signed in as the owner (`owner@seentair.test`), purchasing/distribution/stock-disposal approvals self-approve instantly. On a lower-privilege login they stay pending and the gated action shows an explanatory message - approve first in Approvals.
+9. **Approvals.** Signed in as the owner (`owner@seentair.test`), purchasing/distribution/stock-disposal/fund-movement/price-change approvals self-approve instantly. On a lower-privilege login they stay pending and the gated action shows an explanatory message - approve first in Approvals.
 10. **Cycle counts have no number/status in the API.** The UI generates `CNT-XXXXXXXX` ids and treats every count as done; do not promise scheduled/active count states in the demo.
 
 ---
@@ -252,6 +252,7 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 - Partners page fixed: the API nests the linked user object; the service now flattens it so names/emails render instead of raw UUIDs.
 - Demo data seeder (`seed-demo.mjs`): populates every previously-empty module through the real API with approval-gated flows intact. Includes a one-time DB patch (demo customer password reset, one order's `delivered_at` moved inside the 12-hour return window) applied directly against `seentair_dev`.
 - Added the six missing create flows and verified each one creates a real row against the local API: new material, purchase order (approval + `POST materials/:id/purchase`), marketing campaign, partner add + profit distribution, wholesale tier, and cycle count (with stock-disposal approval on decreasing lines). Fixed the purchase payload (material id is a path param, not body), made the counts page resilient to the API's missing `number`/`status` fields, and made the count detail drawer route-driven (`/warehouses/counts/:id`).
+- Closed the remaining operational gaps and verified them live: approval **New request** + decision note (`justification`, not `resolution`), ledger **Record entry** with auto `fund_movement` approval and **Run report** (income/expenditure/investment/loss/profit), product **price-change approval**, materials **Record usage** (batch-aware), coupon **Issue** to customer/wholesaler accounts, order **Record payment** (cash/POS/bank transfer), and Partner "Founder holding / Partner pool" share cards. Approvals now normalise object actors instead of rendering `[object Object]`. Coupon issue targets login accounts (wallet rows reference `users`, not CRM customer rows), so the drawer lists customers and wholesalers with accounts.
 
 ---
 

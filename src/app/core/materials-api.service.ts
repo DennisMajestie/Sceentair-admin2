@@ -73,10 +73,7 @@ export interface RecordPurchaseInput {
 
 export interface RecordUsageInput {
   materialId: string;
-  quantity: number;
-  note?: string | null;
-  recordedBy?: string | null;
-  usedAt?: string | null;
+  quantityUsed: number;
   batchId?: string | null;
 }
 
@@ -146,10 +143,11 @@ export class MaterialsApiService {
   }
 
   usage(input: RecordUsageInput): Promise<ApiMaterial> {
+    const { materialId, ...body } = input;
     return firstValueFrom(
       this.http.post<ApiMaterial>(
-        apiUrl(this.baseUrl, `materials/${encodeURIComponent(input.materialId)}/usage`),
-        input,
+        apiUrl(this.baseUrl, `materials/${encodeURIComponent(materialId)}/usage`),
+        body,
       ),
     );
   }

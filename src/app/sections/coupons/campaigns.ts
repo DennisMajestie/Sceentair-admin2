@@ -15,6 +15,7 @@ import {
   type CouponType,
 } from '../../core/coupons-api.service';
 import { date as fmtDate } from '../../core/format';
+import { UsersApiService, type ApiUser } from '../../core/users-api.service';
 
 type Tab = 'campaigns' | 'coupons' | 'bundles';
 type CreateKind = 'campaign' | 'coupon' | 'bundle';
@@ -193,9 +194,12 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
               <span>{{ c.timesUsed }} used{{ c.usageCap ? ' / ' + c.usageCap : '' }}</span>
             </span>
             @if (c.isActive) {
-              <button type="button" class="btn btn--tiny" (click)="askDeactivate('coupon', c.id, c.name)">
-                Deactivate
-              </button>
+              <span class="tile__actions">
+                <button type="button" class="btn btn--tiny" (click)="askIssue(c)">Issue</button>
+                <button type="button" class="btn btn--tiny" (click)="askDeactivate('coupon', c.id, c.name)">
+                  Deactivate
+                </button>
+              </span>
             }
           </article>
         }
@@ -406,6 +410,44 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="!!issueTarget()" (close)="cancelIssue()" label="Issue coupon">
+      <ng-container drawerTitle>
+        <strong>Issue coupon</strong>
+      </ng-container>
+      @if (issueTarget(); as coupon) {
+        <div class="form">
+          <p class="hint">
+            Issues <strong class="mono">{{ coupon.code }}</strong> — {{ coupon.name }} into each selected customer's wallet.
+          </p>
+          <label class="field"><span class="field__label">Find customers</span>
+            <input type="search" [(ngModel)]="issueSearch" name="issueSearch" placeholder="Search name, email or city" />
+          </label>
+          <fieldset class="field--group">
+            <legend class="field__label">Recipients ({{ issueForm.customerIds.length }} selected)</legend>
+            @for (customer of issueMatches(); track customer.id) {
+              <label class="check">
+                <input type="checkbox" [checked]="issueForm.customerIds.includes(customer.id)" (change)="toggleIssueCustomer(customer.id)" />
+                <span>{{ customer.name }} · {{ customer.email }} ({{ customer.role?.name }})</span>
+              </label>
+            }
+            @if (issueMatches().length === 0) {
+              <p class="hint">No customers match.</p>
+            }
+          </fieldset>
+          <label class="field"><span class="field__label">Expires at (optional)</span>
+            <input type="date" [(ngModel)]="issueForm.expiresAt" name="issueExpires" /></label>
+          <label class="field"><span class="field__label">Reason (audit)</span>
+            <input type="text" [(ngModel)]="issueForm.reason" name="issueReason" placeholder="Why these customers are receiving it" required /></label>
+          <div class="form__actions">
+            <button type="button" class="btn" (click)="cancelIssue()">Cancel</button>
+            <button type="button" class="btn btn--primary" [disabled]="saving()" (click)="submitIssue()">
+              {{ saving() ? 'Issuing…' : 'Issue coupon' }}
+            </button>
+          </div>
+        </div>
+      }
+    </app-drawer>
   `,
   styles: `
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -433,12 +475,14 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
     .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
     .btn--tiny { padding: 4px 10px; font-size: var(--fs-xs); border: 1px solid var(--line-2); border-radius: var(--sd-r-pill); background: none; color: var(--muted); cursor: pointer; justify-self: start; }
     .btn--tiny:hover { color: var(--bad); border-color: var(--bad); }
+    .tile__actions { display: flex; gap: 8px; flex-wrap: wrap; }
     @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } .form__row { grid-template-columns: 1fr; } }
   `,
 })
 export class CouponsCampaigns {
   private readonly couponsApi = inject(CouponsApiService);
+  private readonly usersApi = inject(UsersApiService);
 
   protected readonly tabs = TABS;
   protected readonly couponTypes = COUPON_TYPES;
@@ -455,11 +499,41 @@ export class CouponsCampaigns {
   protected readonly saving = signal(false);
   protected readonly createMode = signal<CreateKind | null>(null);
   protected readonly deactivateTarget = signal<{ kind: DeactivateKind; id: string; label: string } | null>(null);
+  protected readonly issueTarget = signal<AdminCoupon | null>(null);
+  protected readonly issuers = signal<ApiUser[]>([]);
 
   protected campaignForm = EMPTY_CAMPAIGN();
   protected couponForm = EMPTY_COUPON();
   protected bundleForm = EMPTY_BUNDLE();
   protected deactivateReason = '';
+  protected issueSearch = '';
+  protected issueForm = {
+    customerIds: [] as string[],
+    expiresAt: '',
+    reason: '',
+  };
+
+  protected readonly issueMatches = computed(() => {
+    const q = this.issueSearch.trim().toLowerCase();
+    return this.issuers()
+      .filter(
+        (c) =>
+          !q ||
+          `${c.name} ${c.email ?? ''}`.toLowerCase().includes(q),
+      )
+      .slice(0, 60);
+  });
+
+  private async loadIssuers(): Promise<void> {
+    try {
+      const list = await this.usersApi.list(1, 100);
+      this.issuers.set(
+        list.data.filter((u) => ['customer', 'wholesaler'].includes(u.role?.name ?? '')),
+      );
+    } catch {
+      this.issuers.set([]);
+    }
+  }
 
   protected readonly runningCount = computed(() =>
     this.campaigns().filter((c) => c.isActive && campaignStatus(c) === 'running').length,
@@ -487,6 +561,7 @@ export class CouponsCampaigns {
 
   constructor() {
     void this.load();
+    void this.loadIssuers();
   }
 
   protected async load(): Promise<void> {
@@ -647,6 +722,41 @@ export class CouponsCampaigns {
       else await this.couponsApi.deactivateCoupon(target.id, reason);
       this.deactivateTarget.set(null);
       this.message.set(`${target.kind === 'campaign' ? 'Campaign' : 'Coupon'} deactivated.`);
+    });
+  }
+
+  protected askIssue(coupon: AdminCoupon): void {
+    this.message.set(null);
+    this.error.set(null);
+    this.issueSearch = '';
+    this.issueForm = { customerIds: [], expiresAt: '', reason: '' };
+    this.issueTarget.set(coupon);
+  }
+
+  protected cancelIssue(): void {
+    this.issueTarget.set(null);
+  }
+
+  protected toggleIssueCustomer(id: string): void {
+    const ids = this.issueForm.customerIds;
+    this.issueForm.customerIds = ids.includes(id) ? ids.filter((c) => c !== id) : [...ids, id];
+  }
+
+  protected async submitIssue(): Promise<void> {
+    const coupon = this.issueTarget();
+    if (!coupon) return;
+    if (this.issueForm.customerIds.length === 0) return this.fail('Select at least one customer.');
+    const reason = this.issueForm.reason.trim();
+    if (!reason) return this.fail('A reason is required for the audit log.');
+
+    await this.save(async () => {
+      const issued = await this.couponsApi.issue(coupon.id, {
+        customerIds: this.issueForm.customerIds,
+        expiresAt: this.issueForm.expiresAt || null,
+        reason,
+      });
+      this.issueTarget.set(null);
+      this.message.set(`Coupon issued to ${issued} customer${issued === 1 ? '' : 's'}.`);
     });
   }
 

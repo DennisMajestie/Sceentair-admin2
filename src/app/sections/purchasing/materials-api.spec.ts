@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import {
@@ -51,6 +53,8 @@ function createComponent(materialsApi: ReturnType<typeof makeMaterialsApi>) {
   TestBed.configureTestingModule({
     imports: [PurchasingMaterials],
     providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
       { provide: MaterialsApiService, useValue: materialsApi },
       { provide: ToastService, useValue: makeToast() },
       {

@@ -57,9 +57,9 @@ describe('ApprovalsApiService', () => {
     expect(await promise).toEqual({ data: [], total: 0 });
   });
 
-  it('POSTs a new approval with actionType, payload and justification', async () => {
+  it('POSTs a new approval with actionType and payload only', async () => {
     const { http, service } = init();
-    const dto = { actionType: 'stock_disposal', payload: { qty: 4 }, justification: 'Damaged in QC' } as const;
+    const dto = { actionType: 'stock_disposal', payload: { qty: 4 } } as const;
     const promise = service.create(dto);
     const req = http.expectOne('/api/v1/approvals');
     expect(req.request.method).toBe('POST');
@@ -69,12 +69,12 @@ describe('ApprovalsApiService', () => {
     expect(created.actionType).toBe('stock_disposal');
   });
 
-  it('POSTs a decision to the encode-safe decide endpoint', async () => {
+  it('POSTs a decision using the API justification field', async () => {
     const { http, service } = init();
-    const promise = service.decide('ap 1', { decision: 'rejected', resolution: 'Insufficient justification' });
+    const promise = service.decide('ap 1', { decision: 'rejected', justification: 'Insufficient justification' });
     const req = http.expectOne('/api/v1/approvals/ap%201/decide');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ decision: 'rejected', resolution: 'Insufficient justification' });
+    expect(req.request.body).toEqual({ decision: 'rejected', justification: 'Insufficient justification' });
     req.flush({ ...APPROVAL, status: 'rejected', approvedBy: 'u-1', decidedAt: '2026-02-02T09:00:00Z' });
     const decided = await promise;
     expect(decided.status).toBe('rejected');

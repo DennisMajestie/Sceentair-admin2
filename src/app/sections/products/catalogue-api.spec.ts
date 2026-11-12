@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of } from 'rxjs';
 import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import {
@@ -75,6 +77,8 @@ function createComponent(catalogueApi: ReturnType<typeof makeCatalogueApi>) {
   TestBed.configureTestingModule({
     imports: [ProductsCatalog],
     providers: [
+      provideHttpClient(),
+      provideHttpClientTesting(),
       { provide: CatalogueApiService, useValue: catalogueApi },
       { provide: ToastService, useValue: makeToast() },
       {

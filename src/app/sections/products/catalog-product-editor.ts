@@ -16,6 +16,7 @@ import {
   CatalogueApiService,
 } from '../../core/catalogue-api.service';
 import { ToastService } from '../../core/toast';
+import { ApprovalsApiService } from '../../core/approvals-api.service';
 import { Drawer } from '../../ui/drawer';
 
 export interface CatalogCategoryOption {
@@ -343,6 +344,7 @@ function extractCreatedId(created: unknown): string | null {
 })
 export class CatalogApiProductEditor {
   private readonly api = inject(CatalogueApiService);
+  private readonly approvalsApi = inject(ApprovalsApiService);
   private readonly toasts = inject(ToastService);
 
   readonly product = input<ApiProduct | null>(null);
@@ -396,18 +398,34 @@ export class CatalogApiProductEditor {
     const name = this.fName().trim();
     const basePrice = this.fBasePrice();
     if (!name || basePrice === null) return;
-    const body = {
-      name,
-      description: this.fDescription().trim() || null,
-      category: this.fCategory().trim() || null,
-      basePrice,
-      sizeClass: this.fSizeClass().trim() || null,
-      primaryImageUrl: this.fPrimaryImage().trim() || null,
-      isBestseller: this.fBestseller(),
-    };
     const current = this.product();
+    let approvalRequestId: string | undefined;
     this.working.set('save');
     try {
+      if (current && basePrice !== current.basePrice) {
+        const approval = await this.approvalsApi.create({
+          actionType: 'price_change',
+          payload: { productId: current.id, from: current.basePrice, to: basePrice },
+        });
+        if (approval.status !== 'approved') {
+          this.toasts.show(
+            'Price change submitted - an owner or manager must approve it before it is applied.',
+            'info',
+          );
+          return;
+        }
+        approvalRequestId = approval.id;
+      }
+      const body = {
+        name,
+        description: this.fDescription().trim() || null,
+        category: this.fCategory().trim() || null,
+        basePrice,
+        sizeClass: this.fSizeClass().trim() || null,
+        primaryImageUrl: this.fPrimaryImage().trim() || null,
+        isBestseller: this.fBestseller(),
+        ...(approvalRequestId ? { approvalRequestId } : {}),
+      };
       if (current) {
         await this.api.updateProduct(current.id, body);
         this.toasts.show('Product updated', 'good');

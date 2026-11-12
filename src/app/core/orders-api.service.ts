@@ -15,6 +15,7 @@ export type ApiOrderStatus =
 
 export type ApiOrderChannel = 'retail' | 'wholesale' | 'custom' | 'in_store';
 export type ApiPaymentStatus = 'unpaid' | 'paid' | 'refunded';
+export type OfflinePaymentMethod = 'cash' | 'pos' | 'bank_transfer';
 
 export interface ApiOrderItem {
   id: string;
@@ -144,6 +145,19 @@ export class OrdersApiService {
       this.http.patch<ApiOrder>(apiUrl(this.baseUrl, `orders/${encodeURIComponent(id)}/status`), {
         status,
       }),
+    );
+  }
+
+  /** Capture an offline payment (cash, POS terminal or bank transfer). */
+  recordPayment(
+    id: string,
+    input: { method: OfflinePaymentMethod; amount: number },
+  ): Promise<unknown> {
+    return firstValueFrom(
+      this.http.post(
+        apiUrl(this.baseUrl, `orders/${encodeURIComponent(id)}/payment`),
+        input,
+      ),
     );
   }
 

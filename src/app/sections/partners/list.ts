@@ -45,6 +45,16 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
         <strong class="stat__value">{{ money(totalInvested()) }}</strong>
         <span class="stat__detail">Combined investment</span>
       </article>
+      <article class="stat">
+        <span class="stat__label">Founder holding</span>
+        <strong class="stat__value">600,000</strong>
+        <span class="stat__detail">60% of 1,000,000 shares</span>
+      </article>
+      <article class="stat">
+        <span class="stat__label">Partner pool</span>
+        <strong class="stat__value">{{ partnerShares().toLocaleString() }}</strong>
+        <span class="stat__detail">{{ partnerEquityTotal() }}% of 1,000,000 shares</span>
+      </article>
     </div>
 
     <div class="toolbar">
@@ -303,6 +313,14 @@ export class PartnersList {
 
   protected readonly totalInvested = computed(() =>
     this.partners().reduce((a, p) => a + p.investedAmount, 0),
+  );
+
+  protected readonly partnerEquityTotal = computed(() =>
+    Math.round(this.partners().reduce((a, p) => a + p.equityPercentage, 0) * 100) / 100,
+  );
+
+  protected readonly partnerShares = computed(() =>
+    Math.round((this.partnerEquityTotal() / 100) * 1_000_000),
   );
 
   protected readonly money = moneyNgn;

@@ -7,6 +7,7 @@ import { date as fmtDate, money as fmtMoney } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { ToastService } from '../../core/toast';
+import { Store } from '../../core/store';
 import {
   ApiMaterial,
   MaterialKind,
@@ -59,6 +60,10 @@ interface MaterialRow {
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" routerLink="/purchasing/suppliers">Suppliers</a>
+        <button type="button" class="btn btn--ghost" (click)="openUsage()">
+          <app-icon name="package" [size]="15" />
+          Record usage
+        </button>
         <button type="button" class="btn btn--primary" (click)="openCreate()">
           <app-icon name="plus" [size]="15" />
           New material
@@ -224,6 +229,40 @@ interface MaterialRow {
         </button>
       </form>
     </app-drawer>
+
+    <app-drawer [open]="usageOpen()" (close)="closeUsage()" label="Record material usage">
+      <ng-container drawerTitle><div class="dtitle"><strong>Record usage</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="recordUsage()">
+        <p class="cnote">Deducts stock from the material and counts toward the linked production batch.</p>
+        <label class="field"><span class="field__label">Material</span>
+          <select [(ngModel)]="usageForm.materialId" name="usageMaterial" required>
+            <option value="">Select a material</option>
+            @for (m of rows(); track m.id) {
+              <option [value]="m.id">{{ m.name }} · {{ m.currentQuantity }} {{ m.unit }} on hand</option>
+            }
+          </select>
+        </label>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Quantity used</span>
+            <input type="number" min="1" step="1" [(ngModel)]="usageForm.quantityUsed" name="usageQuantity" required />
+          </label>
+          <label class="field"><span class="field__label">Batch (optional)</span>
+            <select [(ngModel)]="usageForm.batchId" name="usageBatch">
+              <option value="">Not linked</option>
+              @for (b of batches(); track b.id) {
+                <option [value]="b.id">{{ b.lot }} · {{ b.qty }} units</option>
+              }
+            </select>
+          </label>
+        </div>
+        @if (usageError()) {
+          <p class="field-err">{{ usageError() }}</p>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="usageBusy() || !usageForm.materialId || !usageForm.quantityUsed">
+          {{ usageBusy() ? 'Recording…' : 'Record usage' }}
+        </button>
+      </form>
+    </app-drawer>
   `,
   styles: `
     .clickable { cursor: pointer; }
@@ -257,6 +296,7 @@ interface MaterialRow {
 export class PurchasingMaterials {
   private readonly materialsApi = inject(MaterialsApiService);
   private readonly toast = inject(ToastService);
+  private readonly store = inject(Store);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -397,6 +437,53 @@ export class PurchasingMaterials {
     storageLocation: '',
     reorderThreshold: 0,
   };
+
+  protected readonly usageOpen = signal(false);
+  protected readonly usageBusy = signal(false);
+  protected readonly usageError = signal<string | null>(null);
+  protected readonly usageForm = {
+    materialId: '',
+    quantityUsed: 0,
+    batchId: '',
+  };
+  protected readonly batches = this.store.batches;
+
+  protected openUsage(): void {
+    this.usageForm.materialId = this.selected()?.id ?? '';
+    this.usageForm.quantityUsed = 0;
+    this.usageForm.batchId = '';
+    this.usageError.set(null);
+    this.usageOpen.set(true);
+  }
+
+  protected closeUsage(): void {
+    this.usageOpen.set(false);
+  }
+
+  protected async recordUsage(): Promise<void> {
+    const quantityUsed = Math.trunc(Number(this.usageForm.quantityUsed));
+    if (!this.usageForm.materialId || !Number.isFinite(quantityUsed) || quantityUsed < 1) {
+      this.usageError.set('Choose a material and a whole quantity of at least 1.');
+      return;
+    }
+    this.usageBusy.set(true);
+    this.usageError.set(null);
+    try {
+      await this.materialsApi.usage({
+        materialId: this.usageForm.materialId,
+        quantityUsed,
+        batchId: this.usageForm.batchId || null,
+      });
+      this.toast.show('Material usage recorded', 'good');
+      this.usageOpen.set(false);
+      await this.loadMaterials();
+      void this.store.load();
+    } catch (err) {
+      this.usageError.set(err instanceof Error ? err.message : 'Could not record the usage.');
+    } finally {
+      this.usageBusy.set(false);
+    }
+  }
 
   protected openCreate(): void {
     this.createForm.name = '';
