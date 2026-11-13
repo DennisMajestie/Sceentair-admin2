@@ -212,6 +212,34 @@ describe('orders list response mapping', () => {
   });
 });
 
+describe('order status filters', () => {
+  it('keeps every status count visible when one status is selected', () => {
+    const orders: ApiOrder[] = [
+      ORDER,
+      { ...ORDER, id: 'o-2', status: 'delivered' },
+      { ...ORDER, id: 'o-3', status: 'awaiting_payment', paymentStatus: 'unpaid' },
+    ];
+    const api = makeApi({ data: orders, total: orders.length });
+    const fixture = createComponent(api, makeAuth());
+    const component = fixture.componentInstance as any;
+
+    component.orders.set(orders);
+
+    expect(component.statusCount('all')).toBe(3);
+    expect(component.statusCount('order_received')).toBe(1);
+    expect(component.statusCount('delivered')).toBe(1);
+    expect(component.statusCount('awaiting_payment')).toBe(1);
+
+    component.setStatus('delivered');
+
+    expect(component.visible()).toHaveSize(1);
+    expect(component.visible()[0].status).toBe('delivered');
+    expect(component.statusCount('all')).toBe(3);
+    expect(component.statusCount('order_received')).toBe(1);
+    expect(component.statusCount('awaiting_payment')).toBe(1);
+  });
+});
+
 describe('permitted status actions', () => {
   const baseOrder: { id: string; status: ApiOrderStatus; paymentStatus: string; channel: 'retail' } = {
     id: 'o-1',

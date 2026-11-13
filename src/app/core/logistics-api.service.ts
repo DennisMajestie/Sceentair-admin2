@@ -7,9 +7,8 @@ import { API_BASE_URL, apiUrl } from './api-config';
 export interface ApiLogisticsPricing {
   id: string;
   zone: string;
-  baseKg: number;
-  basePrice: number;
-  perKgPrice: number;
+  baseFee: number;
+  pricePerKg: number;
 }
 
 /** Checkout delivery/tax effective settings. */

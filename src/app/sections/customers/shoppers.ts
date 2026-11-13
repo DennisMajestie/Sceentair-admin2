@@ -398,18 +398,18 @@ export class CustomerShoppers {
     const fallbackCustomer = this.customers().find((c) => c.id === id);
     const fallback = fallbackCustomer
       ? {
-          id: fallbackCustomer.id,
-          name: fallbackCustomer.name,
-          kind: fallbackCustomer.kind,
-          contact: fallbackCustomer.contact,
-          email: fallbackCustomer.email,
-          phone: fallbackCustomer.phone,
-          city: fallbackCustomer.city,
-          region: fallbackCustomer.region,
-          since: Date.parse(fallbackCustomer.since) || 0,
-          tags: fallbackCustomer.tags,
-          note: fallbackCustomer.note,
-        }
+        id: fallbackCustomer.id,
+        name: fallbackCustomer.name,
+        kind: fallbackCustomer.kind,
+        contact: fallbackCustomer.contact,
+        email: fallbackCustomer.email,
+        phone: fallbackCustomer.phone,
+        city: fallbackCustomer.city,
+        region: fallbackCustomer.region,
+        since: Date.parse(fallbackCustomer.since) || 0,
+        tags: fallbackCustomer.tags,
+        note: fallbackCustomer.note,
+      }
       : null;
     return buildCustomerDetail(this.store, id, 'shopper', fallback);
   });

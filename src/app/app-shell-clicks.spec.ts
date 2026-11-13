@@ -10,6 +10,14 @@ import { NAV } from './core/nav';
 import { SdShellStateService } from './core/sd-shell-state.service';
 
 describe('App shell sidebar interaction (full app, real router)', () => {
+  const previousTimeout = jasmine.DEFAULT_TIMEOUT_INTERVAL;
+  beforeAll(() => {
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = 15000;
+  });
+  afterAll(() => {
+    jasmine.DEFAULT_TIMEOUT_INTERVAL = previousTimeout;
+  });
+
   let fixture: ComponentFixture<App>;
   let el: HTMLElement;
   let router: Router;

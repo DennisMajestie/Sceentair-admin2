@@ -178,14 +178,14 @@ function mapRow(product: ApiProduct): CatalogRow {
               <button
                 type="button"
                 class="category-chip"
-                [class.is-on]="queryState().category === category.id"
-                [attr.aria-pressed]="queryState().category === category.id"
+                [class.is-on]="queryState().category === category.name"
+                [attr.aria-pressed]="queryState().category === category.name"
                 [style.--category-color]="categoryTone(category.name)"
                 (click)="setCategory(category.name)"
               >
                 <span class="category-dot" aria-hidden="true"></span>
                 <span class="category-chip__text">{{ category.name }}</span>
-                <span class="category-chip__count">{{ categoryCount(category.id) }}</span>
+                <span class="category-chip__count">{{ categoryCount(category.name) }}</span>
               </button>
             }
           </div>
@@ -360,7 +360,8 @@ export class ProductsCatalog {
     const cat = this.queryState().category;
     let list = this.rows();
     if (cat && cat !== 'all') {
-      list = list.filter((r) => r.category === cat);
+      const wanted = cat.trim().toLowerCase();
+      list = list.filter((r) => (r.category ?? '').trim().toLowerCase() === wanted);
     }
     if (!q) return list;
     return list.filter(
@@ -457,8 +458,9 @@ export class ProductsCatalog {
     void this.loadCatalog();
   }
 
-  protected categoryCount(categoryId: string): number {
-    return this.rows().filter((r) => r.category === categoryId).length;
+  protected categoryCount(categoryName: string): number {
+    const wanted = categoryName.trim().toLowerCase();
+    return this.rows().filter((r) => (r.category ?? '').trim().toLowerCase() === wanted).length;
   }
 
   protected readonly openCreate = (): void => {
@@ -703,3 +705,4 @@ export class ProductsCatalog {
     return new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(value);
   }
 }
+

@@ -6,6 +6,7 @@ import { Bars, Gauge } from '../../ui/chart';
 import { Icon } from '../../ui/icon';
 import { ProductShot } from '../../ui/product-shot';
 import { ChartPeriodSelect } from './chart-period-select';
+import { Spinner } from '../../ui/spinner';
 import { SdMotionService } from '../../core/sd-motion.service';
 import { AuthService } from '../../core/auth.service';
 import { gsap } from 'gsap';
@@ -89,7 +90,7 @@ export function computeOverviewSpans(p: OverviewPresence): OverviewSpans {
 @Component({
   selector: 'app-dashboard-overview',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Bars, Gauge, Icon, ProductShot, ChartPeriodSelect],
+  imports: [RouterLink, Bars, Gauge, Icon, ProductShot, ChartPeriodSelect, Spinner],
   host: {
     '[class.sd-pending]': 'pending()',
     '[style.--ov-welcome]': 'spans().welcome',
@@ -144,6 +145,10 @@ export class DashboardOverview {
       this.store.data();
       afterNextRender(() => this.onData(), { injector: this.injector });
     });
+    effect(() => {
+      if (!this.dashboardData()) return;
+      afterNextRender(() => this.setNumbersFinal(), { injector: this.injector });
+    });
     this.destroyRef.onDestroy(() => this.mm?.revert());
     void this.loadDashboard();
   }
@@ -156,15 +161,18 @@ export class DashboardOverview {
     this.dashboardBestSellers.set([]);
     this.lowStockData.set(null);
     this.inventoryMovements.set(null);
-    const results = await Promise.allSettled([
-      this.analyticsApi.dashboard(),
+    const dashboard = await this.analyticsApi.dashboard().then(
+      (value) => ({ status: 'fulfilled' as const, value }),
+      (reason: unknown) => ({ status: 'rejected' as const, reason }),
+    );
+    this.pending.set(false);
+    const [bestSellers, lowStock, inventoryMovements] = await Promise.allSettled([
       this.analyticsApi.bestSellers(5),
       this.analyticsApi.lowStock(),
       this.analyticsApi.inventoryMovementTrend(this.chartPeriod()),
     ]);
     const errors: string[] = [];
     const errorItems: { label: string; message: string }[] = [];
-    const [dashboard, bestSellers, lowStock, inventoryMovements] = results;
     if (dashboard.status === 'fulfilled') this.dashboardData.set(dashboard.value);
     else {
       const msg = this.errorMessage(dashboard.reason);
@@ -236,7 +244,7 @@ export class DashboardOverview {
           const root = this.host.nativeElement;
           const q = gsap.utils.selector(root);
           if (!(ctx.conditions as any).motion) {
-            this.showFinal(q);
+            this.showFinal();
             return;
           }
           this.entrance(q);
@@ -340,26 +348,22 @@ export class DashboardOverview {
       },
       0.9,
     );
-    q('.sd-num').forEach((el) => {
-      const target = Number(el.getAttribute('data-to'));
-      const kind = el.getAttribute('data-kind');
-      const fmt = (n: number) => {
-        if (kind === 'currency') return this.compact(n);
-        if (kind === 'currency-full') return this.money(n);
-        if (kind === 'percent') return Math.round(n) + '%';
-        return this.count(Math.round(n));
-      };
-      this.motion.countTo(el as HTMLElement, target, fmt, { tl, position: 0.85, duration: 1.4 });
-    });
+    this.setNumbersFinal();
 
     tl.eventCallback('onComplete', () => this.zone.run(() => this.pending.set(false)));
   }
 
-  private showFinal(q: gsap.utils.SelectorFunc) {
+  private showFinal() {
     this.zone.run(() => this.pending.set(false));
+    this.setNumbersFinal();
+  }
+
+  private setNumbersFinal(): void {
+    const q = gsap.utils.selector(this.host.nativeElement);
     q('.sd-num').forEach((el) => {
       const target = Number(el.getAttribute('data-to'));
       const kind = el.getAttribute('data-kind');
+      if (!Number.isFinite(target)) return;
       const fmt = (n: number) => {
         if (kind === 'currency') return this.compact(n);
         if (kind === 'currency-full') return this.money(n);
@@ -371,18 +375,7 @@ export class DashboardOverview {
   }
 
   private refresh() {
-    const q = gsap.utils.selector(this.host.nativeElement);
-    q('.sd-num').forEach((el) => {
-      const target = Number(el.getAttribute('data-to'));
-      const kind = el.getAttribute('data-kind');
-      const fmt = (n: number) => {
-        if (kind === 'currency') return this.compact(n);
-        if (kind === 'currency-full') return this.money(n);
-        if (kind === 'percent') return Math.round(n) + '%';
-        return this.count(Math.round(n));
-      };
-      this.motion.countTo(el as HTMLElement, target, fmt, { duration: 0.5 });
-    });
+    this.setNumbersFinal();
   }
 
   protected readonly count = fmtCount;
@@ -597,3 +590,4 @@ export class DashboardOverview {
     return moneyCompact(value);
   }
 }
+

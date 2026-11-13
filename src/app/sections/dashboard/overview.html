@@ -1,3 +1,9 @@
+@if (pending()) {
+  <div class="sd-loading">
+    <app-spinner size="sm" label="Loading dashboard" />
+  </div>
+}
+
 @if (flags().welcome) {
   <div class="welcome">
     <span class="welcome__date">{{ stamp() }}</span>

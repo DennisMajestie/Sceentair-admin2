@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL, apiUrl } from './api-config';
 import { ApiSession } from './api-session';
@@ -38,7 +39,9 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly session = inject(ApiSession);
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly router = inject(Router);
   private restorePromise: Promise<boolean> | null = null;
+  private expiryTimer: ReturnType<typeof setTimeout> | null = null;
 
   readonly user = signal<AuthUser | null>(null);
   readonly error = signal<string | null>(null);
@@ -95,6 +98,17 @@ export class AuthService {
 
   async restoreSession(): Promise<boolean> {
     if (this.session.accessToken() && this.user()) return true;
+    if (this.restorePromise) return this.restorePromise;
+    this.restorePromise = this.restore();
+    try {
+      return await this.restorePromise;
+    } finally {
+      this.restorePromise = null;
+    }
+  }
+
+  /** Force a token refresh (used after a 401 or at token expiry). */
+  async refreshSession(): Promise<boolean> {
     if (this.restorePromise) return this.restorePromise;
     this.restorePromise = this.restore();
     try {
@@ -195,6 +209,7 @@ export class AuthService {
 
   private async acceptToken(token: string): Promise<void> {
     this.session.setAccessToken(token);
+    this.scheduleExpiry(token);
     try {
       this.user.set(
         await firstValueFrom(
@@ -207,7 +222,50 @@ export class AuthService {
     }
   }
 
+  /** Refresh a few seconds before the access token expires; sign out if it cannot. */
+  private scheduleExpiry(token: string): void {
+    this.cancelExpiryTimer();
+    if (typeof window === 'undefined') return;
+    const expiresAt = this.tokenExpiry(token);
+    if (!expiresAt) return;
+    const delay = Math.max(expiresAt - Date.now() - 15_000, 1_000);
+    this.expiryTimer = setTimeout(() => {
+      void this.refreshSession().then((ok) => {
+        if (!ok) this.redirectToSignIn();
+      });
+    }, delay);
+  }
+
+  private tokenExpiry(token: string): number | null {
+    try {
+      const payload = token.split('.')[1];
+      if (!payload) return null;
+      const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+      const json = JSON.parse(atob(padded));
+      return typeof json.exp === 'number' ? json.exp * 1_000 : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private redirectToSignIn(): void {
+    const url = this.router.url;
+    if (url.startsWith('/signin')) return;
+    void this.router.navigate(['/signin'], {
+      queryParams: url && url !== '/' ? { returnUrl: url } : {},
+    });
+  }
+
+  private cancelExpiryTimer(): void {
+    if (this.expiryTimer !== null) {
+      clearTimeout(this.expiryTimer);
+      this.expiryTimer = null;
+    }
+  }
+
   private clear(): void {
+    this.cancelExpiryTimer();
     this.session.clear();
     this.user.set(null);
     this.challengeToken = null;

@@ -20,7 +20,7 @@ function init() {
 }
 
 const PRICING = [
-  { id: 'zp-1', zone: 'lagos_mainland', baseKg: 1, basePrice: 2500, perKgPrice: 350 },
+  { id: 'zp-1', zone: 'lagos_mainland', baseFee: 2500, pricePerKg: 350 },
 ];
 
 const SETTINGS = {
@@ -47,9 +47,9 @@ describe('LogisticsApiService', () => {
     listReq.flush(PRICING);
     const result = await listPromise;
     expect(result[0].zone).toBe('lagos_mainland');
-    expect(result[0].perKgPrice).toBe(350);
+    expect(result[0].pricePerKg).toBe(350);
 
-    const body = { zone: 'abuja', baseKg: 2, basePrice: 4000, perKgPrice: 300 };
+    const body = { zone: 'abuja', baseFee: 4000, pricePerKg: 300 };
     const upsertPromise = service.upsertPricing(body);
     const upsertReq = http.expectOne('/api/v1/logistics/pricing');
     expect(upsertReq.request.method).toBe('POST');

@@ -18,6 +18,7 @@ import {
 import { ToastService } from '../../core/toast';
 import { ApprovalsApiService } from '../../core/approvals-api.service';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 
 export interface CatalogCategoryOption {
   id: string;
@@ -64,7 +65,7 @@ function extractCreatedId(created: unknown): string | null {
 @Component({
   selector: 'app-catalog-product-editor',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Drawer, FormsModule],
+  imports: [Drawer, FormsModule, Spinner],
   template: `
     <app-drawer [open]="open()" [label]="editing() ? 'Edit product' : 'New product'" (close)="closed.emit()">
       <ng-container drawerTitle>
@@ -117,14 +118,15 @@ function extractCreatedId(created: unknown): string | null {
               <button type="button" class="add-category" (click)="addingCategory.set(true)">＋ Add category</button>
             }
           </div>
-          <label class="field">
+          <div class="field">
             <span class="field__label">Size class</span>
-            <input type="text" name="pSizeClass" placeholder="e.g. medium" [(ngModel)]="fSizeClass" />
-          </label>
-          <label class="field field--check">
-            <span class="field__label">Bestseller</span>
-            <input type="checkbox" name="pBestseller" [(ngModel)]="fBestseller" />
-          </label>
+            <select name="pSizeClass" [(ngModel)]="fSizeClass">
+              <option value="">Not set (medium)</option>
+              <option value="light">Light</option>
+              <option value="medium">Medium</option>
+              <option value="heavy">Heavy</option>
+            </select>
+          </div>
           <label class="field field--span">
             <span class="field__label">Primary image URL</span>
             <input type="text" name="pPrimaryImage" placeholder="https://… or /uploads/…" [(ngModel)]="fPrimaryImage" />
@@ -142,9 +144,14 @@ function extractCreatedId(created: unknown): string | null {
           <button
             class="btn btn--primary"
             type="submit"
-            [disabled]="working() !== '' || !fName().trim() || fBasePrice() === null"
+            [disabled]="working() !== '' || !fName().trim() || fBasePrice() === null || (!editing() && !fCategory().trim())"
           >
-            {{ working() === 'save' ? (editing() ? 'Saving…' : 'Creating…') : (editing() ? 'Save changes' : 'Create product') }}
+            @if (working() === 'save') {
+              <app-spinner size="sm" />
+              {{ editing() ? 'Saving' : 'Creating' }}
+            } @else {
+              {{ editing() ? 'Save changes' : 'Create product' }}
+            }
           </button>
           <button class="btn btn--ghost" type="button" (click)="closed.emit()">Cancel</button>
         </div>
@@ -218,7 +225,12 @@ function extractCreatedId(created: unknown): string | null {
               type="submit"
               [disabled]="working() !== '' || (!vSku().trim() && !vSize().trim() && !vColour().trim())"
             >
-              {{ working() === 'variant' ? 'Adding…' : (editing() ? 'Add variant' : 'Stage variant') }}
+              @if (working() === 'variant') {
+                <app-spinner size="sm" />
+                Adding
+              } @else {
+                {{ editing() ? 'Add variant' : 'Stage variant' }}
+              }
             </button>
           </div>
         </form>
@@ -361,7 +373,6 @@ export class CatalogApiProductEditor {
   protected readonly fBasePrice = signal<number | null>(null);
   protected readonly fSizeClass = signal('');
   protected readonly fPrimaryImage = signal('');
-  protected readonly fBestseller = signal(false);
 
   protected readonly vSku = signal('');
   protected readonly vSize = signal('');
@@ -397,8 +408,14 @@ export class CatalogApiProductEditor {
   protected async save(): Promise<void> {
     const name = this.fName().trim();
     const basePrice = this.fBasePrice();
+    const category = this.fCategory().trim();
+    const sizeClass = this.fSizeClass().trim();
     if (!name || basePrice === null) return;
     const current = this.product();
+    if (!current && !category) {
+      this.toasts.show('Choose a category before creating the product.', 'bad');
+      return;
+    }
     let approvalRequestId: string | undefined;
     this.working.set('save');
     try {
@@ -419,11 +436,10 @@ export class CatalogApiProductEditor {
       const body = {
         name,
         description: this.fDescription().trim() || null,
-        category: this.fCategory().trim() || null,
+        ...(category ? { category } : {}),
         basePrice,
-        sizeClass: this.fSizeClass().trim() || null,
+        ...(sizeClass ? { sizeClass } : {}),
         primaryImageUrl: this.fPrimaryImage().trim() || null,
-        isBestseller: this.fBestseller(),
         ...(approvalRequestId ? { approvalRequestId } : {}),
       };
       if (current) {
@@ -655,7 +671,6 @@ export class CatalogApiProductEditor {
     this.fBasePrice.set(current?.basePrice ?? null);
     this.fSizeClass.set(current?.sizeClass ?? '');
     this.fPrimaryImage.set(current?.primaryImageUrl ?? '');
-    this.fBestseller.set(current?.isBestseller ?? false);
     this.resetVariantForm(current?.name ?? '');
     this.sPercent.set(null);
     this.sEndsAt.set('');

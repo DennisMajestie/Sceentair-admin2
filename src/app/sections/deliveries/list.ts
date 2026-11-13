@@ -10,11 +10,21 @@ import { moneyNgn } from '../customers/cs-data';
 import { DeliveriesApiService, type DeliveryLeg, type DeliveryLegStatus, type DeliveryLegFilters } from '../../core/deliveries-api.service';
 import { LogisticsApiService, type ApiLogisticsPricing, type ApiShippingSettings, type ApiShippingSettingsUpdate } from '../../core/logistics-api.service';
 import { ToastService } from '../../core/toast';
+import { Spinner } from '../../ui/spinner';
+
+const NIGERIA_GEOPOLITICAL_ZONES = [
+  'North Central',
+  'North East',
+  'North West',
+  'South East',
+  'South South',
+  'South West',
+] as const;
 
 @Component({
   selector: 'app-deliveries-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -101,7 +111,9 @@ import { ToastService } from '../../core/toast';
       </button>
       @if (panelOpen()) {
         @if (panelLoading()) {
-          <p class="ship-panel__note">Loading shipping settings…</p>
+          <div class="ship-loading">
+            <app-spinner size="md" label="Loading shipping settings" />
+          </div>
         } @else {
           @if (settings(); as s) {
             <dl class="facts ship-facts">
@@ -119,7 +131,14 @@ import { ToastService } from '../../core/toast';
             </div>
             <div class="ship-save">
               <label class="field"><span class="field__label">Reason for change</span><input type="text" placeholder="Required for the audit trail" [(ngModel)]="reason" name="shipPanelReason" /></label>
-              <button type="button" class="btn" [disabled]="saving() || !reason.trim()" (click)="saveSettings()">{{ saving() ? 'Saving…' : 'Save settings' }}</button>
+              <button type="button" class="btn" [disabled]="saving() || !reason.trim()" (click)="saveSettings()">
+                @if (saving()) {
+                  <app-spinner size="sm" />
+                  Saving
+                } @else {
+                  Save settings
+                }
+              </button>
             </div>
 
             <div class="ship-panel__labelrow">
@@ -129,29 +148,51 @@ import { ToastService } from '../../core/toast';
             <div class="table-wrap">
               <table aria-label="Shipping zone pricing">
                 <thead>
-                  <tr><th scope="col">Zone</th><th scope="col">Base kg</th><th scope="col">Base price</th><th scope="col">Per kg price</th></tr>
+                  <tr><th scope="col">Zone</th><th scope="col">Base price</th><th scope="col">Per kg price</th></tr>
                 </thead>
                 <tbody>
                   @for (row of pricingRows(); track row.id) {
                     <tr>
                       <td>{{ row.zone }}</td>
-                      <td>{{ row.baseKg }} kg</td>
-                      <td>{{ ngMoney(row.basePrice) }}</td>
-                      <td>{{ ngMoney(row.perKgPrice) }}</td>
+                      <td>{{ ngMoney(row.baseFee) }}</td>
+                      <td>{{ ngMoney(row.pricePerKg) }}</td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="4" class="ship-empty">No price rows yet.</td></tr>
+                    <tr><td colspan="3" class="ship-empty">No price rows yet.</td></tr>
                   }
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colspan="4" class="ship-addcell">
+                    <td colspan="3" class="ship-addcell">
                       <form class="ship-add" (ngSubmit)="addPricingRow()">
-                        <label class="field"><span class="field__label">Zone</span><input type="text" placeholder="Zone name" [(ngModel)]="addRowForm.zone" name="shipAddZone" required /></label>
-                        <label class="field"><span class="field__label">Base kg</span><input type="number" min="0" [(ngModel)]="addRowForm.baseKg" name="shipAddBaseKg" /></label>
-                        <label class="field"><span class="field__label">Base price</span><input type="number" min="0" [(ngModel)]="addRowForm.basePrice" name="shipAddBasePrice" /></label>
-                        <label class="field"><span class="field__label">Per kg price</span><input type="number" min="0" [(ngModel)]="addRowForm.perKgPrice" name="shipAddPerKg" /></label>
-                        <button type="submit" class="btn" [disabled]="addingPriceRow() || !addRowForm.zone.trim()">{{ addingPriceRow() ? 'Saving…' : 'Add price row' }}</button>
+                        <label class="field">
+                          <span class="field__label">Zone</span>
+                          <select [(ngModel)]="addRowForm.zone" name="shipAddZone" required>
+                            @for (zone of zones; track zone) {
+                              <option [value]="zone">{{ zone }}</option>
+                            }
+                          </select>
+                        </label>
+                        <label class="field"><span class="field__label">Base price</span><input type="number" min="0" [(ngModel)]="addRowForm.baseFee" name="shipAddBasePrice" /></label>
+                        <label class="field"><span class="field__label">Per kg price</span><input type="number" min="0" [(ngModel)]="addRowForm.pricePerKg" name="shipAddPerKg" /></label>
+                        <div class="ship-add__actions">
+                          <button type="submit" class="btn" [disabled]="addingPriceRow() || addingAllZones() || !addRowForm.zone.trim()">
+                            @if (addingPriceRow()) {
+                              <app-spinner size="sm" />
+                              Saving
+                            } @else {
+                              Add price row
+                            }
+                          </button>
+                          <button type="button" class="btn btn--ghost" [disabled]="addingPriceRow() || addingAllZones() || missingZones().length === 0" (click)="addAllZones()">
+                            @if (addingAllZones()) {
+                              <app-spinner size="sm" />
+                              Adding {{ missingZones().length }} zones
+                            } @else {
+                              Add all missing zones
+                            }
+                          </button>
+                        </div>
                       </form>
                     </td>
                   </tr>
@@ -249,6 +290,7 @@ import { ToastService } from '../../core/toast';
     .ship-panel__title { font-size: var(--fs-lg); font-weight: 700; letter-spacing: -0.01em; }
     .ship-panel__sub { font-size: var(--fs-xs); color: var(--muted); }
     .ship-panel__note { margin: 14px 0 0; color: var(--muted); font-size: var(--fs-sm); }
+    .ship-loading { display: flex; justify-content: center; padding: 28px 16px; color: var(--primary); }
     .ship-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 16px; }
     .ship-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
     .ship-save { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; }
@@ -257,12 +299,15 @@ import { ToastService } from '../../core/toast';
     .ship-panel__label { margin: 0; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .ship-empty { color: var(--muted); text-align: center; }
     .ship-addcell { border-top: 1px solid var(--line); background: var(--well); }
-    .ship-add { display: grid; grid-template-columns: 1.3fr 0.5fr 0.9fr 0.9fr auto; gap: 10px; align-items: end; padding: 12px 14px; }
+    .ship-add { display: grid; grid-template-columns: 1.4fr 0.9fr 0.9fr auto; gap: 10px; align-items: end; padding: 12px 14px; }
+    .ship-add__actions { display: flex; align-items: center; gap: 8px; }
+    .ship-add__actions .btn { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
     .field--check { justify-items: start; }
     @media (max-width: 700px) {
       .ship-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .ship-grid { grid-template-columns: 1fr; }
       .ship-add { grid-template-columns: 1fr 1fr; }
+      .ship-add__actions { grid-column: 1 / -1; flex-wrap: wrap; }
       .ship-save { flex-wrap: wrap; align-items: stretch; }
     }
   `,
@@ -286,11 +331,17 @@ export class DeliveriesList {
   protected readonly panelLoading = signal(false);
   protected readonly saving = signal(false);
   protected readonly addingPriceRow = signal(false);
+  protected readonly addingAllZones = signal(false);
   protected readonly settings = signal<ApiShippingSettings | null>(null);
   protected readonly pricingRows = signal<ApiLogisticsPricing[]>([]);
+  protected readonly zones = NIGERIA_GEOPOLITICAL_ZONES;
+  protected readonly missingZones = computed(() => {
+    const existing = new Set(this.pricingRows().map((row) => row.zone.trim().toLowerCase()));
+    return this.zones.filter((zone) => !existing.has(zone.toLowerCase()));
+  });
   protected settingsForm = { shippingEnabled: false, freeDeliveryThreshold: 0, vatEnabled: false, vatRatePercent: 0, couponsEnabled: false };
   protected reason = '';
-  protected addRowForm = { zone: '', baseKg: 0, basePrice: 0, perKgPrice: 0 };
+  protected addRowForm: { zone: string; baseFee: number; pricePerKg: number } = { zone: NIGERIA_GEOPOLITICAL_ZONES[0], baseFee: 0, pricePerKg: 0 };
   private pricingLoaded = false;
 
   protected async togglePanel(): Promise<void> {
@@ -362,17 +413,42 @@ export class DeliveriesList {
     try {
       await this.logistics.upsertPricing({
         zone,
-        baseKg: this.toNum(this.addRowForm.baseKg),
-        basePrice: this.toNum(this.addRowForm.basePrice),
-        perKgPrice: this.toNum(this.addRowForm.perKgPrice),
+        baseFee: this.toNum(this.addRowForm.baseFee),
+        pricePerKg: this.toNum(this.addRowForm.pricePerKg),
       });
-      this.addRowForm = { zone: '', baseKg: 0, basePrice: 0, perKgPrice: 0 };
+      this.addRowForm = { zone: NIGERIA_GEOPOLITICAL_ZONES[0], baseFee: 0, pricePerKg: 0 };
       this.toasts.show('Price row saved', 'good');
       this.pricingRows.set(await this.logistics.pricing());
     } catch (err) {
       this.toasts.show(err instanceof Error ? err.message : 'Could not save the price row.', 'bad');
     } finally {
       this.addingPriceRow.set(false);
+    }
+  }
+
+  protected async addAllZones(): Promise<void> {
+    const missing = this.missingZones();
+    if (!missing.length || this.addingAllZones() || this.addingPriceRow()) return;
+    this.addingAllZones.set(true);
+    const pricing = {
+      baseFee: this.toNum(this.addRowForm.baseFee),
+      pricePerKg: this.toNum(this.addRowForm.pricePerKg),
+    };
+    try {
+      for (const zone of missing) {
+        await this.logistics.upsertPricing({ zone, ...pricing });
+      }
+      this.toasts.show(`${missing.length} zone price ${missing.length === 1 ? 'row' : 'rows'} saved`, 'good');
+      this.pricingRows.set(await this.logistics.pricing());
+    } catch (err) {
+      this.toasts.show(err instanceof Error ? err.message : 'Could not save the zone price rows.', 'bad');
+      try {
+        this.pricingRows.set(await this.logistics.pricing());
+      } catch {
+        // Keep the previous rows when the refresh also fails.
+      }
+    } finally {
+      this.addingAllZones.set(false);
     }
   }
 

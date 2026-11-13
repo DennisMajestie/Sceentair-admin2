@@ -7,6 +7,7 @@ import { date as fmtDate, relative, statusLabel, statusTone } from '../../core/f
 import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import { AuthService } from '../../core/auth.service';
 import {
   ApiOrder,
@@ -41,7 +42,7 @@ const API_FLOW: ApiOrderStatus[] = [
 @Component({
   selector: 'app-orders-all',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -97,7 +98,9 @@ const API_FLOW: ApiOrderStatus[] = [
       <div class="notice notice--error" role="alert">{{ error() }}</div>
     }
     @if (loading() && rows().length === 0) {
-      <div class="order-empty" role="status"><strong>Loading orders…</strong></div>
+      <div class="order-empty" role="status">
+        <app-spinner size="md" label="Loading orders" />
+      </div>
     }
 
     <div class="order-grid" aria-label="Sales orders">
@@ -568,19 +571,21 @@ export class OrdersAll {
 
   protected readonly visible = computed(() => {
     const q = this.query().trim().toLowerCase();
-    if (!q) return this.rows();
-    return this.rows().filter((row) =>
-      `${row.id} ${row.customer} ${row.customerContact} ${row.lines.map((line) => line.name).join(' ')}`
+    const status = this.status();
+    return this.rows().filter((row) => {
+      if (status !== 'all' && row.status !== status) return false;
+      if (!q) return true;
+      return `${row.id} ${row.customer} ${row.customerContact} ${row.lines.map((line) => line.name).join(' ')}`
         .toLowerCase()
-        .includes(q),
-    );
+        .includes(q);
+    });
   });
 
   protected readonly shown = this.visible;
   protected readonly hasMore = computed(() => this.orders().length < this.totalOrders());
 
   protected readonly filteredTotal = computed(() =>
-    this.rows().reduce((sum, row) => sum + row.total, 0),
+    this.visible().reduce((sum, row) => sum + row.total, 0),
   );
 
   protected readonly stockBusy = signal<'allocate' | 'refund' | null>(null);
@@ -612,7 +617,6 @@ export class OrdersAll {
 
   protected setStatus(value: ApiOrderStatus | 'all'): void {
     this.status.set(value);
-    void this.loadOrders(true);
   }
 
   protected statusCount(value: ApiOrderStatus | 'all'): number {
@@ -836,11 +840,7 @@ export class OrdersAll {
       if (!this.publicConfig()) {
         this.publicConfig.set(await this.api.publicConfig());
       }
-      const result = await this.api.list({
-        page,
-        limit: this.pageSize,
-        ...(this.status() === 'all' ? {} : { status: this.status() as ApiOrderStatus }),
-      });
+      const result = await this.api.list({ page, limit: this.pageSize });
       if (requestId !== this.listRequestId) return;
       this.page.set(page);
       this.totalOrders.set(result.total);

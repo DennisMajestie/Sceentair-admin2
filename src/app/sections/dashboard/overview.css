@@ -6,6 +6,36 @@
   transition: opacity 0.4s var(--ease);
 }
 
+.sd-loading {
+  position: fixed;
+  inset-block-start: 88px;
+  inset-inline-end: 26px;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  color: var(--primary);
+  border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--line));
+  border-radius: var(--sd-r-pill);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: var(--shadow-pop);
+  backdrop-filter: blur(12px);
+  pointer-events: none;
+  animation: sd-loading-in 0.25s var(--ease);
+}
+
+@keyframes sd-loading-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.96); }
+}
+
+@media (max-width: 700px) {
+  .sd-loading {
+    inset-block-start: 74px;
+    inset-inline-end: 14px;
+    padding: 8px 12px;
+  }
+}
+
 :host > .welcome {
   grid-column: var(--ov-welcome);
   min-width: 0;
