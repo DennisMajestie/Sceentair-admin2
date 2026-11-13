@@ -547,16 +547,16 @@
   font-size: var(--fs-xs);
 }
 
-/* Dashboard data-load warning banner */
+/* Dashboard data-load warning banner — same warn recipe as badges/alerts/notices */
 :host > .dash-warning {
   grid-column: 1 / -1;
   display: flex;
   flex-direction: column;
   gap: 10px;
   padding: 14px 16px;
-  border-radius: var(--r-card, 16px);
-  background: color-mix(in srgb, var(--warn, #c97d1a) 8%, var(--surface));
-  border: 1px solid color-mix(in srgb, var(--warn, #c97d1a) 28%, transparent);
+  border-radius: var(--r-tile);
+  background: var(--well);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
   color: var(--text);
   font-size: var(--fs-sm);
 }
@@ -566,7 +566,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  color: color-mix(in srgb, var(--warn, #c97d1a) 85%, var(--text));
+  color: var(--warn);
 }
 
 .dash-warning__list {
