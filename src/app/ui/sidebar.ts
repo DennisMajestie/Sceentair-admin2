@@ -68,13 +68,13 @@ import { Icon } from './icon';
       </nav>
 
       <!-- Logout confirmation dialog -->
-      <dialog #logoutDialog class="logout-dialog" (click)="onDialogClick($event)" (close)="onDialogClose()">
+      <dialog #logoutDialog class="logout-dialog" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-msg" (click)="onDialogClick($event)" (close)="onDialogClose()">
         <div class="logout-dialog__body">
           <div class="logout-dialog__icon">
             <app-icon name="logout" [size]="24" />
           </div>
-          <h3 class="logout-dialog__title">Sign out?</h3>
-          <p class="logout-dialog__msg">You'll need to sign back in to access the dashboard.</p>
+          <h3 class="logout-dialog__title" id="logout-dialog-title">Sign out?</h3>
+          <p class="logout-dialog__msg" id="logout-dialog-msg">You'll need to sign back in to access the dashboard.</p>
           <div class="logout-dialog__actions">
             <button type="button" class="btn btn--ghost btn--sm" (click)="cancelLogout()">Cancel</button>
             <button type="button" class="btn btn--sm logout-dialog__confirm" [disabled]="signingOut()" (click)="confirmLogout()">
@@ -294,24 +294,28 @@ import { Icon } from './icon';
       position: fixed;
       inset: 0;
       margin: auto;
-      width: min(360px, calc(100vw - 32px));
-      border: 0;
-      border-radius: 20px;
-      background: var(--surface);
-      box-shadow: 0 24px 60px -8px rgb(0 0 0 / 0.35);
+      width: min(380px, calc(100vw - 32px));
+      border: 1px solid var(--line-2);
+      border-radius: var(--r-card);
+      background: var(--sd-card);
+      color: var(--text);
+      box-shadow: var(--shadow-pop);
       padding: 0;
       overflow: hidden;
     }
     .logout-dialog::backdrop {
-      background: rgb(0 0 0 / 0.45);
-      backdrop-filter: blur(3px);
+      background: color-mix(in srgb, var(--sd-dark) 52%, transparent);
+      backdrop-filter: blur(4px);
     }
     .logout-dialog__body {
       display: grid;
       place-items: center;
       gap: 10px;
-      padding: 32px 24px 24px;
+      padding: 32px 26px 26px;
       text-align: center;
+      background:
+        radial-gradient(circle at 50% -30%, color-mix(in srgb, var(--primary) 9%, transparent), transparent 62%),
+        var(--sd-card);
     }
     .logout-dialog__icon {
       display: grid;
@@ -319,13 +323,16 @@ import { Icon } from './icon';
       width: 52px;
       height: 52px;
       border-radius: 50%;
-      background: color-mix(in srgb, var(--bad) 10%, transparent);
+      border: 1px solid color-mix(in srgb, var(--bad) 24%, transparent);
+      background: color-mix(in srgb, var(--bad) 10%, var(--sd-card));
       color: var(--bad);
       margin-bottom: 4px;
     }
     .logout-dialog__title {
-      font-size: var(--fs-lg, 1.1rem);
+      font-size: var(--fs-xl);
       font-weight: 750;
+      letter-spacing: -0.01em;
+      color: var(--text);
       margin: 0;
     }
     .logout-dialog__msg {
@@ -333,20 +340,27 @@ import { Icon } from './icon';
       color: var(--muted);
       margin: 0 0 6px;
       max-width: 280px;
+      line-height: 1.55;
     }
     .logout-dialog__actions {
       display: flex;
       gap: 10px;
       justify-content: center;
       width: 100%;
+      padding-top: 4px;
     }
     .logout-dialog__confirm {
       background: var(--bad);
       border-color: transparent;
-      color: #fff;
+      color: var(--sd-page);
+      box-shadow: 0 10px 22px -14px var(--bad);
     }
     .logout-dialog__confirm:hover:not(:disabled) {
-      filter: brightness(1.1);
+      filter: brightness(1.06);
+    }
+    .logout-dialog__confirm:focus-visible {
+      outline: 2px solid var(--bad);
+      outline-offset: 2px;
     }
     .logout-dialog__confirm:disabled {
       opacity: 0.55;
