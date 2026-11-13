@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { hideFromOwner, requireAuth } from './core/auth.guard';
+import { requireAuth } from './core/auth.guard';
 
 export const routes: Routes = [
   { path: 'signin', loadComponent: () => import('./sections/login/login').then((m) => m.LoginPage) },
@@ -156,12 +156,12 @@ export const routes: Routes = [
   },
   {
     path: 'approvals',
-    canActivate: [requireAuth, hideFromOwner],
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/approvals/pending').then((m) => m.ApprovalsPending),
   },
   {
     path: 'approvals/:id',
-    canActivate: [requireAuth, hideFromOwner],
+    canActivate: [requireAuth],
     loadComponent: () => import('./sections/approvals/pending').then((m) => m.ApprovalsPending),
   },
   {

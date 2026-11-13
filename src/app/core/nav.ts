@@ -161,13 +161,8 @@ export const NAV: NavSection[] = [
   },
 ];
 
-/** Owners have no approval queue: their requests are approved immediately. */
-export function navForRole(role?: string | null): NavSection[] {
-  if (role !== 'business_owner_admin') return NAV;
-  return NAV.map((section) => ({
-    ...section,
-    pages: section.pages.filter((page) => page.path !== '/approvals'),
-  }));
+export function navForRole(_role?: string | null): NavSection[] {
+  return NAV;
 }
 
 /** Resolve the section for a URL: exact id match first, then by page path prefix. Falls back to dashboard. */
