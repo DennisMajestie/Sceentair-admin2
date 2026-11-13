@@ -908,6 +908,68 @@ tbody tr:hover {
   width: 100%;
 }
 
+/* ------------------------------------------- native date & select controls -- */
+input[type='date'] {
+  padding: 9px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-md);
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+select {
+  padding: 9px 30px 9px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+}
+
+input[type='date']:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/* From/To range pills in toolbars — match .search */
+.toolbar .date {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: var(--raised);
+}
+
+.toolbar .date > span {
+  flex: none;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.toolbar .date input[type='date'] {
+  width: 122px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  font-size: var(--fs-sm);
+}
+
 .switch {
   position: relative;
   width: 40px;

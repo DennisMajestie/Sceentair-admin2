@@ -116,7 +116,7 @@ export const NAV: NavSection[] = [
   {
     id: 'finance',
     label: 'Finance',
-    icon: 'dollar',
+    icon: 'ledger',
     path: '/accounting/ledger',
     pages: [
       { label: 'Accounting ledger', path: '/accounting/ledger' },
