@@ -524,6 +524,7 @@ export class ProductionQueue {
     this.createForm.plannedDate = '';
     this.createForm.approvalRequestId = '';
     this.creating.set(true);
+    void this.store.refreshApprovals().catch(() => {});
   }
 
   protected closeCreate(): void {

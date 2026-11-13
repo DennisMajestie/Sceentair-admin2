@@ -610,6 +610,15 @@ export class Store {
     await this.load();
   }
 
+  /** Re-fetch approvals so screens like production see freshly approved requests. */
+  async refreshApprovals(): Promise<void> {
+    const r = await this.approvalsApi.list({ page: 1, limit: 100 });
+    this.state.update((s) => ({
+      ...s,
+      approvals: r.data.map(mapApproval),
+    }));
+  }
+
   async load(): Promise<void> {
     const next: import('./models').Seed = { ...emptySeed() };
     const me = this.auth.user();

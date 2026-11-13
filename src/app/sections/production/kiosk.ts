@@ -17,20 +17,23 @@ import { ToastService } from '../../core/toast';
   imports: [RouterLink, FormsModule, DatePipe],
   template: `
     <div class="kiosk">
-      <header class="kiosk__head">
-        <div>
-          <span class="kiosk__eyebrow">Floor kiosk</span>
-          <h1 class="kiosk__title">Production line</h1>
+      <div class="head">
+        <div class="head__text">
+          <span class="head__eyebrow">Floor kiosk</span>
+          <h1 class="head__title">Production line</h1>
+          <p class="head__lead">{{ active().length }} batches on the floor. Scan a barcode or tap a tile.</p>
         </div>
-        <a class="kiosk__back" routerLink="/production">Exit to admin</a>
-      </header>
+        <div class="head__actions">
+          <a class="btn btn--ghost" routerLink="/production">Exit to admin</a>
+        </div>
+      </div>
 
       <div class="kiosk__scanbar">
-        <input class="kiosk__scan" type="text" inputmode="text" autofocus autocomplete="off" placeholder="Scan or type barcode…" aria-label="Scan barcode" [value]="query()" (input)="query.set($any($event.target).value)" />
+        <input class="kiosk__scan" type="text" inputmode="text" autocomplete="off" placeholder="Scan or type barcode..." aria-label="Scan barcode" [value]="query()" (input)="query.set($any($event.target).value)" />
       </div>
 
       @if (loading()) {
-        <p class="kiosk__note">Loading the floor…</p>
+        <p class="kiosk__note">Loading the floor...</p>
       } @else if (loadError()) {
         <p class="kiosk__note kiosk__note--error">{{ loadError() }} <button class="kiosk__retry" type="button" (click)="load()">Retry</button></p>
       }
@@ -69,7 +72,7 @@ import { ToastService } from '../../core/toast';
             <div class="kiosk__actions">
               @if (nextStage()) {
                 <button class="kiosk__big kiosk__big--go" type="button" [disabled]="busy()" (click)="advance()">
-                  {{ busy() ? 'Working…' : 'Move to ' + nextStage() }}
+                  {{ busy() ? 'Working...' : 'Move to ' + nextStage() }}
                 </button>
               } @else {
                 <p class="kiosk__note">Final stage reached.</p>
@@ -110,50 +113,51 @@ import { ToastService } from '../../core/toast';
     </div>
   `,
   styles: `
-    :host { display: block; background: #14110e; color: #f5f2ea; min-height: 100dvh; }
-    .kiosk { display: grid; gap: 16px; padding: 18px; max-width: 1100px; margin: 0 auto; }
-    .kiosk__head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding-bottom: 10px; border-bottom: 2px solid #2a251f; }
-    .kiosk__eyebrow { font-size: 0.75rem; letter-spacing: 0.25em; text-transform: uppercase; color: #c9a24b; font-weight: 800; }
-    .kiosk__title { font-size: clamp(1.6rem, 3.4vw, 2.4rem); font-weight: 800; margin: 2px 0 0; }
-    .kiosk__back { color: #c9a24b; text-decoration: none; font-weight: 700; font-size: 0.95rem; border: 1px solid #c9a24b; border-radius: 10px; padding: 10px 16px; }
+    :host { display: block; }
+    .kiosk { display: grid; gap: 16px; }
     .kiosk__scanbar { display: flex; }
-    .kiosk__scan { flex: 1; height: 64px; font-size: 1.35rem; padding: 0 20px; border-radius: 14px; border: 2px solid #2a251f; background: #1d1915; color: #f5f2ea; }
-    .kiosk__scan:focus-visible { outline: 3px solid #c9a24b; }
+    .kiosk__scan { flex: 1; height: 56px; font-size: var(--fs-xl); padding: 0 18px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); }
+    .kiosk__scan::placeholder { color: var(--faint); }
+    .kiosk__scan:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
     .kiosk__stages { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 12px; }
-    .kiosk__stage { background: #1d1915; border-radius: 16px; padding: 14px; min-height: 320px; }
-    .kiosk__stageName { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.12em; color: #c9a24b; margin: 0 0 12px; display: flex; justify-content: space-between; }
-    .kiosk__stageName span { color: #f5f2ea; }
-    .kiosk__tile { display: grid; gap: 4px; width: 100%; text-align: left; background: #262019; border: 1px solid #332c23; border-radius: 14px; padding: 16px; margin-bottom: 10px; color: #f5f2ea; cursor: pointer; min-height: 96px; }
-    .kiosk__tile:hover, .kiosk__tile:focus-visible { border-color: #c9a24b; }
-    .kiosk__tile:focus-visible { outline: 3px solid #c9a24b; outline-offset: 2px; }
-    .kiosk__lot { font-family: var(--font-mono, monospace); font-size: 0.95rem; color: #c9a24b; }
-    .kiosk__product { font-size: 1.2rem; font-weight: 750; }
-    .kiosk__qty { color: #b6b0a2; font-size: 1rem; }
-    .kiosk__empty { color: #7d766a; font-size: 0.9rem; padding: 8px 4px; }
+    .kiosk__stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px; min-height: 320px; }
+    .kiosk__stageName { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center; }
+    .kiosk__stageName span { color: var(--text); font-variant-numeric: tabular-nums; }
+    .kiosk__tile { display: grid; gap: 4px; width: 100%; text-align: left; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 16px; margin-bottom: 10px; color: var(--text); cursor: pointer; min-height: 96px; font: inherit; }
+    .kiosk__tile:hover, .kiosk__tile:focus-visible { border-color: var(--primary); }
+    .kiosk__tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .kiosk__lot { font-family: var(--mono); font-size: var(--fs-sm); color: var(--primary); font-weight: 700; }
+    .kiosk__product { font-size: var(--fs-xl); font-weight: 750; }
+    .kiosk__qty { color: var(--muted); font-size: var(--fs-md); }
+    .kiosk__empty { color: var(--faint); font-size: var(--fs-sm); padding: 8px 4px; }
     .kiosk__detail { display: grid; gap: 18px; }
-    .kiosk__hero { background: #1d1915; border-radius: 18px; padding: 22px; display: grid; gap: 6px; border: 1px solid #2a251f; }
-    .kiosk__hero .kiosk__product { font-size: clamp(1.6rem, 4vw, 2.3rem); }
-    .kiosk__hero .kiosk__qty { font-size: 1.2rem; }
+    .kiosk__hero { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 22px; display: grid; gap: 6px; }
+    .kiosk__hero .kiosk__product { font-size: clamp(var(--fs-3xl), 4vw, var(--fs-display)); }
+    .kiosk__hero .kiosk__qty { font-size: var(--fs-lg); }
     .kiosk__actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .kiosk__big { min-height: 84px; border: 0; border-radius: 16px; font-size: clamp(1rem, 2vw, 1.3rem); font-weight: 800; cursor: pointer; }
-    .kiosk__big--go { background: #c9a24b; color: #241f17; }
-    .kiosk__big--qc { background: #b4453a; color: #fff; }
-    .kiosk__big--ghost { background: #262019; color: #f5f2ea; border: 1px solid #332c23; }
+    .kiosk__big { min-height: 76px; border: 1px solid transparent; border-radius: var(--r-tile); font-size: var(--fs-lg); font-weight: 750; cursor: pointer; font: inherit; font-size: var(--fs-lg); font-weight: 750; }
+    .kiosk__big--go { background: var(--primary); color: var(--on-primary); }
+    .kiosk__big--go:hover { filter: brightness(1.05); }
+    .kiosk__big--qc { background: var(--bad); color: #fff; }
+    .kiosk__big--qc:hover { filter: brightness(1.05); }
+    .kiosk__big--ghost { background: var(--surface-2); color: var(--text); border-color: var(--line-2); }
     .kiosk__big:disabled { opacity: 0.55; cursor: not-allowed; }
-    .kiosk__big:focus-visible { outline: 3px solid #c9a24b; outline-offset: 2px; }
-    .kiosk__qc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; background: #1d1915; padding: 16px; border-radius: 16px; border: 1px solid #2a251f; }
+    .kiosk__big:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .kiosk__qc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; background: var(--surface); padding: 16px; border-radius: var(--r-card); border: 1px solid var(--line); }
     .kiosk__field { display: grid; gap: 6px; }
-    .kiosk__field span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: #b6b0a2; font-weight: 800; }
-    .kiosk__field input, .kiosk__field select { height: 56px; font-size: 1.1rem; padding: 0 14px; border-radius: 12px; border: 2px solid #332c23; background: #14110e; color: #f5f2ea; }
-    .kiosk__field input:focus-visible, .kiosk__field select:focus-visible { outline: 3px solid #c9a24b; }
-    .kiosk__sub { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.15em; color: #b6b0a2; margin: 0; }
+    .kiosk__field span { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
+    .kiosk__field input, .kiosk__field select { height: 52px; font-size: var(--fs-lg); padding: 0 14px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); font: inherit; }
+    .kiosk__field input:focus-visible, .kiosk__field select:focus-visible { outline: 2px solid var(--primary); }
+    .kiosk__sub { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 0; }
     .kiosk__scans { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
-    .kiosk__scans li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #1d1915; border-radius: 10px; font-size: 1rem; }
-    .kiosk__scans span { color: #b6b0a2; }
-    .kiosk__note { color: #b6b0a2; font-size: 1.05rem; padding: 18px; background: #1d1915; border-radius: 14px; }
-    .kiosk__note--error { color: #ff9d8a; }
-    .kiosk__retry { margin-left: 10px; padding: 8px 14px; border-radius: 8px; border: 1px solid #c9a24b; background: transparent; color: #c9a24b; cursor: pointer; }
-    .kiosk__clear { border: 1px solid #332c23; background: #1d1915; color: #c9a24b; border-radius: 10px; height: 48px; cursor: pointer; }
+    .kiosk__scans li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-tile); font-size: var(--fs-md); }
+    .kiosk__scans span { color: var(--muted); }
+    .kiosk__note { color: var(--muted); font-size: var(--fs-md); padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-tile); }
+    .kiosk__note--error { color: var(--bad); }
+    .kiosk__retry { margin-left: 10px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); cursor: pointer; font: inherit; font-size: var(--fs-sm); }
+    .kiosk__retry:hover { border-color: var(--primary); }
+    .kiosk__clear { justify-self: start; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); border-radius: 999px; height: 40px; padding: 0 16px; cursor: pointer; font: inherit; font-size: var(--fs-sm); }
+    .kiosk__clear:hover { border-color: var(--primary); }
     @media (max-width: 900px) { .kiosk__actions { grid-template-columns: 1fr; } .kiosk__qc { grid-template-columns: 1fr 1fr; } }
   `,
 })

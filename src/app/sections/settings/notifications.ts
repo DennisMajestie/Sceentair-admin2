@@ -39,6 +39,40 @@ const ITEMS: NotifyItem[] = [
     </div>
 
     <div class="grid grid--2">
+      <article class="card channels-card">
+        <div class="card__head">
+          <div>
+            <h2 class="card__title">Channels</h2>
+            <p class="card__sub">How notifications reach you</p>
+          </div>
+        </div>
+        <ul class="rows notify">
+          <li class="row notify__row">
+            <span class="notify__text">
+              <strong>In-app</strong>
+              <span>Always on — every alert lands in your notification feed</span>
+            </span>
+            <span class="notify__fixed">Always on</span>
+          </li>
+          <li class="row notify__row">
+            <span class="notify__text">
+              <strong>SMS</strong>
+              <span>Delivery and location updates by text message</span>
+            </span>
+            <button
+              type="button"
+              class="switch"
+              [class.is-on]="isOn('channelSms')"
+              [attr.aria-pressed]="isOn('channelSms')"
+              aria-label="SMS channel"
+              (click)="toggle('channelSms')"
+            ></button>
+          </li>
+        </ul>
+      </article>
+    </div>
+
+    <div class="grid grid--2">
       @for (group of groups(); track group.name) {
         <article class="card">
           <div class="card__head">
@@ -77,6 +111,7 @@ const ITEMS: NotifyItem[] = [
     .notify__text strong { font-size: var(--fs-md); font-weight: 600; }
     .notify__text span { font-size: var(--fs-2xs); color: var(--faint); }
     .switch { flex: none; border: none; padding: 0; }
+    .notify__fixed { flex: none; color: var(--faint); font-size: var(--fs-xs); }
   `,
 })
 export class SettingsNotifications {
@@ -93,7 +128,7 @@ export class SettingsNotifications {
   });
 
   protected isOn(key: string): boolean {
-    return this.store.settings().notify[key] ?? false;
+    return this.store.settings().notify[key] ?? true;
   }
 
   protected toggle(key: string): void {
