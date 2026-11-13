@@ -105,6 +105,13 @@ export class UsersApiService {
     );
   }
 
+  /** Re-enables a disabled staff account. */
+  activate(id: string): Promise<ApiUser> {
+    return firstValueFrom(
+      this.http.patch<ApiUser>(apiUrl(this.baseUrl, `users/${encodeURIComponent(id)}/activate`), {}),
+    );
+  }
+
   create(input: ApiCreateUserInput): Promise<ApiUser> {
     return firstValueFrom(
       this.http.post<ApiUser>(apiUrl(this.baseUrl, 'users'), input),

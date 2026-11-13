@@ -1328,6 +1328,14 @@ export class Store {
     }));
   }
 
+  /** Reflect a reactivated staff account after the API re-enables it. */
+  activateTeammate(user: import('./users-api.service').ApiUser): void {
+    this.state.update((s) => ({
+      ...s,
+      team: s.team.map((t) => (t.id === user.id ? mapTeammate(user) : t)),
+    }));
+  }
+
   /** Move a transfer along: planned �+' in transit �+' received. */
   advanceTransfer(id: string): Transfer['status'] {
     const current = this.transfer(id)?.status ?? 'planned';

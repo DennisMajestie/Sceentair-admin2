@@ -276,6 +276,15 @@ function avatarToneForId(id: string): string {
                     >
                       Deactivate
                     </button>
+                  } @else if (!member.isMe && member.status.toLowerCase() === 'disabled') {
+                    <button
+                      type="button"
+                      class="btn btn--xs btn--ghost"
+                      [disabled]="busy()"
+                      (click)="activateMember(member)"
+                    >
+                      Reactivate
+                    </button>
                   }
                 </td>
               </tr>
@@ -820,6 +829,19 @@ export class SettingsTeam {
       this.toasts.show(`${member.name} deactivated`, 'good');
     } catch (err) {
       this.toasts.show(err instanceof Error ? err.message : 'Could not deactivate the staff account.', 'bad');
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected async activateMember(member: TeamMemberRow): Promise<void> {
+    this.busy.set(true);
+    try {
+      const user = await this.users.activate(member.id);
+      this.store.activateTeammate(user);
+      this.toasts.show(`${member.name} reactivated`, 'good');
+    } catch (err) {
+      this.toasts.show(err instanceof Error ? err.message : 'Could not reactivate the staff account.', 'bad');
     } finally {
       this.busy.set(false);
     }
