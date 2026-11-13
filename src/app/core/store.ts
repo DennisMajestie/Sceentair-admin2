@@ -177,7 +177,9 @@ function mapOrder(o: ApiOrder): Order {
   return {
     id: o.id,
     number: o.id,
+    orderNumber: o.orderNumber == null ? undefined : String(o.orderNumber),
     customerId: o.customer?.id ?? '',
+    customerName: o.customer?.name ?? o.guestName ?? '',
     channel:
       o.channel === 'wholesale' ? 'wholesale' : o.channel === 'custom' ? 'studio' : 'online',
     status: o.status as Order['status'],

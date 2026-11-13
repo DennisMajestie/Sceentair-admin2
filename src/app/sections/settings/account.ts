@@ -143,7 +143,11 @@ import { ACCENTS, ThemeMode, ThemeService } from '../../core/theme';
     .field__label { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--faint); }
     .field__hint { font-size: var(--fs-2xs); color: var(--faint); }
     .field__blurb { margin: 4px 0 0; font-size: var(--fs-xs); color: var(--muted); max-width: 62ch; }
-    .card__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .card__foot {display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    gap: 12px; }
     .card__foot__actions { display: flex; gap: 8px; }
     .hint { font-size: var(--fs-xs); color: var(--faint); }
     .devices { list-style: none; margin: 0; padding: 0; }

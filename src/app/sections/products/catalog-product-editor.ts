@@ -17,6 +17,7 @@ import {
 } from '../../core/catalogue-api.service';
 import { ToastService } from '../../core/toast';
 import { ApprovalsApiService } from '../../core/approvals-api.service';
+import { AuthService } from '../../core/auth.service';
 import { Drawer } from '../../ui/drawer';
 import { Spinner } from '../../ui/spinner';
 
@@ -259,15 +260,14 @@ function extractCreatedId(created: unknown): string | null {
                 <input type="datetime-local" [(ngModel)]="sEndsAt" />
               </label>
             </div>
-            <label class="field">
-              <span class="field__label">Approval request ID</span>
-              <input type="text" placeholder="Approval covering this sale" [(ngModel)]="sApproval" />
-            </label>
+            @if (!isOwner()) {
+              <p class="sale-note">Starting a sale records a price-change approval request for this exact product, discount and end time.</p>
+            }
             <div class="form-actions">
               <button
                 class="btn btn--ghost"
                 type="button"
-                [disabled]="working() !== '' || !sPercent() || !sEndsAt() || !sApproval().trim()"
+                [disabled]="working() !== '' || !sPercent() || !sEndsAt()"
                 (click)="startSale()"
               >
                 {{ working() === 'sale-start' ? 'Starting…' : 'Start sale' }}
@@ -357,7 +357,9 @@ function extractCreatedId(created: unknown): string | null {
 export class CatalogApiProductEditor {
   private readonly api = inject(CatalogueApiService);
   private readonly approvalsApi = inject(ApprovalsApiService);
+  private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
+  protected readonly isOwner = computed(() => this.auth.user()?.role === 'business_owner_admin');
 
   readonly product = input<ApiProduct | null>(null);
   readonly categories = input<readonly CatalogCategoryOption[]>([]);
@@ -383,7 +385,6 @@ export class CatalogApiProductEditor {
 
   protected readonly sPercent = signal<number | null>(null);
   protected readonly sEndsAt = signal('');
-  protected readonly sApproval = signal('');
 
   protected readonly cName = signal('');
   protected readonly addingCategory = signal(false);
@@ -519,16 +520,30 @@ export class CatalogApiProductEditor {
     const current = this.product();
     const percent = this.sPercent();
     const endsAtRaw = this.sEndsAt();
-    const approvalRequestId = this.sApproval().trim();
-    if (!current || !percent || !endsAtRaw || !approvalRequestId) return;
+    if (!current || !percent || !endsAtRaw) return;
     const parsed = new Date(endsAtRaw);
     const endsAt = Number.isNaN(parsed.getTime()) ? endsAtRaw : parsed.toISOString();
     this.working.set('sale-start');
     try {
-      await this.api.setProductSale(current.id, { percent, endsAt, approvalRequestId });
+      const approval = await this.approvalsApi.create({
+        actionType: 'price_change',
+        payload: {
+          kind: 'sale',
+          productId: current.id,
+          salePercent: percent,
+          saleEndsAt: endsAt,
+        },
+      });
+      if (approval.status !== 'approved') {
+        this.toasts.show(
+          'Sale submitted - an owner or manager must approve it before it starts.',
+          'info',
+        );
+        return;
+      }
+      await this.api.setProductSale(current.id, { percent, endsAt, approvalRequestId: approval.id });
       this.sPercent.set(null);
       this.sEndsAt.set('');
-      this.sApproval.set('');
       this.toasts.show('Sale started', 'good');
       this.saved.emit();
     } catch (err) {
@@ -674,7 +689,6 @@ export class CatalogApiProductEditor {
     this.resetVariantForm(current?.name ?? '');
     this.sPercent.set(null);
     this.sEndsAt.set('');
-    this.sApproval.set('');
     this.cName.set('');
   }
 }

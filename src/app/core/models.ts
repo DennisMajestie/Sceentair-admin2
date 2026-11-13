@@ -122,7 +122,9 @@ export interface OrderEvent {
 export interface Order {
   id: string;
   number: string;
+  orderNumber?: string;
   customerId: string;
+  customerName?: string;
   channel: OrderChannel;
   status: OrderStatus;
   createdAt: number;

@@ -10,3 +10,12 @@ export const requireAuth: CanActivateFn = async (route, state) => {
     queryParams: { returnUrl: state.url },
   });
 };
+
+export const hideFromOwner: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.user()?.role === 'business_owner_admin') {
+    return router.createUrlTree(['/dashboard/overview']);
+  }
+  return true;
+};

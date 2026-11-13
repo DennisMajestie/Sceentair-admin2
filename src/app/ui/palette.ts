@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '../core/store';
-import { NAV } from '../core/nav';
+import { navForRole } from '../core/nav';
+import { AuthService } from '../core/auth.service';
 import { Icon } from './icon';
 
 interface Command {
@@ -194,6 +195,7 @@ interface Command {
 export class Palette {
   private readonly store = inject(Store);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
   private readonly host = inject(ElementRef<HTMLElement>);
 
   readonly open = signal(false);
@@ -228,7 +230,7 @@ export class Palette {
 
   private readonly index = computed<Command[]>(() => {
     const cmds: Command[] = [];
-    for (const section of NAV) {
+    for (const section of navForRole(this.auth.user()?.role)) {
       for (const page of section.pages) {
         cmds.push({
           id: `nav-${section.id}-${page.path}`,

@@ -38,6 +38,7 @@ export interface ApiOrderItem {
 
 export interface ApiOrder {
   id: string;
+  orderNumber?: string | number | null;
   customer: { id: string; name: string; email: string; phone?: string | null } | null;
   guestName: string | null;
   guestEmail: string | null;

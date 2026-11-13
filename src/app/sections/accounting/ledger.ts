@@ -16,6 +16,7 @@ import {
   type LedgerReportType,
 } from '../../core/accounting-api.service';
 import { ApprovalsApiService } from '../../core/approvals-api.service';
+import type { Approval, LedgerEntry } from '../../core/models';
 
 function errorText(err: unknown): string {
   const raw = err as { error?: { message?: unknown }; message?: unknown };
@@ -148,7 +149,7 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
       <div class="toolbar__spacer"></div>
       <label class="search">
         <app-icon name="search" [size]="14" />
-        <input type="search" placeholder="Search category or reference" aria-label="Search ledger entries" [value]="query()" (input)="query.set($any($event.target).value)" />
+        <input type="search" placeholder="Search name, category or reference" aria-label="Search ledger entries" [value]="query()" (input)="query.set($any($event.target).value)" />
       </label>
       <label class="date">
         <span>From</span>
@@ -163,9 +164,9 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
 
     <div class="ledger-grid" aria-label="Ledger entries">
       @for (row of visible(); track row.id) {
-        <button type="button" class="ledger-card" (click)="open(row.id)" [attr.aria-label]="'Entry ' + row.id + ' ' + row.type">
+        <button type="button" class="ledger-card" (click)="open(row.id)" [attr.aria-label]="entryTitle(row) + ' ' + row.type + ' ' + money(row.amount)">
           <span class="ledger-card__top">
-            <span class="mono ledger-card__id">{{ row.id }}</span>
+            <span class="ledger-card__name">{{ entryTitle(row) }}</span>
             <span class="badge" [class]="'badge badge--' + tone(row.type)">{{ row.type }}</span>
           </span>
           <span class="ledger-card__category">
@@ -177,7 +178,7 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
             <span>{{ personName(row.recordedBy) }}</span>
           </span>
           <span class="ledger-card__reference">
-            {{ row.referenceId ?? '—' }}
+            {{ referenceLabel(row) }}
           </span>
         </button>
       }
@@ -193,7 +194,7 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
       <ng-container drawerTitle>
         @if (selected(); as entry) {
           <div class="dtitle">
-            <strong class="mono">{{ entry.id }}</strong>
+            <strong>{{ entryTitle(entry) }}</strong>
             <span class="badge" [class]="'badge badge--' + tone(entry.type)">{{ entry.type }}</span>
           </div>
         }
@@ -215,7 +216,8 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
             <div><dt>Category</dt><dd>{{ categoryLabel(entry.category) }}</dd></div>
             <div><dt>Recorded</dt><dd>{{ date(entry.entryAt) }}</dd></div>
             <div><dt>Recorded by</dt><dd>{{ personName(entry.recordedBy) }}</dd></div>
-            <div><dt>Reference</dt><dd>{{ entry.referenceId ?? '—' }}</dd></div>
+            <div><dt>Reference</dt><dd>{{ referenceLabel(entry) }}</dd></div>
+            <div><dt>Ledger ID</dt><dd class="mono">{{ entry.id }}</dd></div>
           </dl>
         </div>
       }
@@ -275,7 +277,7 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
     .ledger-card:hover { border-color: var(--primary); }
     .ledger-card:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .ledger-card__top, .ledger-card__meta, .ledger-card__reference { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .ledger-card__id { font-size: var(--fs-sm); font-weight: 750; }
+    .ledger-card__name { font-size: var(--fs-sm); font-weight: 750; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ledger-card__category { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .ledger-card__amount { color: var(--text); font-size: var(--fs-md); font-weight: 700; white-space: nowrap; }
     .ledger-card__meta { color: var(--muted); font-size: var(--fs-sm); }
@@ -348,13 +350,19 @@ export class AccountingLedger {
     initialValue: this.route.snapshot.paramMap.get('id'),
   });
 
+  private readonly approvalById = computed(() => {
+    const index: Record<string, Approval> = {};
+    for (const approval of this.store.approvals()) index[approval.id] = approval;
+    return index;
+  });
+
   protected readonly entries = computed(() => {
     const list = this.store.ledgerEntries();
     return list.filter((entry) => {
       if (this.entryType() !== 'all' && entry.type !== this.entryType()) return false;
       if (this.query()) {
         const q = this.query().trim().toLowerCase();
-        const haystack = `${categoryLabel(entry.category)} ${entry.referenceId ?? ''} ${this.personName(entry.recordedBy)}`.toLowerCase();
+        const haystack = `${categoryLabel(entry.category)} ${entry.referenceId ?? ''} ${this.personName(entry.recordedBy)} ${this.entryTitle(entry)} ${this.referenceLabel(entry)}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       if (this.dateFrom() && entry.entryAt < Date.parse(this.dateFrom()!)) return false;
@@ -381,8 +389,44 @@ export class AccountingLedger {
 
   /** Resolve a ledger actor id to a teammate name; never leak the raw uuid. */
   protected personName(id: string | null): string {
-    if (!id) return '—';
-    return this.store.teammateById()[id]?.name ?? '—';
+    if (!id) return 'System';
+    return this.store.teammateById()[id]?.name ?? 'Unknown user';
+  }
+
+  protected entryTitle(entry: LedgerEntry): string {
+    const order = this.orderFor(entry);
+    if (order) {
+      return this.store.customerById()[order.customerId]?.name || order.customerName || 'Walk-in order';
+    }
+    const purchase = this.purchaseFor(entry);
+    if (purchase) return purchase.supplierId || `Purchase ${purchase.number}`;
+    if (this.approvalFor(entry)) return 'Manual entry';
+    return categoryLabel(entry.category);
+  }
+
+  protected referenceLabel(entry: LedgerEntry): string {
+    const order = this.orderFor(entry);
+    if (order) {
+      const number = order.orderNumber == null ? '' : String(order.orderNumber).trim();
+      return number ? `Order #${number}` : 'Order';
+    }
+    const purchase = this.purchaseFor(entry);
+    if (purchase) return `Purchase ${purchase.number}`;
+    const approval = this.approvalFor(entry);
+    if (approval) return `Approval · ${categoryLabel(approval.actionType)}`;
+    return entry.referenceId ? 'Linked record' : 'No reference';
+  }
+
+  private orderFor(entry: LedgerEntry) {
+    return entry.referenceId ? this.store.orderById()[entry.referenceId] : undefined;
+  }
+
+  private purchaseFor(entry: LedgerEntry) {
+    return entry.referenceId ? this.store.poById()[entry.referenceId] : undefined;
+  }
+
+  private approvalFor(entry: LedgerEntry): Approval | undefined {
+    return entry.referenceId ? this.approvalById()[entry.referenceId] : undefined;
   }
 
   protected readonly selected = computed(() => this.entries().find((e) => e.id === this.routeId()));
