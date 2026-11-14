@@ -11,7 +11,9 @@ function initializeApp(): () => Promise<void> {
   const auth = inject(AuthService);
   const store = inject(Store);
   return async () => {
-    if (await auth.restoreSession()) await store.load();
+    // Auth must settle (guard needs to know), but data bootstrap must not block
+    // first paint — the dashboard mounts immediately and hydrates as data lands.
+    if (await auth.restoreSession()) void store.load();
   };
 }
 
