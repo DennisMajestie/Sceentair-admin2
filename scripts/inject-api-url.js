@@ -5,12 +5,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const indexPath = path.join(__dirname, '..', 'src', 'index.html');
-// Local dev talks to the local API. Vercel builds (VERCEL=1) default to the
-// production API so a missing env var never deploys localhost by accident.
+// Local dev uses the relative /api/v1 path so requests go through the dev
+// proxy (proxy.conf.json) and the httpOnly refresh cookie stays same-origin.
+// Vercel builds (VERCEL=1) default to the production API so a missing env var
+// never deploys localhost by accident.
 const isVercel = !!process.env.VERCEL;
 const apiBaseUrl =
   process.env.VESSA_API_BASE_URL ||
-  (isVercel ? 'https://seentair-backend.onrender.com/api/v1' : 'http://localhost:3000/api/v1');
+  (isVercel ? 'https://seentair-backend.onrender.com/api/v1' : '/api/v1');
 
 let html = fs.readFileSync(indexPath, 'utf8');
 html = html.replace(/apiBaseUrl:\s*'[^']*'/, `apiBaseUrl: '${apiBaseUrl}'`);
