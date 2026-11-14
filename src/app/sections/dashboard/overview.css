@@ -606,7 +606,7 @@
 .alerts-card .row-item {
   gap: 8px;
   margin-top: 0;
-  padding: 11px 8px;
+  padding: 18px 14px;
 }
 
 .alerts-card .row-item__tile {
@@ -629,7 +629,7 @@
   background: 
   color-mix(in srgb, var(--sd-track) 38%, transparent);
   gap: 11px;
-  padding: 13px 6px;
+  padding: 18px 14px;
   border-radius: var(--sd-r-tile);
   transition: background 0.16s var(--ease);
 }
