@@ -33,16 +33,18 @@
   grid-template-columns: 224px minmax(0, 1fr);
   gap: var(--sd-island-gap);
   margin-top: var(--sd-island-gap);
-  align-items: stretch;
+  align-items: start;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .layout > app-sidebar {
-  overflow-y: auto;
-  min-height: 0;
-  overscroll-behavior: contain;
+  position: sticky;
+  top: 0;
+  align-self: start;
 }
 
 .realtime-status {
@@ -64,12 +66,8 @@
 
 .main {
   min-width: 0;
-  min-height: 0;
   outline: none;
   container: main / inline-size;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
 }
 
 .main:has(app-drawer .scrim) {

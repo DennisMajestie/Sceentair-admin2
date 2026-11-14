@@ -26,7 +26,7 @@ export class App {
   private readonly realtime = inject(RealtimeService);
   private readonly store = inject(Store);
   private readonly paletteRef = viewChild(Palette);
-  private readonly mainRef = viewChild<ElementRef<HTMLElement>>('mainEl');
+  private readonly layoutRef = viewChild<ElementRef<HTMLElement>>('layoutEl');
   protected readonly mobileNav = signal(false);
   protected readonly layoutAnimated = signal(false);
   protected readonly isSignin = signal(true);
@@ -46,9 +46,9 @@ export class App {
         const onSignin = e.urlAfterRedirects.startsWith('/signin');
         this.isSignin.set(onSignin);
         if (!this.resolved()) this.resolved.set(true);
-        // Scroll only the page module, not the full page or sidebar.
+        // Reset scroll on navigation (layout scroll container).
         if (!e.urlAfterRedirects.includes('#')) {
-          this.mainRef()?.nativeElement.scrollTo?.({ top: 0, left: 0 });
+          this.layoutRef()?.nativeElement.scrollTo?.({ top: 0, left: 0 });
         }
         if (onSignin) hideAppPreloader();
       }
