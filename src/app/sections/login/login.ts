@@ -725,7 +725,15 @@ export class LoginPage {
       mql.addEventListener('change', (e) => this.isDesktop.set(e.matches));
     }
     if (this.auth.user()) {
-      void this.router.navigate(['/dashboard/overview']);
+      showAppPreloader();
+      try {
+        const prefetch = this.overviewPrefetch.prefetch();
+        await this.store.load();
+        await prefetch;
+        await this.router.navigateByUrl('/dashboard/overview', { replaceUrl: true });
+      } catch {
+        hideAppPreloader();
+      }
     }
   }
 
@@ -760,8 +768,11 @@ export class LoginPage {
       const prefetch = this.overviewPrefetch.prefetch();
       await this.store.load();
       await prefetch;
-      await this.router.navigate(['/dashboard/overview']);
-      hideAppPreloader();
+      const navigated = await this.router.navigateByUrl('/dashboard/overview', { replaceUrl: true });
+      if (!navigated) {
+        hideAppPreloader();
+        this.formError.set('Signed in, but could not open the dashboard. Please try again.');
+      }
     } catch (err) {
       hideAppPreloader();
       this.formError.set('Sign-in failed: staff accounts only.');
@@ -786,8 +797,11 @@ export class LoginPage {
       const prefetch = this.overviewPrefetch.prefetch();
       await this.store.load();
       await prefetch;
-      await this.router.navigate(['/dashboard/overview']);
-      hideAppPreloader();
+      const navigated = await this.router.navigateByUrl('/dashboard/overview', { replaceUrl: true });
+      if (!navigated) {
+        hideAppPreloader();
+        this.formError.set('Verified, but could not open the dashboard. Please try again.');
+      }
     } catch (err) {
       hideAppPreloader();
       this.formError.set('Incorrect or expired code.');

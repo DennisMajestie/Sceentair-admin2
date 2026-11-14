@@ -145,7 +145,7 @@ export class DashboardOverview {
       this.lowStockData.set(prefetched.lowStock);
       this.inventoryMovements.set(prefetched.inventoryMovements);
       this.pending.set(false);
-      hideAppPreloader();
+      afterNextRender(() => hideAppPreloader(), { injector: this.injector });
     }
     effect(() => {
       this.store.data();
@@ -215,6 +215,7 @@ export class DashboardOverview {
       errors.length ? `Some dashboard data could not be loaded. ${errors.join(' ')}` : null,
     );
     this.pending.set(false);
+    hideAppPreloader();
   }
 
   private errorMessage(error: unknown): string {
