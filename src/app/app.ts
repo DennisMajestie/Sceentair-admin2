@@ -6,6 +6,7 @@ import { Topbar } from './ui/topbar';
 import { Sidebar } from './ui/sidebar';
 import { Palette } from './ui/palette';
 import { ToastHost } from './ui/toast-host';
+import { hideAppPreloader } from './core/app-preloader';
 import { SdShellStateService } from './core/sd-shell-state.service';
 import { ApiSession } from './core/api-session';
 import { RealtimeService } from './core/realtime.service';
@@ -28,7 +29,8 @@ export class App {
   private readonly mainRef = viewChild<ElementRef<HTMLElement>>('mainEl');
   protected readonly mobileNav = signal(false);
   protected readonly layoutAnimated = signal(false);
-  protected readonly isSignin = signal(this.router.url.startsWith('/signin'));
+  protected readonly isSignin = signal(true);
+  protected readonly resolved = signal(false);
 
   protected readonly collapsed = this.state.collapsed;
   protected readonly realtimeStatus = this.realtime.status;
@@ -41,11 +43,14 @@ export class App {
 
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
-        this.isSignin.set(e.urlAfterRedirects.startsWith('/signin'));
+        const onSignin = e.urlAfterRedirects.startsWith('/signin');
+        this.isSignin.set(onSignin);
+        if (!this.resolved()) this.resolved.set(true);
         // Scroll only the page module, not the full page or sidebar.
         if (!e.urlAfterRedirects.includes('#')) {
           this.mainRef()?.nativeElement.scrollTo?.({ top: 0, left: 0 });
         }
+        if (onSignin) hideAppPreloader();
       }
       if (!(e instanceof NavigationStart)) return;
       const seg = (u: string) => (u || '').split('?')[0].split('/')[1] ?? '';

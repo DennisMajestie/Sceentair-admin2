@@ -39,6 +39,12 @@
   overflow: hidden;
 }
 
+.layout > app-sidebar {
+  overflow-y: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
 .realtime-status {
   margin: 8px 0 0;
   padding: 8px 12px;

@@ -3,6 +3,9 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../core/auth.service';
 import { ThemeService } from '../../core/theme';
+import { Store } from '../../core/store';
+import { hideAppPreloader, showAppPreloader } from '../../core/app-preloader';
+import { OverviewPrefetchService } from '../../core/overview-prefetch';
 
 @Component({
   selector: 'app-login',
@@ -682,6 +685,8 @@ export class LoginPage {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly auth = inject(AuthService);
+  private readonly store = inject(Store);
+  private readonly overviewPrefetch = inject(OverviewPrefetchService);
   protected readonly theme = inject(ThemeService);
 
   protected readonly email = signal('');
@@ -750,13 +755,19 @@ export class LoginPage {
 
     try {
       await this.auth.login(email, password);
-      this.loading.set(false);
       this.success.set(true);
-      void this.router.navigate(['/dashboard/overview']);
+      showAppPreloader();
+      const prefetch = this.overviewPrefetch.prefetch();
+      await this.store.load();
+      await prefetch;
+      await this.router.navigate(['/dashboard/overview']);
+      hideAppPreloader();
     } catch (err) {
-      this.loading.set(false);
+      hideAppPreloader();
       this.formError.set('Sign-in failed: staff accounts only.');
       this.triggerShake();
+    } finally {
+      this.loading.set(false);
     }
   }
 
@@ -764,16 +775,25 @@ export class LoginPage {
     const token = this.challengeToken();
     if (!token) return;
     this.formError.set(null);
+    this.loading.set(true);
 
     try {
       await this.auth.verifyTwoFactor(this.code());
       this.challengeToken.set(null);
       this.code.set('');
-      this.success.set(false);
-      void this.router.navigate(['/dashboard/overview']);
+      this.success.set(true);
+      showAppPreloader();
+      const prefetch = this.overviewPrefetch.prefetch();
+      await this.store.load();
+      await prefetch;
+      await this.router.navigate(['/dashboard/overview']);
+      hideAppPreloader();
     } catch (err) {
+      hideAppPreloader();
       this.formError.set('Incorrect or expired code.');
       this.triggerShake();
+    } finally {
+      this.loading.set(false);
     }
   }
 

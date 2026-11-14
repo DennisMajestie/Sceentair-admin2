@@ -10,6 +10,8 @@ import { Spinner } from '../../ui/spinner';
 import { SdMotionService } from '../../core/sd-motion.service';
 import { AuthService } from '../../core/auth.service';
 import { gsap } from 'gsap';
+import { hideAppPreloader } from '../../core/app-preloader';
+import { OverviewPrefetchService } from '../../core/overview-prefetch';
 import {
   AnalyticsInventoryMovementMonth,
   AnalyticsInventoryMovementPeriod,
@@ -115,33 +117,36 @@ export class DashboardOverview {
   private motion = inject(SdMotionService);
   private destroyRef = inject(DestroyRef);
   private auth = inject(AuthService);
+  private prefetch = inject(OverviewPrefetchService);
 
   protected pending = signal(true);
   protected readonly store = inject(Store);
   protected readonly analyticsApi = inject(AnalyticsApiService);
   protected readonly dashboardData = signal<AnalyticsDashboard | null>(null);
+  protected readonly dashboardBestSellers = signal<any[]>([]);
   protected readonly lowStockData = signal<AnalyticsLowStock | null>(null);
   protected readonly inventoryMovements = signal<AnalyticsInventoryMovementMonth[] | null>(null);
-  protected readonly dashboardBestSellers = signal<{ variantId: string; sku: string; productName: string; unitsSold: number; revenue: number }[]>([]);
   protected readonly dashboardError = signal<string | null>(null);
   protected readonly dashboardErrors = signal<{ label: string; message: string }[]>([]);
-  protected readonly chartExpanded = signal(false);
-  protected readonly chartPeriod = signal<AnalyticsInventoryMovementPeriod>('weekly');
-  protected readonly chartLoading = signal(false);
   protected readonly chartError = signal<string | null>(null);
+  protected readonly chartLoading = signal(false);
+  protected readonly chartPeriod = signal<AnalyticsInventoryMovementPeriod>('weekly');
+  protected readonly chartExpanded = signal(false);
   private chartRequest = 0;
-  private mm?: gsap.MatchMedia;
   private played = false;
   private entranceDone = false;
-
-  private sellerPhoto(sku: string, productName: string): string {
-    const products = this.store.products();
-    return products.find((product) => product.sku === sku)?.photo
-      ?? products.find((product) => product.name === productName)?.photo
-      ?? '';
-  }
+  private mm?: gsap.MatchMedia;
 
   constructor() {
+    const prefetched = this.prefetch.consume();
+    if (prefetched) {
+      this.dashboardData.set(prefetched.dashboard);
+      this.dashboardBestSellers.set(prefetched.bestSellers);
+      this.lowStockData.set(prefetched.lowStock);
+      this.inventoryMovements.set(prefetched.inventoryMovements);
+      this.pending.set(false);
+      hideAppPreloader();
+    }
     effect(() => {
       this.store.data();
       afterNextRender(() => this.onData(), { injector: this.injector });
@@ -153,8 +158,16 @@ export class DashboardOverview {
       }, { injector: this.injector });
     });
     this.destroyRef.onDestroy(() => this.mm?.revert());
-    void this.loadDashboard();
+    if (!prefetched) void this.loadDashboard();
   }
+  private sellerPhoto(sku: string, productName: string): string {
+    const products = this.store.products();
+    return products.find((product) => product.sku === sku)?.photo
+      ?? products.find((product) => product.name === productName)?.photo
+      ?? '';
+  }
+
+
 
   private async loadDashboard(): Promise<void> {
     this.pending.set(true);

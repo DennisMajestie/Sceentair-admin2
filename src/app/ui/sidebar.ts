@@ -111,15 +111,15 @@ import { Icon } from './icon';
     :host {
       display: block;
       align-self: stretch;
+      min-height: 0;
     }
     .rail {
-      position: sticky;
-      top: calc(61px + var(--sd-island-gap));
       display: flex;
       flex-direction: column;
       gap: var(--sd-rail-gap);
       width: 100%;
       min-width: 0;
+      padding-bottom: 8px;
     }
     .railbox {
       background: var(--sd-card);

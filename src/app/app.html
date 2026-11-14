@@ -1,21 +1,23 @@
-@if (isSignin()) {
-  <router-outlet />
-} @else {
-  <a class="skip" href="#main">Skip to content</a>
-  <div class="app">
-    <app-topbar (paletteOpen)="togglePalette()" />
-    @if (realtimeStatus() === 'offline') {
-      <p class="realtime-status" role="status">
-        Live updates are reconnecting. Changes from other team members may be delayed.
-      </p>
-    }
-    <div class="layout" [class.sd-collapsed]="collapsed()" [class.sd-layout-animated]="layoutAnimated()">
-      <app-sidebar />
-      <main class="main" id="main" #mainEl tabindex="-1">
-        <router-outlet />
-      </main>
+@if (resolved()) {
+  @if (isSignin()) {
+    <router-outlet />
+  } @else {
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="app">
+      <app-topbar (paletteOpen)="togglePalette()" />
+      @if (realtimeStatus() === 'offline') {
+        <p class="realtime-status" role="status">
+          Live updates are reconnecting. Changes from other team members may be delayed.
+        </p>
+      }
+      <div class="layout" [class.sd-collapsed]="collapsed()" [class.sd-layout-animated]="layoutAnimated()">
+        <app-sidebar />
+        <main class="main" id="main" #mainEl tabindex="-1">
+          <router-outlet />
+        </main>
+      </div>
     </div>
-  </div>
-  <app-palette />
+    <app-palette />
+  }
 }
 <app-toast-host />
