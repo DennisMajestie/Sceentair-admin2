@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, PLATFORM_ID, computed, effect, inject, input, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 /** Smooth polyline path through points using a Catmull-Rom style midpoint curve. */
 function smoothPath(pts: { x: number; y: number }[]): string {
@@ -761,7 +762,7 @@ export class Bars {
       stroke: var(--well);
       stroke-width: 2.4;
       stroke-linecap: round;
-      transition: stroke 0.4s var(--ease);
+      transition: stroke 0.6s var(--ease);
     }
     .sd-tick--on {
       stroke: var(--ochre);
@@ -786,9 +787,41 @@ export class Gauge {
   readonly size = input(240);
   readonly label = input('gauge');
 
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly animatedPct = signal(0);
+  private raf = 0;
+
+  constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      if (this.raf) cancelAnimationFrame(this.raf);
+    });
+    effect((onCleanup) => {
+      const target = Math.max(0, Math.min(this.pct(), 100));
+      if (!this.isBrowser || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        this.animatedPct.set(target);
+        return;
+      }
+      const start = this.animatedPct();
+      if (start === target) return;
+      const duration = 1400;
+      const startTime = performance.now();
+      const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
+      const step = (now: number) => {
+        const progress = Math.min((now - startTime) / duration, 1);
+        this.animatedPct.set(start + (target - start) * easeOutCubic(progress));
+        if (progress < 1) this.raf = requestAnimationFrame(step);
+      };
+      if (this.raf) cancelAnimationFrame(this.raf);
+      this.raf = requestAnimationFrame(step);
+      onCleanup(() => {
+        if (this.raf) cancelAnimationFrame(this.raf);
+      });
+    });
+  }
+
   protected readonly ticks = computed(() => {
     const total = 84;
-    const active = Math.round((Math.max(0, Math.min(this.pct(), 100)) / 100) * total);
+    const active = Math.round((this.animatedPct() / 100) * total);
     const pts = [];
     const r1 = 88;
     const r2 = 140;

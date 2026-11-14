@@ -157,16 +157,8 @@ export class DashboardOverview {
     this.pending.set(true);
     this.dashboardError.set(null);
     this.dashboardErrors.set([]);
-    this.dashboardData.set(null);
-    this.dashboardBestSellers.set([]);
-    this.lowStockData.set(null);
-    this.inventoryMovements.set(null);
-    const dashboard = await this.analyticsApi.dashboard().then(
-      (value) => ({ status: 'fulfilled' as const, value }),
-      (reason: unknown) => ({ status: 'rejected' as const, reason }),
-    );
-    this.pending.set(false);
-    const [bestSellers, lowStock, inventoryMovements] = await Promise.allSettled([
+    const [dashboard, bestSellers, lowStock, inventoryMovements] = await Promise.allSettled([
+      this.analyticsApi.dashboard(),
       this.analyticsApi.bestSellers(5),
       this.analyticsApi.lowStock(),
       this.analyticsApi.inventoryMovementTrend(this.chartPeriod()),
@@ -175,24 +167,28 @@ export class DashboardOverview {
     const errorItems: { label: string; message: string }[] = [];
     if (dashboard.status === 'fulfilled') this.dashboardData.set(dashboard.value);
     else {
+      this.dashboardData.set(null);
       const msg = this.errorMessage(dashboard.reason);
       errors.push(`Inventory totals: ${msg}`);
       errorItems.push({ label: 'Inventory totals', message: msg });
     }
     if (bestSellers.status === 'fulfilled') this.dashboardBestSellers.set(bestSellers.value);
     else {
+      this.dashboardBestSellers.set([]);
       const msg = this.errorMessage(bestSellers.reason);
       errors.push(`Best sellers: ${msg}`);
       errorItems.push({ label: 'Best sellers', message: msg });
     }
     if (lowStock.status === 'fulfilled') this.lowStockData.set(lowStock.value);
     else {
+      this.lowStockData.set(null);
       const msg = this.errorMessage(lowStock.reason);
       errors.push(`Low-stock items: ${msg}`);
       errorItems.push({ label: 'Low-stock items', message: msg });
     }
     if (inventoryMovements.status === 'fulfilled') this.inventoryMovements.set(inventoryMovements.value);
     else {
+      this.inventoryMovements.set(null);
       const msg = this.errorMessage(inventoryMovements.reason);
       this.chartError.set(msg);
       errors.push(`Inventory movement chart: ${msg}`);
