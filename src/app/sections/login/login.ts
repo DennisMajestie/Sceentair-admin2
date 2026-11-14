@@ -724,7 +724,7 @@ export class LoginPage {
       this.isDesktop.set(mql.matches);
       mql.addEventListener('change', (e) => this.isDesktop.set(e.matches));
     }
-    if (this.auth.user()) {
+    if (await this.auth.restoreSession()) {
       showAppPreloader();
       try {
         this.overviewPrefetch.prefetch();

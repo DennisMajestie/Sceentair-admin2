@@ -11,9 +11,12 @@ function initializeApp(): () => Promise<void> {
   const auth = inject(AuthService);
   const store = inject(Store);
   return async () => {
-    // Auth must settle (guard needs to know), but data bootstrap must not block
-    // first paint — the dashboard mounts immediately and hydrates as data lands.
-    if (await auth.restoreSession()) void store.load();
+    // Never block bootstrap on the network: kick off session restore and the
+    // data bootstrap in the background. requireAuth awaits the same cached
+    // restoreSession() promise, so guarded routes are still safe.
+    void auth.restoreSession().then((ok) => {
+      if (ok) void store.load();
+    });
   };
 }
 
