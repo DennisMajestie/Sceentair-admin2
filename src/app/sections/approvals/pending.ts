@@ -113,7 +113,7 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
       @for (row of visible(); track row.id) {
         <button type="button" class="approval-card" (click)="open(row.id)" [attr.aria-label]="'Approval ' + row.id + ' ' + row.actionType">
           <span class="approval-card__top">
-            <span class="mono approval-card__id">{{ row.id }}</span>
+            <span class="mono approval-card__id">#{{ row.id.slice(0, 8).toUpperCase() }}</span>
             <span class="badge" [class]="'badge badge--' + tone(row.status)">{{ row.status }}</span>
           </span>
           <span class="approval-card__action">
@@ -141,7 +141,7 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
       <ng-container drawerTitle>
         @if (selected(); as a) {
           <div class="dtitle">
-            <strong class="mono">{{ a.id }}</strong>
+            <strong>{{ actionLabel(a.actionType) }}</strong>
             <span class="badge" [class]="'badge badge--' + tone(a.status)">{{ a.status }}</span>
           </div>
         }

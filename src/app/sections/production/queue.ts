@@ -170,7 +170,7 @@ interface BatchRow {
                 <tbody>
                   @for (row of bom(); track row.materialId) {
                     <tr>
-                      <td>{{ row.materialName }}<span class="sub mono">{{ row.materialId.slice(0, 8) }}</span></td>
+                      <td>{{ row.materialName }}</td>
                       <td class="num">{{ row.plannedQuantity }}</td>
                       <td class="num" [class.neg]="row.consumedQuantity > row.plannedQuantity">{{ row.consumedQuantity }}</td>
                       <td>{{ row.unit }}</td>

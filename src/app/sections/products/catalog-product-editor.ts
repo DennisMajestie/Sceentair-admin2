@@ -73,7 +73,7 @@ function extractCreatedId(created: unknown): string | null {
         <div class="dtitle">
           <strong>{{ editing() ? 'Edit product' : 'New product' }}</strong>
           @if (product(); as current) {
-            <span class="psub">{{ current.id }}</span>
+            <span class="psub">{{ current.category || 'Product' }}</span>
           }
         </div>
       </ng-container>

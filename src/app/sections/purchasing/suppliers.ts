@@ -180,7 +180,6 @@ interface SupplierRow {
         <div class="dbody">
           @if (!editing()) {
             <dl class="facts">
-              <div><dt>ID</dt><dd class="mono">{{ s.id }}</dd></div>
               <div><dt>Category</dt><dd>{{ s.category ?? 'Not set' }}</dd></div>
               <div><dt>Location</dt><dd>{{ s.location ?? 'Not set' }}</dd></div>
               <div><dt>Certified</dt><dd>{{ s.certified ? 'Yes' : 'No' }}</dd></div>

@@ -283,7 +283,7 @@ export class ProductionTechPacks {
   protected variantLabel(pack: ApiTechPack): string {
     const v = pack.variant;
     if (!v) return '—';
-    return [v.sku, v.size, v.colour].filter(Boolean).join(' · ') || v.id.slice(0, 8);
+    return [v.sku, v.size, v.colour].filter(Boolean).join(' · ') || 'Variant';
   }
 
   protected readonly rows = computed(() => this.packs().slice().sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)));

@@ -75,8 +75,7 @@ import { ToastService } from '../../core/toast';
       <ng-container drawerTitle>
         @if (selected(); as m) {
           <div class="dtitle">
-            <strong class="mono">{{ m.id }}</strong>
-            <span>{{ m.filename }}</span>
+            <strong class="mono">{{ m.filename }}</strong>
           </div>
         }
       </ng-container>
@@ -94,7 +93,7 @@ import { ToastService } from '../../core/toast';
           </div>
 
           <dl class="facts">
-            <div><dt>ID</dt><dd class="mono">{{ m.id }}</dd></div>
+            <div><dt>Filename</dt><dd>{{ m.filename }}</dd></div>
             <div><dt>MIME type</dt><dd>{{ m.mimeType }}</dd></div>
             <div><dt>Size</dt><dd>{{ (m.size / 1024 / 1024).toFixed(2) }} MB</dd></div>
             <div><dt>Uploaded</dt><dd>{{ fmtDate(m.createdAt) }}</dd></div>

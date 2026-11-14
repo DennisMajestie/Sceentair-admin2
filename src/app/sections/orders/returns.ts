@@ -220,7 +220,7 @@ export class OrdersReturns {
         id: r.id,
         number: r.number,
         orderNumber: o?.number ?? r.orderId,
-        product: p?.name ?? r.productId,
+        product: (p ?? this.store.productForVariant(r.productId))?.name ?? r.productId,
         size: p?.size ?? '',
         sku: p?.sku ?? '',
         photo: (p?.photo ?? 'serum') as 'balm' | 'oil' | 'serum' | 'fluid' | 'gel' | 'duo',

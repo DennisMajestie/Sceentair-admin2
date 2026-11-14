@@ -217,7 +217,6 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
             <div><dt>Recorded</dt><dd>{{ date(entry.entryAt) }}</dd></div>
             <div><dt>Recorded by</dt><dd>{{ personName(entry.recordedBy) }}</dd></div>
             <div><dt>Reference</dt><dd>{{ referenceLabel(entry) }}</dd></div>
-            <div><dt>Ledger ID</dt><dd class="mono">{{ entry.id }}</dd></div>
           </dl>
         </div>
       }

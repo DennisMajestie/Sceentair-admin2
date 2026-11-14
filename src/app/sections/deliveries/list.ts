@@ -80,10 +80,9 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
       @for (row of visible(); track row.id) {
         <button type="button" class="delivery-card" (click)="open(row.id)" [attr.aria-label]="'Delivery leg ' + row.id">
           <span class="delivery-card__top">
-            <span class="mono delivery-card__id">{{ row.id }}</span>
+            <span class="delivery-card__carrier">{{ row.carrier }}</span>
             <span class="badge" [class]="'badge badge--' + tone(row.status)">{{ row.status }}</span>
           </span>
-          <span class="delivery-card__carrier">{{ row.carrier }}</span>
           <span class="delivery-card__leg">Leg {{ row.legNumber }}</span>
           <span class="delivery-card__tracking">{{ row.trackingRef ?? '—' }}</span>
           <span class="delivery-card__meta">
@@ -210,7 +209,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
       <ng-container drawerTitle>
         @if (selected(); as d) {
           <div class="dtitle">
-            <strong class="mono">{{ d.id }}</strong>
+            <strong>{{ d.carrier }} — Leg {{ d.legNumber }}</strong>
             <span class="badge" [class]="'badge badge--' + d.status">{{ d.status }}</span>
           </div>
         }

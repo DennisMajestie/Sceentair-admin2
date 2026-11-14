@@ -52,10 +52,9 @@ import { ToastService } from '../../core/toast';
       @for (row of visible(); track row.id) {
         <button type="button" class="tier-card" (click)="open(row.id)" [attr.aria-label]="'Tier ' + row.id">
           <span class="tier-card__top">
-            <span class="mono tier-card__id">{{ row.id }}</span>
+            <span class="tier-card__name">{{ row.name }}</span>
             <span class="tier-card__discount">{{ row.discountPercent }}% off</span>
           </span>
-          <span class="tier-card__name">{{ row.name }}</span>
           <span class="tier-card__desc">{{ row.ruleDescription ?? 'No description' }}</span>
           <span class="tier-card__meta">
             <span>{{ row.createdAt }}</span>
@@ -74,8 +73,7 @@ import { ToastService } from '../../core/toast';
       <ng-container drawerTitle>
         @if (selected(); as t) {
           <div class="dtitle">
-            <strong class="mono">{{ t.id }}</strong>
-            <span>{{ t.name }}</span>
+            <strong>{{ t.name }}</strong>
           </div>
         }
       </ng-container>

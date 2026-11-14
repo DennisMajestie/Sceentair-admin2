@@ -70,10 +70,9 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
       @for (row of visible(); track row.id) {
         <button type="button" class="partner-card" (click)="open(row.id)" [attr.aria-label]="'Partner ' + row.id">
           <span class="partner-card__top">
-            <span class="mono partner-card__id">{{ row.id }}</span>
+            <span class="partner-card__name">{{ row.userName ?? '—' }}</span>
             <span class="partner-card__equity">{{ row.equityPercentage }}% equity</span>
           </span>
-          <span class="partner-card__name">{{ row.userName ?? '—' }}</span>
           <span class="partner-card__email">{{ row.userEmail ?? '—' }}</span>
           <span class="partner-card__meta">
             <span>{{ money(row.investedAmount) }}</span>
@@ -93,8 +92,7 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
       <ng-container drawerTitle>
         @if (selected(); as p) {
           <div class="dtitle">
-            <strong class="mono">{{ p.id }}</strong>
-            <span>{{ p.userName }}</span>
+            <strong>{{ p.userName }}</strong>
           </div>
         }
       </ng-container>

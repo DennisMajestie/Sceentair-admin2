@@ -84,10 +84,9 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
       @for (row of visible(); track row.id) {
         <button type="button" class="account-card" (click)="open(row.id)" [attr.aria-label]="'Account ' + row.id">
           <span class="account-card__top">
-            <span class="mono account-card__id">{{ row.id }}</span>
+            <span class="account-card__name">{{ row.businessName ?? 'Unnamed account' }}</span>
             <span class="badge" [class]="'badge badge--' + tone(row.status)">{{ row.status }}</span>
           </span>
-          <span class="account-card__name">{{ row.businessName ?? 'Unnamed account' }}</span>
           <span class="account-card__meta">
             <span>{{ row.buyerType ?? '—' }}</span>
             <span>{{ row.createdAt }}</span>
@@ -107,7 +106,7 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
       <ng-container drawerTitle>
         @if (selected(); as a) {
           <div class="dtitle">
-            <strong class="mono">{{ a.id }}</strong>
+            <strong>{{ a.businessName ?? 'Unnamed account' }}</strong>
             <span class="badge" [class]="'badge badge--' + tone(a.status)">{{ a.status }}</span>
           </div>
         }

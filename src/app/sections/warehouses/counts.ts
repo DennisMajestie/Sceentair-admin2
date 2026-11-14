@@ -546,8 +546,8 @@ export class WarehouseCounts {
           const itemType: InventoryItemType = s.itemType === 'material' ? 'material' : 'variant';
           const label =
             itemType === 'material'
-              ? materialNames.get(s.itemId) ?? `Material ${s.itemId.slice(0, 8)}`
-              : variantNames.get(s.itemId) ?? `Variant ${s.itemId.slice(0, 8)}`;
+              ? materialNames.get(s.itemId) ?? 'Material'
+              : variantNames.get(s.itemId) ?? 'Variant';
           return { itemType, itemId: s.itemId, label, currentQuantity: s.currentQuantity };
         })
         .sort((a, b) => a.label.localeCompare(b.label));

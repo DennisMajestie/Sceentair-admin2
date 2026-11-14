@@ -253,10 +253,15 @@ export class AnalyticsSales {
   protected readonly channels = computed(() => channelRows(this.scoped()));
 
   protected readonly buyers = computed<BuyerRow[]>(() => {
-    const map = new Map<string, { revenue: number; orders: number; last: number }>();
+    const map = new Map<string, { name: string; revenue: number; orders: number; last: number }>();
     let grand = 0;
     for (const o of this.scoped()) {
-      const entry = map.get(o.customerId) ?? { revenue: 0, orders: 0, last: 0 };
+      const entry = map.get(o.customerId) ?? {
+        name: o.customerName || 'Guest',
+        revenue: 0,
+        orders: 0,
+        last: 0,
+      };
       entry.revenue += orderRevenue(o);
       entry.orders += 1;
       entry.last = Math.max(entry.last, o.createdAt);
@@ -268,7 +273,7 @@ export class AnalyticsSales {
         const c = this.store.customer(id);
         return {
           id,
-          name: c?.name ?? id,
+          name: c?.name ?? v.name,
           place: c ? `${c.city}, ${c.region}` : '',
           orders: v.orders,
           revenue: Math.round(v.revenue),
@@ -301,10 +306,10 @@ export class AnalyticsSales {
     }
     const rows = [...sales.entries()]
       .map(([id, sale]) => {
-        const p = this.store.product(id);
+        const p = this.store.product(id) ?? this.store.productForVariant(id);
         return {
           id,
-          name: p ? `${p.name} ${p.size}` : id,
+          name: p ? [p.name, p.size].filter(Boolean).join(' ') : id,
           sku: p?.sku ?? '',
           units: sale.units,
           revenue: Math.round(sale.revenue),

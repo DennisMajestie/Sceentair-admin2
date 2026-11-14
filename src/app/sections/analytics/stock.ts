@@ -476,11 +476,11 @@ export class AnalyticsStock {
       .batches()
       .filter((b) => b.status === 'released' && b.left > 0)
       .map((b) => {
-        const p = this.store.product(b.productId);
+        const p = this.store.product(b.productId) ?? this.store.productForVariant(b.productId);
         return {
           id: b.id,
           lot: b.lot,
-          product: p ? `${p.name} ${p.size}` : b.productId,
+          product: p ? [p.name, p.size].filter(Boolean).join(' ') : b.productId,
           left: b.left,
           days: Math.round((b.expiresAt - now) / 86400000),
           value: b.left * (p?.cost ?? 0),

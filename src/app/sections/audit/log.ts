@@ -218,8 +218,6 @@ function describeRefund(state: Record<string, unknown>): string {
 
           <details class="technical-record">
             <summary>Technical record</summary>
-            <p>Audit entry ID: {{ e.id }}</p>
-            <p>Team member ID: {{ e.actorId }}</p>
             <p>Recorded action: {{ e.action }}</p>
             <h3 class="dlabel">Before</h3>
             <pre class="dpayload">{{ payloadText(e.beforeState) }}</pre>

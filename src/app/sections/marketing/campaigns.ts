@@ -47,12 +47,11 @@ import { MarketingApiService, type Campaign, type CampaignList, type CampaignTyp
 
     <div class="campaign-grid" aria-label="Marketing campaigns">
       @for (row of visible(); track row.id) {
-        <button type="button" class="campaign-card" (click)="open(row.id)" [attr.aria-label]="'Campaign ' + row.id">
+        <button type="button" class="campaign-card" (click)="open(row.id)" [attr.aria-label]="'Campaign ' + row.name">
           <span class="campaign-card__top">
-            <span class="mono campaign-card__id">{{ row.id }}</span>
+            <span class="campaign-card__name">{{ row.name }}</span>
             <span class="badge" [class]="'badge badge--' + row.type">{{ row.type }}</span>
           </span>
-          <span class="campaign-card__name">{{ row.name }}</span>
           <span class="campaign-card__channel">{{ row.channel ?? '—' }}</span>
           <span class="campaign-card__meta">
             <span>{{ row.startDate }}</span>
@@ -73,7 +72,7 @@ import { MarketingApiService, type Campaign, type CampaignList, type CampaignTyp
       <ng-container drawerTitle>
         @if (selected(); as c) {
           <div class="dtitle">
-            <strong class="mono">{{ c.id }}</strong>
+            <strong>{{ c.name }}</strong>
             <span class="badge" [class]="'badge badge--' + c.type">{{ c.type }}</span>
           </div>
         }

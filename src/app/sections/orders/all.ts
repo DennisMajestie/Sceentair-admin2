@@ -184,7 +184,7 @@ const API_FLOW: ApiOrderStatus[] = [
           <div class="dhead">
             <span class="dhead__avatar" aria-hidden="true">{{ initials(o.customer) }}</span>
             <span class="dhead__text">
-              <strong class="mono">Order {{ o.id }}</strong>
+              <strong class="mono">Order #{{ o.id.slice(0, 8).toUpperCase() }}</strong>
               <span>{{ o.customer }}</span>
             </span>
           </div>

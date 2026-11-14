@@ -1036,7 +1036,7 @@ export class Store {
         whoName: people[m.byId]?.name ?? 'Warehouse',
         kind: 'stock',
         title: m.qty >= 0 ? 'Stock in' : 'Stock out',
-        text: `${item?.name ?? m.itemId} · ${m.qty > 0 ? '+' : ''}${m.qty}${m.ref ? ` · ${m.ref}` : ''}`,
+        text: `${item?.name ?? this.productForVariant(m.itemId)?.name ?? m.itemId} · ${m.qty > 0 ? '+' : ''}${m.qty}${m.ref ? ` · ${m.ref}` : ''}`,
         href:
           m.kind === 'receipt'
             ? '/purchasing/materials'
@@ -1052,7 +1052,7 @@ export class Store {
         whoName: people[b.chemistId]?.name ?? 'Production',
         kind: 'stock',
         title: 'Batch produced',
-        text: `${b.lot} · ${products[b.productId]?.name ?? b.productId} · ${b.qty} units`,
+        text: `${b.lot} · ${(products[b.productId] ?? this.productForVariant(b.productId))?.name ?? b.productId} · ${b.qty} units`,
         href: '/production',
       });
     }
@@ -1092,7 +1092,7 @@ export class Store {
         whoName: customers[order?.customerId ?? '']?.name ?? 'Customer',
         kind: 'return',
         title: 'Return requested',
-        text: `${r.number} · ${products[r.productId]?.name ?? r.productId} · ${r.qty} unit${r.qty === 1 ? '' : 's'}`,
+        text: `${r.number} · ${(products[r.productId] ?? this.productForVariant(r.productId))?.name ?? r.productId} · ${r.qty} unit${r.qty === 1 ? '' : 's'}`,
         href: `/orders/returns/${r.id}`,
       });
       if (r.resolvedAt) {
@@ -1135,7 +1135,7 @@ export class Store {
         id: `exp-${b.id}`,
         kind: 'expiry',
         title: 'Lot expiring',
-        detail: `${b.lot} A� ${p?.name ?? b.productId}`,
+        detail: `${b.lot} · ${(p ?? this.productForVariant(b.productId))?.name ?? b.productId}`,
         tone: 'warn',
         href: `/products/batches/${b.id}`,
       });
@@ -1411,6 +1411,20 @@ export class Store {
 
   product(id: string): Product | undefined {
     return this.productById()[id];
+  }
+
+  /** Product owning a variant — orders may arrive with only the variant id. */
+  readonly variantOwner = computed(() => {
+    const map = new Map<string, string>();
+    for (const p of this.products()) {
+      for (const v of p.variantIds ?? []) map.set(v, p.id);
+    }
+    return map;
+  });
+
+  productForVariant(variantId: string): Product | undefined {
+    const productId = this.variantOwner().get(variantId);
+    return productId ? this.product(productId) : undefined;
   }
 
   material(id: string): Material | undefined {

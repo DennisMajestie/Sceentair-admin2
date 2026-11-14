@@ -132,7 +132,7 @@ interface MaterialRow {
             <tbody>
               @for (row of visible(); track row.id) {
                 <tr class="clickable" (click)="open(row.id)">
-                  <td class="mono strong">{{ row.id.slice(0, 8) }}</td>
+                  <td class="mono strong">{{ row.name }}</td>
                   <td>{{ row.name }}</td>
                   <td>
                     <span class="badge" [style.color]="row.color" [style.background]="row.tint">{{ kindLabel(row.category) }}</span>
@@ -167,13 +167,12 @@ interface MaterialRow {
       @if (selected(); as m) {
         <div class="dbody">
           <dl class="facts">
-            <div><dt>ID</dt><dd class="mono">{{ m.id }}</dd></div>
             <div><dt>Unit</dt><dd>{{ m.unit }}</dd></div>
             <div><dt>On hand</dt><dd class="num">{{ m.currentQuantity }}</dd></div>
             <div><dt>Reorder at</dt><dd class="num">{{ m.reorderThreshold }}</dd></div>
-            <div><dt>Last unit cost</dt><dd class="num">{{ m.lastUnitCost === null ? '—' : money(m.lastUnitCost) }}</dd></div>
+            <div><dt>Last unit cost</dt><dd class="num">{{ m.lastUnitCost === null ? '�?"' : money(m.lastUnitCost) }}</dd></div>
             <div><dt>Current value</dt><dd class="num">{{ money(m.currentValue) }}</dd></div>
-            <div><dt>Last purchase</dt><dd>{{ m.lastPurchaseAt === null ? '—' : m.lastPurchaseAt }}</dd></div>
+            <div><dt>Last purchase</dt><dd>{{ m.lastPurchaseAt === null ? '�?"' : m.lastPurchaseAt }}</dd></div>
             <div><dt>Created</dt><dd>{{ m.formattedCreatedAt }}</dd></div>
           </dl>
 
