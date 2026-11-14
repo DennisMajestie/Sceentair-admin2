@@ -132,6 +132,7 @@ export class DashboardOverview {
   private chartRequest = 0;
   private mm?: gsap.MatchMedia;
   private played = false;
+  private entranceDone = false;
 
   private sellerPhoto(sku: string, productName: string): string {
     const products = this.store.products();
@@ -147,7 +148,9 @@ export class DashboardOverview {
     });
     effect(() => {
       if (!this.dashboardData()) return;
-      afterNextRender(() => this.setNumbersFinal(), { injector: this.injector });
+      afterNextRender(() => {
+        if (this.entranceDone) this.animateNumbers();
+      }, { injector: this.injector });
     });
     this.destroyRef.onDestroy(() => this.mm?.revert());
     void this.loadDashboard();
@@ -225,6 +228,7 @@ export class DashboardOverview {
   private onData() {
     if (!this.motion.isBrowser) {
       this.pending.set(false);
+      this.snapNumbers();
       return;
     }
     if (this.played) {
@@ -344,34 +348,60 @@ export class DashboardOverview {
       },
       0.9,
     );
-    this.setNumbersFinal();
+    this.animateNumbers(q, tl);
 
-    tl.eventCallback('onComplete', () => this.zone.run(() => this.pending.set(false)));
+    tl.eventCallback('onComplete', () => this.zone.run(() => {
+      this.pending.set(false);
+      this.entranceDone = true;
+    }));
   }
 
   private showFinal() {
     this.zone.run(() => this.pending.set(false));
-    this.setNumbersFinal();
+    this.snapNumbers();
+    this.entranceDone = true;
   }
 
-  private setNumbersFinal(): void {
+  private snapNumbers(): void {
     const q = gsap.utils.selector(this.host.nativeElement);
     q('.sd-num').forEach((el) => {
       const target = Number(el.getAttribute('data-to'));
       const kind = el.getAttribute('data-kind');
       if (!Number.isFinite(target)) return;
-      const fmt = (n: number) => {
-        if (kind === 'currency') return this.compact(n);
-        if (kind === 'currency-full') return this.money(n);
-        if (kind === 'percent') return Math.round(n) + '%';
-        return this.count(Math.round(n));
-      };
-      this.motion.setFinal(el as HTMLElement, target, fmt);
+      this.motion.setFinal(el as HTMLElement, target, this.numFmt(kind));
     });
   }
 
+  private animateNumbers(q?: gsap.utils.SelectorFunc, tl?: gsap.core.Timeline): void {
+    const sel = q ?? gsap.utils.selector(this.host.nativeElement);
+    const els = sel('.sd-num') as HTMLElement[];
+    if (!els.length) return;
+    this.motion.outside(() => {
+      els.forEach((el) => {
+        const target = Number(el.getAttribute('data-to'));
+        const kind = el.getAttribute('data-kind');
+        if (!Number.isFinite(target)) return;
+        this.motion.countTo(el, target, this.numFmt(kind), {
+          tl,
+          position: tl ? 0.95 : undefined,
+          duration: 1.6,
+          from: 0,
+        });
+      });
+    });
+  }
+
+  private numFmt(kind: string | null): (n: number) => string {
+    return (n: number) => {
+      if (kind === 'currency') return this.compact(n);
+      if (kind === 'currency-full') return this.money(n);
+      if (kind === 'percent') return Math.round(n) + '%';
+      return this.count(Math.round(n));
+    };
+  }
+
   private refresh() {
-    this.setNumbersFinal();
+    this.animateNumbers();
   }
 
   protected readonly count = fmtCount;
