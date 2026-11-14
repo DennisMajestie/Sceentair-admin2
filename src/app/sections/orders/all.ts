@@ -99,7 +99,7 @@ const API_FLOW: ApiOrderStatus[] = [
     }
     @if (loading() && rows().length === 0) {
       <div class="order-empty" role="status">
-        <app-spinner size="lg" />
+        <app-spinner size="lg" label="Loading orders" />
       </div>
     }
 
@@ -191,7 +191,7 @@ const API_FLOW: ApiOrderStatus[] = [
         }
       </ng-container>
       @if (detailLoading() && !selected()) {
-        <div class="order-empty" role="status">Loading order details…</div>
+        <div class="order-empty" role="status"><app-spinner size="sm" label="Loading order details" /></div>
       }
       @if (selected(); as o) {
         <div class="dbody">

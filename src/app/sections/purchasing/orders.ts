@@ -404,6 +404,7 @@ export class PurchasingOrders {
       if (approval.status !== 'approved') {
         this.createError.set('Purchase request submitted — a manager must approve it in Approvals before the purchase is recorded.');
         await this.store.load();
+        await this.store.settled();
         return;
       }
       await this.materialsApi.purchase({
@@ -418,6 +419,7 @@ export class PurchasingOrders {
       this.toast.show('Purchase recorded', 'good');
       this.creating.set(false);
       await this.store.load();
+      await this.store.settled();
     } catch (err) {
       this.createError.set(err instanceof Error ? err.message : 'Could not record the purchase.');
     } finally {

@@ -13,6 +13,7 @@ import { date as fmtDate, initials } from '../../core/format';
 import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 
 const STATUS_LABEL: Record<CustomOrderStatus, string> = {
   submitted: 'Submitted',
@@ -32,7 +33,7 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
 @Component({
   selector: 'app-orders-custom',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, DatePipe],
+  imports: [RouterLink, Icon, Drawer, FormsModule, DatePipe, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -66,7 +67,7 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
     </div>
 
     @if (loading()) {
-      <p class="note">Loading custom orders…</p>
+      <div class="load-center" role="status"><app-spinner size="sm" label="Loading custom orders" /></div>
     } @else if (loadError()) {
       <div class="empty"><strong>Couldn't load custom orders.</strong><span>{{ loadError() }}</span><button class="btn btn--ghost" type="button" (click)="load()">Retry</button></div>
     }

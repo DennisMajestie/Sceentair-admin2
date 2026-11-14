@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -17,7 +18,7 @@ const KIND_LABEL: Record<string, string> = {
 @Component({
   selector: 'app-warehouses-locations',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -57,10 +58,8 @@ const KIND_LABEL: Record<string, string> = {
     </section>
 
     @if (loading() && rows().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading locations" />
       </div>
     } @else {
       <section class="loc-list">

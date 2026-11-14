@@ -244,25 +244,31 @@
       <h2 class="card__title">Top sellers</h2>
       <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
     </div>
-    <ul class="sellers">
-      @for (s of sellers().slice(0, 5); track s.id) {
-        <li>
-          <a class="seller" [routerLink]="'/products/item/' + s.id">
-            <span class="thumb thumb--sm seller__shot">
-              <app-product-shot [photo]="s.photo" [label]="s.name" />
-            </span>
-            <span class="seller__text">
-              <strong>{{ s.name }}</strong>
-              <span>{{ s.sku }}</span>
-            </span>
-            <span class="seller__nums">
-              <span class="num">{{ s.units }}</span>
-              <span class="seller__rev">{{ compact(s.revenue) }}</span>
-            </span>
-          </a>
-        </li>
-      }
-    </ul>
+    @if (sellersLoading()) {
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading top sellers" />
+      </div>
+    } @else {
+      <ul class="sellers">
+        @for (s of sellers().slice(0, 5); track s.id) {
+          <li>
+            <a class="seller" [routerLink]="'/products/item/' + s.id">
+              <span class="thumb thumb--sm seller__shot">
+                <app-product-shot [photo]="s.photo" [label]="s.name" />
+              </span>
+              <span class="seller__text">
+                <strong>{{ s.name }}</strong>
+                <span>{{ s.sku }}</span>
+              </span>
+              <span class="seller__nums">
+                <span class="num">{{ s.units }}</span>
+                <span class="seller__rev">{{ compact(s.revenue) }}</span>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
   </article>
 }
 

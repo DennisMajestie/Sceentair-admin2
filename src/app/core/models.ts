@@ -345,6 +345,19 @@ export interface Settings {
   goal: number;
 }
 
+export interface WholesaleAccountRecord {
+  id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  businessName: string | null;
+}
+
+export interface WholesaleTierRecord {
+  id: string;
+  name: string;
+  ruleDescription: string | null;
+  discountPercent: number;
+}
+
 export interface Seed {
   version: number;
   team: Teammate[];
@@ -367,5 +380,7 @@ export interface Seed {
   weeks: SeriesPoint[];
   ledgerEntries: LedgerEntry[];
   approvals: Approval[];
+  wholesaleAccounts: WholesaleAccountRecord[];
+  wholesaleTiers: WholesaleTierRecord[];
   settings: Settings;
 }

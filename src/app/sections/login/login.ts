@@ -727,9 +727,8 @@ export class LoginPage {
     if (this.auth.user()) {
       showAppPreloader();
       try {
-        const prefetch = this.overviewPrefetch.prefetch();
+        this.overviewPrefetch.prefetch();
         await this.store.load();
-        await prefetch;
         await this.router.navigateByUrl('/dashboard/overview', { replaceUrl: true });
       } catch {
         hideAppPreloader();
@@ -765,9 +764,8 @@ export class LoginPage {
       await this.auth.login(email, password);
       this.success.set(true);
       showAppPreloader();
-      const prefetch = this.overviewPrefetch.prefetch();
+      this.overviewPrefetch.prefetch();
       await this.store.load();
-      await prefetch;
       const navigated = await this.router.navigateByUrl('/dashboard/overview', { replaceUrl: true });
       if (!navigated) {
         hideAppPreloader();
@@ -794,9 +792,8 @@ export class LoginPage {
       this.code.set('');
       this.success.set(true);
       showAppPreloader();
-      const prefetch = this.overviewPrefetch.prefetch();
+      this.overviewPrefetch.prefetch();
       await this.store.load();
-      await prefetch;
       const navigated = await this.router.navigateByUrl('/dashboard/overview', { replaceUrl: true });
       if (!navigated) {
         hideAppPreloader();

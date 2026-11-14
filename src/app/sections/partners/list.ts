@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -16,7 +17,7 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
 @Component({
   selector: 'app-partners-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -107,7 +108,7 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
           </dl>
 
           @if (dashboardLoading()) {
-            <p class="dnote">Loading dashboard…</p>
+            <div class="load-center" role="status"><app-spinner size="sm" label="Loading partner dashboard" /></div>
           } @else if (dashboardError()) {
             <p class="dnote dnote--bad">{{ dashboardError() }}</p>
           } @else {

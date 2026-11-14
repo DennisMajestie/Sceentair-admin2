@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,7 +9,7 @@ import { ToastService } from '../../core/toast';
 @Component({
   selector: 'app-settings-security',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -106,6 +107,9 @@ import { ToastService } from '../../core/toast';
                   <button class="btn btn--ghost" type="button" [disabled]="busySessionId() === session.id" (click)="revoke(session.id)">{{ busySessionId() === session.id ? 'Revoking…' : 'Revoke' }}</button>
                 </td>
               </tr>
+            }
+            @if (sessionsLoading() && !sessions().length) {
+              <tr><td colspan="3" class="table-empty"><app-spinner size="sm" label="Loading active sessions" /></td></tr>
             }
             @if (!sessions().length && !sessionsLoading()) {
               <tr><td colspan="3" class="table-empty">No active sessions found (or the sessions list is unavailable on this server).</td></tr>

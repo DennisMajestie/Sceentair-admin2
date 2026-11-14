@@ -1,8 +1,8 @@
-export interface NavPage {
+﻿export interface NavPage {
   label: string;
   path: string;
   /** Key resolved against the store to produce a live count badge. */
-  badge?: 'alerts' | 'orders' | 'lowStock' | 'pos' | 'counts' | 'transfers' | 'returns' | 'batches';
+  badge?: 'alerts' | 'activity' | 'catalog' | 'batches' | 'reviews' | 'allOrders' | 'board' | 'returns' | 'deliveries' | 'customOrders' | 'messages' | 'pos' | 'materials' | 'suppliers' | 'productionQueue' | 'techPacks' | 'kiosk' | 'inventory' | 'locations' | 'counts' | 'shoppers' | 'stockists' | 'wholesaleAccounts' | 'wholesaleTiers' | 'campaigns' | 'couponWallet' | 'couponCampaigns' | 'media' | 'ledger' | 'approvals' | 'audit' | 'partners' | 'reports' | 'sales' | 'stockHealth' | 'account' | 'company' | 'team' | 'notifications' | 'security' | 'helpCenter' | 'tickets';
 }
 
 export interface NavSection {
@@ -21,7 +21,7 @@ export const NAV: NavSection[] = [
     path: '/dashboard/overview',
     pages: [
       { label: 'Overview', path: '/dashboard/overview' },
-      { label: 'Activity', path: '/dashboard/activity' },
+      { label: 'Activity', path: '/dashboard/activity', badge: 'activity' },
       { label: 'Alerts', path: '/dashboard/alerts', badge: 'alerts' },
     ],
   },
@@ -31,9 +31,9 @@ export const NAV: NavSection[] = [
     icon: 'package',
     path: '/products/catalog',
     pages: [
-      { label: 'Catalog', path: '/products/catalog' },
+      { label: 'Catalog', path: '/products/catalog', badge: 'catalog' },
       { label: 'Batches', path: '/products/batches', badge: 'batches' },
-      { label: 'Reviews', path: '/products/reviews' },
+      { label: 'Reviews', path: '/products/reviews', badge: 'reviews' },
     ],
   },
   {
@@ -42,11 +42,11 @@ export const NAV: NavSection[] = [
     icon: 'cart',
     path: '/orders/all',
     pages: [
-      { label: 'All orders', path: '/orders/all' },
-      { label: 'Board', path: '/orders/board' },
+      { label: 'All orders', path: '/orders/all', badge: 'allOrders' },
+      { label: 'Board', path: '/orders/board', badge: 'board' },
       { label: 'Returns', path: '/orders/returns', badge: 'returns' },
-      { label: 'Deliveries', path: '/deliveries' },
-      { label: 'Custom orders', path: '/orders/custom' },
+      { label: 'Deliveries', path: '/deliveries', badge: 'deliveries' },
+      { label: 'Custom orders', path: '/orders/custom', badge: 'customOrders' },
     ],
   },
   {
@@ -54,7 +54,7 @@ export const NAV: NavSection[] = [
     label: 'Messages',
     icon: 'mail',
     path: '/messages',
-    pages: [{ label: 'Messages', path: '/messages' }],
+    pages: [{ label: 'Messages', path: '/messages', badge: 'messages' }],
   },
   {
     id: 'purchasing',
@@ -63,8 +63,8 @@ export const NAV: NavSection[] = [
     path: '/purchasing/orders',
     pages: [
       { label: 'Material purchases', path: '/purchasing/orders', badge: 'pos' },
-      { label: 'Materials', path: '/purchasing/materials' },
-      { label: 'Suppliers', path: '/purchasing/suppliers' },
+      { label: 'Materials', path: '/purchasing/materials', badge: 'materials' },
+      { label: 'Suppliers', path: '/purchasing/suppliers', badge: 'suppliers' },
     ],
   },
   {
@@ -73,9 +73,9 @@ export const NAV: NavSection[] = [
     icon: 'cube',
     path: '/production',
     pages: [
-      { label: 'Queue', path: '/production' },
-      { label: 'Tech packs', path: '/production/tech-packs' },
-      { label: 'Floor kiosk', path: '/production/kiosk' },
+      { label: 'Queue', path: '/production', badge: 'productionQueue' },
+      { label: 'Tech packs', path: '/production/tech-packs', badge: 'techPacks' },
+      { label: 'Floor kiosk', path: '/production/kiosk', badge: 'kiosk' },
     ],
   },
   {
@@ -84,8 +84,8 @@ export const NAV: NavSection[] = [
     icon: 'warehouses',
     path: '/warehouses/inventory',
     pages: [
-      { label: 'Inventory', path: '/warehouses/inventory' },
-      { label: 'Stock summary', path: '/warehouses/locations' },
+      { label: 'Inventory', path: '/warehouses/inventory', badge: 'inventory' },
+      { label: 'Stock summary', path: '/warehouses/locations', badge: 'locations' },
       { label: 'Cycle counts', path: '/warehouses/counts', badge: 'counts' },
     ],
   },
@@ -95,10 +95,10 @@ export const NAV: NavSection[] = [
     icon: 'customers',
     path: '/customers/shoppers',
     pages: [
-      { label: 'Shoppers', path: '/customers/shoppers' },
-      { label: 'Stockists', path: '/customers/stockists' },
-      { label: 'Wholesale accounts', path: '/wholesale/accounts' },
-      { label: 'Wholesale tiers', path: '/wholesale/tiers' },
+      { label: 'Shoppers', path: '/customers/shoppers', badge: 'shoppers' },
+      { label: 'Stockists', path: '/customers/stockists', badge: 'stockists' },
+      { label: 'Wholesale accounts', path: '/wholesale/accounts', badge: 'wholesaleAccounts' },
+      { label: 'Wholesale tiers', path: '/wholesale/tiers', badge: 'wholesaleTiers' },
     ],
   },
   {
@@ -107,10 +107,10 @@ export const NAV: NavSection[] = [
     icon: 'chart',
     path: '/marketing/campaigns',
     pages: [
-      { label: 'Campaigns', path: '/marketing/campaigns' },
-      { label: 'Coupon wallet', path: '/coupons/wallet' },
-      { label: 'Coupon campaigns', path: '/coupons/campaigns' },
-      { label: 'Media library', path: '/media' },
+      { label: 'Campaigns', path: '/marketing/campaigns', badge: 'campaigns' },
+      { label: 'Coupon wallet', path: '/coupons/wallet', badge: 'couponWallet' },
+      { label: 'Coupon campaigns', path: '/coupons/campaigns', badge: 'couponCampaigns' },
+      { label: 'Media library', path: '/media', badge: 'media' },
     ],
   },
   {
@@ -119,10 +119,10 @@ export const NAV: NavSection[] = [
     icon: 'ledger',
     path: '/accounting/ledger',
     pages: [
-      { label: 'Accounting ledger', path: '/accounting/ledger' },
-      { label: 'Approval queue', path: '/approvals' },
-      { label: 'Audit log', path: '/audit/log' },
-      { label: 'Partners', path: '/partners' },
+      { label: 'Accounting ledger', path: '/accounting/ledger', badge: 'ledger' },
+      { label: 'Approval queue', path: '/approvals', badge: 'approvals' },
+      { label: 'Audit log', path: '/audit/log', badge: 'audit' },
+      { label: 'Partners', path: '/partners', badge: 'partners' },
     ],
   },
   {
@@ -131,9 +131,9 @@ export const NAV: NavSection[] = [
     icon: 'analytics',
     path: '/analytics/overview',
     pages: [
-      { label: 'Reports', path: '/analytics/overview' },
-      { label: 'Sales', path: '/analytics/sales' },
-      { label: 'Stock health', path: '/analytics/stock' },
+      { label: 'Reports', path: '/analytics/overview', badge: 'reports' },
+      { label: 'Sales', path: '/analytics/sales', badge: 'sales' },
+      { label: 'Stock health', path: '/analytics/stock', badge: 'stockHealth' },
     ],
   },
   {
@@ -142,11 +142,11 @@ export const NAV: NavSection[] = [
     icon: 'settings',
     path: '/settings/account',
     pages: [
-      { label: 'Account', path: '/settings/account' },
-      { label: 'Company', path: '/settings/company' },
-      { label: 'Team & roles', path: '/settings/team' },
-      { label: 'Notifications', path: '/settings/notifications' },
-      { label: 'Security', path: '/settings/security' },
+      { label: 'Account', path: '/settings/account', badge: 'account' },
+      { label: 'Company', path: '/settings/company', badge: 'company' },
+      { label: 'Team & roles', path: '/settings/team', badge: 'team' },
+      { label: 'Notifications', path: '/settings/notifications', badge: 'notifications' },
+      { label: 'Security', path: '/settings/security', badge: 'security' },
     ],
   },
   {
@@ -155,8 +155,8 @@ export const NAV: NavSection[] = [
     icon: 'help',
     path: '/help/center',
     pages: [
-      { label: 'Help center', path: '/help/center' },
-      { label: 'My tickets', path: '/help/tickets' },
+      { label: 'Help center', path: '/help/center', badge: 'helpCenter' },
+      { label: 'My tickets', path: '/help/tickets', badge: 'tickets' },
     ],
   },
 ];
@@ -165,7 +165,6 @@ export function navForRole(_role?: string | null): NavSection[] {
   return NAV;
 }
 
-/** Resolve the section for a URL: exact id match first, then by page path prefix. Falls back to dashboard. */
 export function matchSection(url: string): NavSection {
   const path = (url || '').split('?')[0];
   const segment = path.split('/')[1] ?? 'dashboard';

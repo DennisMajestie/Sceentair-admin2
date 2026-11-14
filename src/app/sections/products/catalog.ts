@@ -1,4 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
+import { Spinner } from '../../ui/spinner';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -102,7 +103,7 @@ function mapRow(product: ApiProduct): CatalogRow {
 @Component({
   selector: 'app-products-catalog',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, CatalogApiProductCard, CatalogApiProductEditor, CatalogEmpty, CatalogApiProductList, SdSlidingIndicator],
+  imports: [RouterLink, Icon, CatalogApiProductCard, CatalogApiProductEditor, CatalogEmpty, CatalogApiProductList, SdSlidingIndicator, Spinner],
   template: `
     <main #root class="catalog-page">
       <header class="catalog-head" data-enter>
@@ -269,10 +270,8 @@ function mapRow(product: ApiProduct): CatalogRow {
         </div>
 
         @if (loading() && rows().length === 0) {
-          <div class="catalog-empty cs-skel" aria-hidden="true">
-            @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
-              <div class="cs-skel__card"></div>
-            }
+          <div class="load-center" role="status">
+            <app-spinner size="sm" label="Loading catalog" />
           </div>
         } @else if (visibleRows().length === 0) {
           <app-catalog-empty data-enter (clear)="clearFilters()" />

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -31,7 +32,7 @@ interface SupplierRow {
 @Component({
   selector: 'app-purchasing-suppliers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -79,10 +80,8 @@ interface SupplierRow {
     </div>
 
     @if (loading() && rows().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 140px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading suppliers" />
       </div>
     } @else {
       <div class="grid grid--3">

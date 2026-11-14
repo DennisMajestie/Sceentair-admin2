@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -59,7 +60,7 @@ function stockState(quantity: number): 'out_of_stock' | 'in_stock' {
 @Component({
   selector: 'app-warehouses-inventory-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, RouterLink, FormsModule],
+  imports: [Icon, RouterLink, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -80,10 +81,8 @@ function stockState(quantity: number): 'out_of_stock' | 'in_stock' {
     </div>
 
     @if (loading() && entries().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 54px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading stock movements" />
       </div>
     } @else {
       <div class="grid">

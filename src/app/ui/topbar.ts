@@ -453,18 +453,92 @@ export class Topbar {
     switch (key) {
       case 'alerts':
         return this.store.alerts().length;
+      case 'activity':
+        return this.store.activityAttentionCount();
+      case 'catalog':
+        return this.store.catalogAttentionCount();
+      case 'batches':
+        return this.store.batchStats().onHold + this.store.batchStats().inQa;
+      case 'reviews':
+        return this.store.pendingReviewsCount();
+      case 'allOrders':
+        return this.store.allOrdersAttentionCount();
+      case 'board':
+        return this.store.boardAttentionCount();
+      case 'returns':
+        return this.store.returns().filter((r) => r.status === 'requested').length;
+      case 'deliveries':
+        return this.store.activeDeliveriesCount();
+      case 'customOrders':
+        return this.store.attentionCustomOrdersCount();
+      case 'messages':
+        return this.store.messagesAttentionCount();
+      case 'pos':
+        return this.store.openPurchaseOrders().length;
+      case 'materials':
+        return this.store.materialsAttentionCount();
+      case 'suppliers':
+        return this.store.suppliersAttentionCount();
+      case 'productionQueue':
+        return this.store.productionQueueAttentionCount();
+      case 'techPacks':
+        return this.store.techPacksAttentionCount();
+      case 'kiosk':
+        return this.store.kioskAttentionCount();
+      case 'inventory':
+        return this.store.inventoryAttentionCount();
+      case 'locations':
+        return this.store.locationsAttentionCount();
+      case 'counts':
+        return this.store.countStats().open;
+      case 'shoppers':
+        return this.store.shopperAttentionCount();
+      case 'stockists':
+        return this.store.stockistAttentionCount();
+      case 'wholesaleAccounts':
+        return this.store.pendingWholesaleAccountsCount();
+      case 'wholesaleTiers':
+        return this.store.wholesaleTierAttentionCount();
+      case 'campaigns':
+        return this.store.campaignsAttentionCount();
+      case 'couponWallet':
+        return this.store.couponWalletAttentionCount();
+      case 'couponCampaigns':
+        return this.store.couponCampaignsAttentionCount();
+      case 'media':
+        return this.store.mediaAttentionCount();
+      case 'ledger':
+        return this.store.ledgerAttentionCount();
+      case 'approvals':
+        return this.store.pendingApprovalsCount();
+      case 'audit':
+        return this.store.auditAttentionCount();
+      case 'partners':
+        return this.store.partnersAttentionCount();
+      case 'reports':
+        return this.store.reportsAttentionCount();
+      case 'sales':
+        return this.store.salesAttentionCount();
+      case 'stockHealth':
+        return this.store.stockHealthAttentionCount();
+      case 'account':
+        return this.store.accountAttentionCount();
+      case 'company':
+        return this.store.companyAttentionCount();
+      case 'team':
+        return this.store.teamAttentionCount();
+      case 'notifications':
+        return this.store.notificationsAttentionCount();
+      case 'security':
+        return this.store.securityAttentionCount();
+      case 'helpCenter':
+        return this.store.helpCenterAttentionCount();
+      case 'tickets':
+        return this.store.openTicketsCount();
       case 'orders':
         return this.store.openOrders().length;
       case 'lowStock':
         return this.store.lowStock().length;
-      case 'pos':
-        return this.store.openPurchaseOrders().length;
-      case 'counts':
-        return this.store.countStats().open;
-      case 'returns':
-        return this.store.returns().filter((r) => r.status === 'requested').length;
-      case 'batches':
-        return this.store.batchStats().onHold + this.store.batchStats().inQa;
       default:
         return 0;
     }

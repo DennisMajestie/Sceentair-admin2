@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { Icon } from '../../ui/icon';
 import { HelpApiService } from '../../core/help-api.service';
 import { ToastService } from '../../core/toast';
@@ -24,7 +25,7 @@ const POPULAR = ['expiry', 'transfer', 'count', 'return', 'shortcuts'];
 @Component({
   selector: 'app-help-center',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon],
+  imports: [Icon, Spinner],
   template: `
     <div class="hero">
       <span class="hero__eyebrow">Help</span>
@@ -74,10 +75,8 @@ const POPULAR = ['expiry', 'transfer', 'count', 'return', 'shortcuts'];
     </div>
 
     @if (loading() && articles().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading help center" />
       </div>
     }
 

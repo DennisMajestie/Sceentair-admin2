@@ -1,4 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
+import { Spinner } from '../../ui/spinner';
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -128,7 +129,7 @@ function errorStatus(error: unknown): number | undefined {
 @Component({
   selector: 'app-staff-permissions',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, SdSlidingIndicator],
+  imports: [Icon, SdSlidingIndicator, Spinner],
   template: `
     <section class="sd-permissions" aria-labelledby="sd-permissions-title">
       <header class="sd-head">
@@ -156,9 +157,7 @@ function errorStatus(error: unknown): number | undefined {
         </div>
       } @else if (loading()) {
         <div class="sd-loading" aria-busy="true" aria-live="polite">
-          @for (row of [0, 1, 2, 3, 4, 5]; track row) {
-            <div class="sd-skeleton" [style.--row]="row"></div>
-          }
+          <app-spinner size="sm" label="Loading roles" />
         </div>
       } @else if (loadError()) {
         <div class="sd-banner sd-banner--danger" role="alert">

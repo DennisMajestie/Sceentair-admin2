@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -95,7 +96,7 @@ function errorText(err: unknown, fallback: string): string {
 @Component({
   selector: 'app-messages-inbox',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, Icon, Drawer],
+  imports: [FormsModule, RouterLink, Icon, Drawer, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -147,10 +148,8 @@ function errorText(err: unknown, fallback: string): string {
     </div>
 
     @if (loading() && threads().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading inbox" />
       </div>
     } @else {
       <div class="card">

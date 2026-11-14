@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { count as fmtCount, money as fmtMoney, titleCase } from '../../core/format';
@@ -83,7 +84,7 @@ function fingerprint(hash: string | null): string | null {
 @Component({
   selector: 'app-warehouses-inventory',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, RouterLink, FormsModule],
+  imports: [Icon, RouterLink, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -167,10 +168,8 @@ function fingerprint(hash: string | null): string | null {
     }
 
     @if (loading() && rows().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading inventory" />
       </div>
     } @else {
       <div class="card">

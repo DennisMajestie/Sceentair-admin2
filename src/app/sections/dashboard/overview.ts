@@ -11,7 +11,7 @@ import { SdMotionService } from '../../core/sd-motion.service';
 import { AuthService } from '../../core/auth.service';
 import { gsap } from 'gsap';
 import { hideAppPreloader } from '../../core/app-preloader';
-import { OverviewPrefetchService } from '../../core/overview-prefetch';
+import { OverviewPrefetchService, OverviewPrefetchSlots } from '../../core/overview-prefetch';
 import {
   AnalyticsInventoryMovementMonth,
   AnalyticsInventoryMovementPeriod,
@@ -130,6 +130,7 @@ export class DashboardOverview {
   protected readonly dashboardErrors = signal<{ label: string; message: string }[]>([]);
   protected readonly chartError = signal<string | null>(null);
   protected readonly chartLoading = signal(false);
+  protected readonly sellersLoading = signal(false);
   protected readonly chartPeriod = signal<AnalyticsInventoryMovementPeriod>('weekly');
   protected readonly chartExpanded = signal(false);
   private chartRequest = 0;
@@ -138,14 +139,12 @@ export class DashboardOverview {
   private mm?: gsap.MatchMedia;
 
   constructor() {
-    const prefetched = this.prefetch.consume();
-    if (prefetched) {
-      this.dashboardData.set(prefetched.dashboard);
-      this.dashboardBestSellers.set(prefetched.bestSellers);
-      this.lowStockData.set(prefetched.lowStock);
-      this.inventoryMovements.set(prefetched.inventoryMovements);
-      this.pending.set(false);
+    const slots: OverviewPrefetchSlots | null = this.prefetch.consume();
+    if (slots) {
+      this.applySlots(slots);
       afterNextRender(() => hideAppPreloader(), { injector: this.injector });
+    } else {
+      void this.loadDashboard();
     }
     effect(() => {
       this.store.data();
@@ -158,7 +157,34 @@ export class DashboardOverview {
       }, { injector: this.injector });
     });
     this.destroyRef.onDestroy(() => this.mm?.revert());
-    if (!prefetched) void this.loadDashboard();
+  }
+
+  /** Settle each prefetched analytics slot independently; the KPI row unblocks as soon as the dashboard call returns. */
+  private applySlots(slots: OverviewPrefetchSlots): void {
+    this.pending.set(true);
+    this.sellersLoading.set(true);
+    this.chartLoading.set(true);
+    slots.dashboard
+      .then((data) => this.dashboardData.set(data))
+      .catch(() => this.dashboardData.set(null))
+      .finally(() => {
+        if (!this.dashboardData()) {
+          this.dashboardErrors.set([{ label: 'Inventory totals', message: 'The analytics service is unreachable.' }]);
+          this.dashboardError.set('Dashboard data could not be loaded. The analytics service is unreachable.');
+        }
+        this.pending.set(false);
+      });
+    slots.bestSellers
+      .then((rows) => this.dashboardBestSellers.set(rows))
+      .catch(() => this.dashboardBestSellers.set([]))
+      .finally(() => this.sellersLoading.set(false));
+    slots.lowStock
+      .then((data) => this.lowStockData.set(data))
+      .catch(() => this.lowStockData.set(null));
+    slots.inventoryMovements
+      .then((movements) => this.inventoryMovements.set(movements))
+      .catch(() => this.inventoryMovements.set(null))
+      .finally(() => this.chartLoading.set(false));
   }
   private sellerPhoto(sku: string, productName: string): string {
     const products = this.store.products();
@@ -173,49 +199,69 @@ export class DashboardOverview {
     this.pending.set(true);
     this.dashboardError.set(null);
     this.dashboardErrors.set([]);
-    const [dashboard, bestSellers, lowStock, inventoryMovements] = await Promise.allSettled([
-      this.analyticsApi.dashboard(),
-      this.analyticsApi.bestSellers(5),
-      this.analyticsApi.lowStock(),
-      this.analyticsApi.inventoryMovementTrend(this.chartPeriod()),
-    ]);
+    this.sellersLoading.set(true);
+    this.chartLoading.set(true);
+
     const errors: string[] = [];
     const errorItems: { label: string; message: string }[] = [];
-    if (dashboard.status === 'fulfilled') this.dashboardData.set(dashboard.value);
-    else {
-      this.dashboardData.set(null);
-      const msg = this.errorMessage(dashboard.reason);
-      errors.push(`Inventory totals: ${msg}`);
-      errorItems.push({ label: 'Inventory totals', message: msg });
-    }
-    if (bestSellers.status === 'fulfilled') this.dashboardBestSellers.set(bestSellers.value);
-    else {
-      this.dashboardBestSellers.set([]);
-      const msg = this.errorMessage(bestSellers.reason);
-      errors.push(`Best sellers: ${msg}`);
-      errorItems.push({ label: 'Best sellers', message: msg });
-    }
-    if (lowStock.status === 'fulfilled') this.lowStockData.set(lowStock.value);
-    else {
-      this.lowStockData.set(null);
-      const msg = this.errorMessage(lowStock.reason);
-      errors.push(`Low-stock items: ${msg}`);
-      errorItems.push({ label: 'Low-stock items', message: msg });
-    }
-    if (inventoryMovements.status === 'fulfilled') this.inventoryMovements.set(inventoryMovements.value);
-    else {
-      this.inventoryMovements.set(null);
-      const msg = this.errorMessage(inventoryMovements.reason);
-      this.chartError.set(msg);
-      errors.push(`Inventory movement chart: ${msg}`);
-      errorItems.push({ label: 'Inventory movement chart', message: msg });
-    }
-    this.dashboardErrors.set(errorItems);
-    this.dashboardError.set(
-      errors.length ? `Some dashboard data could not be loaded. ${errors.join(' ')}` : null,
-    );
-    this.pending.set(false);
-    hideAppPreloader();
+    const noteError = (label: string, error: unknown) => {
+      const msg = this.errorMessage(error);
+      errors.push(`${label}: ${msg}`);
+      errorItems.push({ label, message: msg });
+    };
+    const syncErrors = () => {
+      this.dashboardErrors.set([...errorItems]);
+      this.dashboardError.set(
+        errors.length ? `Some dashboard data could not be loaded. ${errors.join(' ')}` : null,
+      );
+    };
+
+    void this.analyticsApi
+      .dashboard()
+      .then((data) => this.dashboardData.set(data))
+      .catch((error) => {
+        this.dashboardData.set(null);
+        noteError('Inventory totals', error);
+      })
+      .finally(() => {
+        syncErrors();
+        this.pending.set(false);
+      });
+
+    void this.analyticsApi
+      .bestSellers(5)
+      .then((rows) => this.dashboardBestSellers.set(rows))
+      .catch((error) => {
+        this.dashboardBestSellers.set([]);
+        noteError('Best sellers', error);
+      })
+      .finally(() => {
+        syncErrors();
+        this.sellersLoading.set(false);
+      });
+
+    void this.analyticsApi
+      .lowStock()
+      .then((data) => this.lowStockData.set(data))
+      .catch((error) => {
+        this.lowStockData.set(null);
+        noteError('Low-stock items', error);
+        syncErrors();
+      });
+
+    void this.analyticsApi
+      .inventoryMovementTrend(this.chartPeriod())
+      .then((movements) => this.inventoryMovements.set(movements))
+      .catch((error) => {
+        this.inventoryMovements.set(null);
+        const msg = this.errorMessage(error);
+        this.chartError.set(msg);
+        noteError('Inventory movement chart', msg);
+      })
+      .finally(() => {
+        syncErrors();
+        this.chartLoading.set(false);
+      });
   }
 
   private errorMessage(error: unknown): string {
@@ -382,6 +428,7 @@ export class DashboardOverview {
       const target = Number(el.getAttribute('data-to'));
       const kind = el.getAttribute('data-kind');
       if (!Number.isFinite(target)) return;
+      el.dataset['animated'] = String(target);
       this.motion.setFinal(el as HTMLElement, target, this.numFmt(kind));
     });
   }
@@ -395,6 +442,8 @@ export class DashboardOverview {
         const target = Number(el.getAttribute('data-to'));
         const kind = el.getAttribute('data-kind');
         if (!Number.isFinite(target)) return;
+        if (el.dataset['animated'] === String(target)) return;
+        el.dataset['animated'] = String(target);
         this.motion.countTo(el, target, this.numFmt(kind), {
           tl,
           position: tl ? 0.95 : undefined,
@@ -537,11 +586,11 @@ export class DashboardOverview {
       sales: true,
       open: true,
       approvals: true,
-      chart: (this.inventoryMovements()?.length ?? 0) > 0,
+      chart: true,
       gauge: true,
       activities: true,
       alerts: this.dashboardAlerts().length > 0,
-      sellers: this.dashboardBestSellers().length > 0,
+      sellers: this.sellersLoading() || this.dashboardBestSellers().length > 0,
       ships: this.store.shippingQueue().length > 0,
       locations: true,
     };

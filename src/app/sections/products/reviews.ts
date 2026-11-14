@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +13,7 @@ import { Icon } from '../../ui/icon';
 @Component({
   selector: 'app-products-reviews',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, FormsModule, DatePipe],
+  imports: [RouterLink, Icon, FormsModule, DatePipe, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -26,7 +27,7 @@ import { Icon } from '../../ui/icon';
     </div>
 
     @if (loading()) {
-      <p class="note">Loading pending reviews…</p>
+      <div class="load-center" role="status"><app-spinner size="sm" label="Loading pending reviews" /></div>
     } @else if (loadError()) {
       <div class="empty"><strong>Couldn't load reviews.</strong><span>{{ loadError() }}</span><button class="btn btn--ghost" type="button" (click)="load()">Retry</button></div>
     }

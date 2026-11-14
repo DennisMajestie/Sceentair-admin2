@@ -1049,3 +1049,5 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+
+.load-center { display: flex; align-items: center; justify-content: center; padding: 36px 16px; color: var(--muted); }

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { Router, NavigationStart, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { count as fmtCount } from '../../core/format';
@@ -49,7 +50,7 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
 @Component({
   selector: 'app-customers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Sparkline],
+  imports: [RouterLink, Icon, Sparkline, Spinner],
   template: `
     <div class="head head--cs">
       <div class="head__text">
@@ -141,10 +142,8 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
         </div>
 
         @if (loading() && rows().length === 0) {
-          <div class="cs-cards cs-skel" aria-hidden="true">
-            @for (i of [0, 1, 2, 3, 4, 5, 6, 7]; track i) {
-              <div class="cs-skel__card"></div>
-            }
+          <div class="load-center" role="status">
+            <app-spinner size="sm" label="Loading customers" />
           </div>
         } @else if (viewMode() === 'grid') {
           <div class="cs-cards">
@@ -283,10 +282,8 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
         </div>
 
         @if (loading() && rows().length === 0) {
-          <div class="cs-table cs-skel" style="--cols: 2.2fr 1.3fr 0.6fr 0.8fr 1fr 1.3fr" aria-hidden="true">
-            @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-              <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-            }
+          <div class="load-center" role="status">
+            <app-spinner size="sm" label="Loading customers" />
           </div>
         } @else {
           <div class="cs-table" style="--cols: 2.2fr 1.3fr 0.6fr 0.8fr 1fr 1.3fr" role="table" aria-label="Shoppers">

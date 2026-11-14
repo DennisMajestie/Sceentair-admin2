@@ -15,6 +15,10 @@ import { ApprovalsApiService } from './approvals-api.service';
 import { AuditApiService } from './audit-api.service';
 import { AuthService } from './auth.service';
 import { BusinessApiService } from './business-api.service';
+import { WholesaleApiService } from './wholesale-api.service';
+import { ReviewsApiService } from './reviews-api.service';
+import { CustomOrdersApiService } from './custom-orders-api.service';
+import { DeliveriesApiService } from './deliveries-api.service';
 import { synthesizeGuestShoppers } from '../sections/customers/cs-data';
 import {
   Batch,
@@ -64,6 +68,8 @@ function emptySeed(): import('./models').Seed {
     weeks: [],
     ledgerEntries: [],
     approvals: [],
+    wholesaleAccounts: [],
+    wholesaleTiers: [],
     settings: {
       me: { id: '', name: '', email: '', title: '', phone: '' },
       company: {
@@ -591,8 +597,13 @@ export class Store {
   private readonly auditApi = inject(AuditApiService);
   private readonly auth = inject(AuthService);
   private readonly businessApi = inject(BusinessApiService);
+  private readonly wholesaleApi = inject(WholesaleApiService);
+  private readonly reviewsApi = inject(ReviewsApiService);
+  private readonly customOrdersApi = inject(CustomOrdersApiService);
+  private readonly deliveriesApi = inject(DeliveriesApiService);
 
   private readonly state = signal<import('./models').Seed>(emptySeed());
+  private background?: Promise<void>;
 
   readonly data = this.state.asReadonly();
 
@@ -603,11 +614,13 @@ export class Store {
   ): Promise<void> {
     await this.returnsApi.resolve(id, input);
     await this.load();
+    await this.settled();
   }
 
   async updateBatchStage(id: string, stage: string): Promise<void> {
     await this.productionApi.updateStage(id, stage);
     await this.load();
+    await this.settled();
   }
 
   /** Re-fetch approvals so screens like production see freshly approved requests. */
@@ -634,18 +647,11 @@ export class Store {
         },
       };
     }
+    // Core bootstrap — only what the first paint needs; everything else loads off the critical path.
     await Promise.all([
       this.catalogueApi
         .list({ page: 1, limit: 100 })
         .then((r) => (next.products = r.data.map(mapProduct)))
-        .catch(() => { }),
-      this.materialsApi
-        .list()
-        .then((r) => (next.materials = r.data.map(mapMaterial)))
-        .catch(() => { }),
-      this.suppliersApi
-        .list()
-        .then((r) => (next.suppliers = r.data.map(mapSupplier)))
         .catch(() => { }),
       Promise.all([
         this.customersApi.list({ page: 1, limit: 100 }).catch(() => ({ data: [] as ApiCustomer[], total: 0 })),
@@ -655,30 +661,6 @@ export class Store {
         next.customers = unified.customers.map(mapCustomer);
         next.orders = unified.orders.map(mapOrder);
       }),
-      this.inventoryApi
-        .counts()
-        .then((r) => (next.counts = r.data.map(mapCount)))
-        .catch(() => { }),
-      this.helpApi.tickets().then((r) => (next.tickets = r.data.map(mapTicket))).catch(() => { }),
-      this.materialsApi
-        .purchases(1, 100)
-        .then((r) => (next.pos = r.data.map(mapPurchase)))
-        .catch(() => { }),
-      this.usersApi
-        .list(1, 100)
-        .then((r) => (next.team = r.data.map(mapTeammate)))
-        .catch(() => { }),
-      this.notificationsApi
-        .list(1, 50)
-        .then((r) => {
-          const notices = r.data.map(mapNotice);
-          this.notices.set(notices);
-        })
-        .catch(() => { }),
-      this.auditApi
-        .list(1, 50)
-        .then((r) => (next.activity = r.data.map(mapActivity)))
-        .catch(() => { }),
       this.businessApi
         .getProfile()
         .then((profile) => {
@@ -718,6 +700,53 @@ export class Store {
           ];
         })
         .catch(() => { }),
+    ]);
+    this.state.set(next);
+    this.background = this.loadBackground(next);
+  }
+
+  /** Resolves once any background bootstrap in flight has fully merged into state. */
+  async settled(): Promise<void> {
+    const bg = this.background;
+    if (bg) await bg;
+  }
+
+  /** Remaining bootstrap — everything the first paint does not need, loaded off the critical path. */
+  private async loadBackground(next: import('./models').Seed): Promise<void> {
+    try {
+      await Promise.all([
+      this.materialsApi
+        .list()
+        .then((r) => (next.materials = r.data.map(mapMaterial)))
+        .catch(() => { }),
+      this.suppliersApi
+        .list()
+        .then((r) => (next.suppliers = r.data.map(mapSupplier)))
+        .catch(() => { }),
+      this.inventoryApi
+        .counts()
+        .then((r) => (next.counts = r.data.map(mapCount)))
+        .catch(() => { }),
+      this.helpApi.tickets().then((r) => (next.tickets = r.data.map(mapTicket))).catch(() => { }),
+      this.materialsApi
+        .purchases(1, 100)
+        .then((r) => (next.pos = r.data.map(mapPurchase)))
+        .catch(() => { }),
+      this.usersApi
+        .list(1, 100)
+        .then((r) => (next.team = r.data.map(mapTeammate)))
+        .catch(() => { }),
+      this.notificationsApi
+        .list(1, 50)
+        .then((r) => {
+          const notices = r.data.map(mapNotice);
+          this.notices.set(notices);
+        })
+        .catch(() => { }),
+      this.auditApi
+        .list(1, 50)
+        .then((r) => (next.activity = r.data.map(mapActivity)))
+        .catch(() => { }),
       this.notificationsApi
         .getPreferences()
         .then((prefs) => {
@@ -734,6 +763,49 @@ export class Store {
           next.approvals = r.data.map(mapApproval);
         })
         .catch(() => { }),
+      this.wholesaleApi
+        .listAccounts({ page: 1, limit: 100 })
+        .then((r) => {
+          next.wholesaleAccounts = r.data.map((a) => ({
+            id: a.id,
+            status: a.status,
+            businessName: a.businessName ?? null,
+          }));
+        })
+        .catch(() => { }),
+      this.wholesaleApi
+        .listTiers({ page: 1, limit: 100 })
+        .then((r) => {
+          next.wholesaleTiers = r.data.map((t) => ({
+            id: t.id,
+            name: t.name,
+            ruleDescription: t.ruleDescription ?? null,
+            discountPercent: t.discountPercent ?? 0,
+          }));
+        })
+        .catch(() => { }),
+      this.reviewsApi
+        .pending()
+        .then((r) => this.pendingReviewsCount.set((r ?? []).length))
+        .catch(() => {}),
+      this.customOrdersApi
+        .list(1, 100)
+        .then((r) => {
+          const need = (r?.data ?? []).filter((o: any) =>
+            ['submitted', 'under_review', 'quoted', 'sample_in_production'].includes(o.status),
+          );
+          this.attentionCustomOrdersCount.set(need.length);
+        })
+        .catch(() => {}),
+      this.deliveriesApi
+        .list({ page: 1, limit: 100 })
+        .then((legs) => {
+          const active = (legs ?? []).filter((l: any) =>
+            ['pending', 'in_transit', 'failed'].includes(l.status),
+          );
+          this.activeDeliveriesCount.set(active.length);
+        })
+        .catch(() => {}),
     ]);
 
     await Promise.all([
@@ -778,26 +850,49 @@ export class Store {
         .catch(() => { }),
     ]);
     await this.hydrateMoves(next);
-    this.state.set(next);
+    } finally {
+      // Merge only background-populated fields so concurrent updates made meanwhile are preserved.
+      this.state.update((current) => ({
+        ...current,
+        materials: next.materials,
+        suppliers: next.suppliers,
+        counts: next.counts,
+        tickets: next.tickets,
+        pos: next.pos,
+        team: next.team,
+        ledgerEntries: next.ledgerEntries,
+        approvals: next.approvals,
+        batches: next.batches,
+        returns: next.returns,
+        moves: next.moves,
+        activity: next.activity,
+        wholesaleAccounts: next.wholesaleAccounts,
+        wholesaleTiers: next.wholesaleTiers,
+        settings: {
+          ...current.settings,
+          notify: next.settings.notify,
+          prefs: next.settings.prefs,
+        },
+      }));
+    }
   }
 
   private async hydrateMoves(next: import('./models').Seed): Promise<void> {
     try {
       const items = await this.inventoryApi.summary();
-      const moves: Move[] = [];
-      const targets = items.slice(0, 60);
-      for (const item of targets) {
-        const itemType = item.itemType === 'material' ? 'material' : 'variant';
-        try {
-          const r = await this.inventoryApi.movements(itemType, item.itemId, { page: 1, limit: 10 });
-          for (const m of r.data ?? []) {
-            moves.push(mapInventoryMovement(itemType, item.itemId, m));
-          }
-        } catch {
-          // keep going; a missing item ledger is not fatal
-        }
-      }
-      next.moves = moves.sort((a, b) => b.at - a.at);
+      const targets = items.slice(0, 20);
+      const batches = await Promise.all(
+        targets.map((item) => {
+          const itemType = item.itemType === 'material' ? 'material' : 'variant';
+          return this.inventoryApi
+            .movements(itemType, item.itemId, { page: 1, limit: 10 })
+            .then((r) =>
+              (r.data ?? []).map((m) => mapInventoryMovement(itemType, item.itemId, m)),
+            )
+            .catch(() => [] as Move[]);
+        }),
+      );
+      next.moves = batches.flat().sort((a, b) => b.at - a.at);
     } catch {
       // inventory summary unavailable; moves stay empty
     }
@@ -1165,6 +1260,61 @@ export class Store {
 
   readonly unreadNotices = computed(() => this.data().notices.filter((n) => !n.read).length);
 
+  // --------------------------------------------------- sidebar badge counts
+  readonly pendingWholesaleAccountsCount = computed(
+    () => this.data().wholesaleAccounts.filter((a) => a.status === 'pending').length,
+  );
+  readonly shopperAttentionCount = computed(() => 0);
+  readonly stockistAttentionCount = computed(() => 0);
+  readonly wholesaleTierAttentionCount = computed(
+    () =>
+      this.data().wholesaleTiers.filter(
+        (t) => !t.ruleDescription || !t.ruleDescription.trim(),
+      ).length,
+  );
+  readonly pendingApprovalsCount = computed(
+    () => this.data().approvals.filter((a) => a.status === 'pending').length,
+  );
+  readonly openTicketsCount = computed(
+    () => this.data().tickets.filter((t) => t.status !== 'closed').length,
+  );
+  readonly messagesAttentionCount = computed(() => this.unreadNotices());
+  readonly notificationsAttentionCount = computed(() => this.unreadNotices());
+  readonly catalogAttentionCount = computed(() => this.lowStockProducts().length);
+  readonly allOrdersAttentionCount = computed(() => this.openOrders().length);
+  readonly boardAttentionCount = computed(() => this.ordersToShip().length);
+  readonly materialsAttentionCount = computed(() => this.lowStockMaterials().length);
+  readonly productionQueueAttentionCount = computed(
+    () => this.data().batches.filter((b) => b.status === 'hold').length,
+  );
+  readonly inventoryAttentionCount = computed(() => this.lowStock().length);
+  readonly stockHealthAttentionCount = computed(() => this.lowStock().length);
+  readonly salesAttentionCount = computed(() => this.unpaidOrders().length);
+  readonly teamAttentionCount = computed(
+    () =>
+      this.data().team.filter((t) => {
+        const s = (t.status ?? '').toLowerCase();
+        return s === 'invited' || s === 'pending';
+      }).length,
+  );
+  readonly activityAttentionCount = computed(() => 0);
+  readonly suppliersAttentionCount = computed(() => 0);
+  readonly techPacksAttentionCount = computed(() => 0);
+  readonly kioskAttentionCount = computed(() => 0);
+  readonly locationsAttentionCount = computed(() => 0);
+  readonly campaignsAttentionCount = computed(() => 0);
+  readonly couponWalletAttentionCount = computed(() => 0);
+  readonly couponCampaignsAttentionCount = computed(() => 0);
+  readonly mediaAttentionCount = computed(() => 0);
+  readonly ledgerAttentionCount = computed(() => 0);
+  readonly auditAttentionCount = computed(() => 0);
+  readonly partnersAttentionCount = computed(() => 0);
+  readonly reportsAttentionCount = computed(() => 0);
+  readonly accountAttentionCount = computed(() => 0);
+  readonly companyAttentionCount = computed(() => 0);
+  readonly securityAttentionCount = computed(() => 0);
+  readonly helpCenterAttentionCount = computed(() => 0);
+
   /** Rolling monthly series used by the dashboard sales chart. */
   readonly salesSeries = computed<SeriesPoint[]>(() => this.months());
 
@@ -1205,6 +1355,9 @@ export class Store {
 
   // ------------------------------------------------------------- mutability
   readonly notices = signal<Notice[]>([]);
+  readonly pendingReviewsCount = signal(0);
+  readonly attentionCustomOrdersCount = signal(0);
+  readonly activeDeliveriesCount = signal(0);
 
   markNoticeRead(id: string): void {
     this.notices.update((list) => list.map((n) => (n.id === id ? { ...n, read: true } : n)));

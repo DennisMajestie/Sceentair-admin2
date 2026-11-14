@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NAV, matchSection } from '../core/nav';
@@ -7,6 +7,7 @@ import { AuthService } from '../core/auth.service';
 import { ThemeService } from '../core/theme';
 import { ToastService } from '../core/toast';
 import { SdShellStateService } from '../core/sd-shell-state.service';
+import { BadgeStateService } from '../core/badge-state';
 import { SdSlidingIndicator } from './sliding-indicator';
 import { Icon } from './icon';
 
@@ -75,7 +76,7 @@ import { Icon } from './icon';
           <div class="logout-dialog__actions">
             <button type="button" class="btn btn--ghost btn--sm" (click)="cancelLogout()">Cancel</button>
             <button type="button" class="btn btn--primary btn--sm logout-dialog__confirm" [disabled]="signingOut()" (click)="confirmLogout()">
-              {{ signingOut() ? 'Signing out…' : 'Sign out' }}
+              {{ signingOut() ? 'Signing outâ€¦' : 'Sign out' }}
             </button>
           </div>
         </div>
@@ -338,6 +339,7 @@ export class Sidebar {
   protected readonly store = inject(Store);
   protected readonly theme = inject(ThemeService);
   protected readonly state = inject(SdShellStateService);
+  private readonly badgeState = inject(BadgeStateService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
@@ -352,8 +354,16 @@ export class Sidebar {
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (!(e instanceof NavigationEnd)) return;
-      const active = matchSection(e.urlAfterRedirects || '');
+      const url = e.urlAfterRedirects || '';
+      const active = matchSection(url);
       this.activeSectionId.set(active?.id ?? null);
+      for (const section of NAV) {
+        for (const page of section.pages) {
+          if (page.badge && url.startsWith(page.path)) {
+            this.badgeState.view(page.badge, this.rawBadgeValue(page.badge));
+          }
+        }
+      }
     });
 
     this.destroyRef.onDestroy(() => { });
@@ -368,21 +378,99 @@ export class Sidebar {
   }
 
   protected badgeValue(key: string): number {
+    return this.badgeState.unseen(key, this.rawBadgeValue(key));
+  }
+
+  private rawBadgeValue(key: string): number {
     switch (key) {
       case 'alerts':
         return this.store.alerts().length;
+      case 'activity':
+        return this.store.activityAttentionCount();
+      case 'catalog':
+        return this.store.catalogAttentionCount();
+      case 'batches':
+        return this.store.batchStats().onHold + this.store.batchStats().inQa;
+      case 'reviews':
+        return this.store.pendingReviewsCount();
+      case 'allOrders':
+        return this.store.allOrdersAttentionCount();
+      case 'board':
+        return this.store.boardAttentionCount();
+      case 'returns':
+        return this.store.returns().filter((r) => r.status === 'requested').length;
+      case 'deliveries':
+        return this.store.activeDeliveriesCount();
+      case 'customOrders':
+        return this.store.attentionCustomOrdersCount();
+      case 'messages':
+        return this.store.messagesAttentionCount();
+      case 'pos':
+        return this.store.openPurchaseOrders().length;
+      case 'materials':
+        return this.store.materialsAttentionCount();
+      case 'suppliers':
+        return this.store.suppliersAttentionCount();
+      case 'productionQueue':
+        return this.store.productionQueueAttentionCount();
+      case 'techPacks':
+        return this.store.techPacksAttentionCount();
+      case 'kiosk':
+        return this.store.kioskAttentionCount();
+      case 'inventory':
+        return this.store.inventoryAttentionCount();
+      case 'locations':
+        return this.store.locationsAttentionCount();
+      case 'counts':
+        return this.store.countStats().open;
+      case 'shoppers':
+        return this.store.shopperAttentionCount();
+      case 'stockists':
+        return this.store.stockistAttentionCount();
+      case 'wholesaleAccounts':
+        return this.store.pendingWholesaleAccountsCount();
+      case 'wholesaleTiers':
+        return this.store.wholesaleTierAttentionCount();
+      case 'campaigns':
+        return this.store.campaignsAttentionCount();
+      case 'couponWallet':
+        return this.store.couponWalletAttentionCount();
+      case 'couponCampaigns':
+        return this.store.couponCampaignsAttentionCount();
+      case 'media':
+        return this.store.mediaAttentionCount();
+      case 'ledger':
+        return this.store.ledgerAttentionCount();
+      case 'approvals':
+        return this.store.pendingApprovalsCount();
+      case 'audit':
+        return this.store.auditAttentionCount();
+      case 'partners':
+        return this.store.partnersAttentionCount();
+      case 'reports':
+        return this.store.reportsAttentionCount();
+      case 'sales':
+        return this.store.salesAttentionCount();
+      case 'stockHealth':
+        return this.store.stockHealthAttentionCount();
+      case 'account':
+        return this.store.accountAttentionCount();
+      case 'company':
+        return this.store.companyAttentionCount();
+      case 'team':
+        return this.store.teamAttentionCount();
+      case 'notifications':
+        return this.store.notificationsAttentionCount();
+      case 'security':
+        return this.store.securityAttentionCount();
+      case 'helpCenter':
+        return this.store.helpCenterAttentionCount();
+      case 'tickets':
+        return this.store.openTicketsCount();
       case 'orders':
         return this.store.openOrders().length;
       case 'lowStock':
         return this.store.lowStock().length;
-      case 'pos':
-        return this.store.openPurchaseOrders().length;
-      case 'counts':
-        return this.store.countStats().open;
-      case 'returns':
-        return this.store.returns().filter((r) => r.status === 'requested').length;
-      case 'batches':
-        return this.store.batchStats().onHold + this.store.batchStats().inQa;
       default:
         return 0;
     }
@@ -421,3 +509,4 @@ export class Sidebar {
     await this.router.navigateByUrl('/signin');
   }
 }
+

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Icon } from '../../ui/icon';
@@ -9,7 +10,7 @@ import { ToastService } from '../../core/toast';
 @Component({
   selector: 'app-wholesale-tiers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -47,6 +48,10 @@ import { ToastService } from '../../core/toast';
       </label>
       <span class="badge">{{ visible().length }} tiers</span>
     </div>
+
+    @if (loading() && visible().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="sm" label="Loading wholesale tiers" /></div>
+    }
 
     <div class="tier-grid" aria-label="Wholesale tiers">
       @for (row of visible(); track row.id) {
@@ -201,13 +206,20 @@ export class WholesaleTiers {
 
   private readonly routeId = this.route.snapshot.paramMap.get('id');
 
+  protected readonly loading = signal(true);
+
   constructor() {
     void this.load();
   }
 
   async load(): Promise<void> {
-    const result = await this.wholesaleApi.listTiers({ page: 1, limit: 100 });
-    this.tiers.set(result.data);
+    this.loading.set(true);
+    try {
+      const result = await this.wholesaleApi.listTiers({ page: 1, limit: 100 });
+      this.tiers.set(result.data);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected readonly visible = computed(() => {

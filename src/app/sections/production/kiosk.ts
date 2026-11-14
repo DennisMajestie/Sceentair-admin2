@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -14,7 +15,7 @@ import { ToastService } from '../../core/toast';
 @Component({
   selector: 'app-floor-kiosk',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, DatePipe],
+  imports: [RouterLink, FormsModule, DatePipe, Spinner],
   template: `
     <div class="kiosk">
       <div class="head">
@@ -33,7 +34,7 @@ import { ToastService } from '../../core/toast';
       </div>
 
       @if (loading()) {
-        <p class="kiosk__note">Loading the floor...</p>
+        <p class="kiosk__note"><app-spinner size="sm" label="Loading the floor" /></p>
       } @else if (loadError()) {
         <p class="kiosk__note kiosk__note--error">{{ loadError() }} <button class="kiosk__retry" type="button" (click)="load()">Retry</button></p>
       }

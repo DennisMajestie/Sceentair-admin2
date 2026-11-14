@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -38,7 +39,7 @@ function errorText(err: unknown): string {
 @Component({
   selector: 'app-warehouses-counts',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Drawer, Icon, RouterLink, FormsModule],
+  imports: [Drawer, Icon, RouterLink, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -98,10 +99,8 @@ function errorText(err: unknown): string {
     </div>
 
     @if (loading() && rows().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3, 4, 5]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading cycle counts" />
       </div>
     } @else {
       <div class="card">

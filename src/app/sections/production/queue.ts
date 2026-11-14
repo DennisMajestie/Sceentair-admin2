@@ -18,6 +18,7 @@ import {
 import { money as fmtMoney } from '../../core/format';
 import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 import { Drawer } from '../../ui/drawer';
 
 interface BatchRow {
@@ -36,7 +37,7 @@ interface BatchRow {
 @Component({
   selector: 'app-production-queue',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, ReactiveFormsModule, DatePipe],
+  imports: [RouterLink, Icon, Drawer, FormsModule, ReactiveFormsModule, DatePipe, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -91,7 +92,7 @@ interface BatchRow {
     </div>
 
     @if (loading()) {
-      <p class="note">Loading production…</p>
+      <div class="load-center" role="status"><app-spinner size="sm" label="Loading production" /></div>
     } @else if (loadError()) {
       <div class="empty"><strong>Couldn't load production.</strong><span>{{ loadError() }}</span><button class="btn btn--ghost" type="button" (click)="load()">Retry</button></div>
     }

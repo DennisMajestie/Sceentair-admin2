@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { dateFull, statusLabel, statusTone } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
@@ -21,7 +22,7 @@ interface TicketRow {
 @Component({
   selector: 'app-help-tickets',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer],
+  imports: [Icon, Drawer, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -50,10 +51,8 @@ interface TicketRow {
     </div>
 
     @if (loading() && rows().length === 0) {
-      <div class="card cs-skel" aria-hidden="true">
-        @for (i of [0, 1, 2, 3]; track i) {
-          <div class="cs-row cs-skel__row" style="--row-h: 58px"></div>
-        }
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading support tickets" />
       </div>
     } @else {
       <div class="grid grid--2">

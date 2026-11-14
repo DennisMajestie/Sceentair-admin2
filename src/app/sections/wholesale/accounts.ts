@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { Spinner } from '../../ui/spinner';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -28,7 +29,7 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
 @Component({
   selector: 'app-wholesale-accounts',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -79,6 +80,10 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
       </label>
       <span class="badge">{{ visible().length }} accounts</span>
     </div>
+
+    @if (loading() && visible().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="sm" label="Loading wholesale accounts" /></div>
+    }
 
     <div class="account-grid" aria-label="Wholesale accounts">
       @for (row of visible(); track row.id) {
@@ -137,14 +142,12 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
           @if (a.status === 'pending') {
             <h3 class="dlabel">Review application</h3>
             <div class="ddecide">
-              <label class="resolve-label">
-                <span>Decision</span>
-                <select class="resolve-select" [(ngModel)]="reviewDecision">
-                  <option value="approved">Approve</option>
-                  <option value="rejected">Reject</option>
-                </select>
-              </label>
-                <button type="button" class="btn" [disabled]="!reviewDecision()" (click)="reviewAccount(a.id)">Submit decision</button>
+              <button type="button" class="btn" [disabled]="reviewing()" (click)="reviewAccount(a.id, 'approved')">
+                Approve
+              </button>
+              <button type="button" class="btn btn--ghost" [disabled]="reviewing()" (click)="reviewAccount(a.id, 'rejected')">
+                Reject
+              </button>
             </div>
           }
         </div>
@@ -173,9 +176,7 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
     .facts div { display: grid; gap: 2px; }
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
-    .ddecide { display: grid; gap: 10px; margin-top: 12px; }
-    .resolve-label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); color: var(--faint); font-weight: 600; }
-    .resolve-select { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-card); background: var(--surface); color: var(--text); font-size: var(--fs-sm); }
+    .ddecide { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
     @media (max-width: 1100px) { .account-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .account-grid { grid-template-columns: 1fr; } }
   `,
@@ -195,7 +196,8 @@ export class WholesaleAccounts {
   protected readonly query = signal('');
   protected readonly status = signal<WholesaleAccountStatus | 'all'>('all');
   protected readonly accounts = signal<WholesaleAccount[]>([]);
-  protected readonly reviewDecision = signal<string>('');
+  protected readonly reviewing = signal(false);
+  protected readonly loading = signal(true);
 
   protected readonly statuses: { id: WholesaleAccountStatus | 'all'; label: string }[] = [
     { id: 'all', label: 'All' },
@@ -213,8 +215,13 @@ export class WholesaleAccounts {
   }
 
   async load(): Promise<void> {
-    const result = await this.wholesaleApi.listAccounts({ page: 1, limit: 100 });
-    this.accounts.set(result.data);
+    this.loading.set(true);
+    try {
+      const result = await this.wholesaleApi.listAccounts({ page: 1, limit: 100 });
+      this.accounts.set(result.data);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected readonly visible = computed(() => {
@@ -243,14 +250,17 @@ export class WholesaleAccounts {
 
   protected readonly selected = computed(() => this.accounts().find((a) => a.id === this.routeId()));
 
-  protected async reviewAccount(id: string): Promise<void> {
+  protected async reviewAccount(id: string, decision: 'approved' | 'rejected'): Promise<void> {
+    this.reviewing.set(true);
     try {
-      await this.wholesaleApi.reviewAccount(id, { status: this.reviewDecision() as WholesaleAccountStatus, reviewedBy: '' });
+      await this.wholesaleApi.reviewAccount(id, { status: decision, reviewedBy: '' });
       await this.load();
       this.close();
     } catch (err) {
       // Surface error silently - reload to reflect server state
       await this.load();
+    } finally {
+      this.reviewing.set(false);
     }
   }
 

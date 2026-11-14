@@ -14,6 +14,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { Spinner } from '../../ui/spinner';
 import { Title } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -40,7 +41,7 @@ interface KvRow {
 @Component({
   selector: 'app-product-item',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, ProductShot],
+  imports: [RouterLink, Icon, ProductShot, Spinner],
   template: `
     @if (product(); as p) {
       <div #root class="sd-item">
@@ -169,7 +170,7 @@ interface KvRow {
               @if (inventoryError(); as error) {
                 <p class="sd-inline-error" role="alert">Stock data could not be loaded: {{ error }}</p>
               } @else if (inventorySummary() === null) {
-                <p class="sd-stock-empty" aria-live="polite">Loading stock ledger…</p>
+                <p class="sd-stock-empty" aria-live="polite"><app-spinner size="sm" label="Loading stock ledger" /></p>
               } @else if (p.variants.length > 0) {
                 <ul class="sd-locs">
                   @for (v of p.variants; track v.id) {

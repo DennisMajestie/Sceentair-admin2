@@ -7,48 +7,37 @@ import {
   AnalyticsLowStock,
 } from './analytics-api.service';
 
-export interface OverviewPrefetchData {
-  dashboard: AnalyticsDashboard | null;
-  bestSellers: AnalyticsBestSeller[];
-  lowStock: AnalyticsLowStock | null;
-  inventoryMovements: AnalyticsInventoryMovementMonth[] | null;
+export interface OverviewPrefetchSlots {
+  dashboard: Promise<AnalyticsDashboard | null>;
+  bestSellers: Promise<AnalyticsBestSeller[]>;
+  lowStock: Promise<AnalyticsLowStock | null>;
+  inventoryMovements: Promise<AnalyticsInventoryMovementMonth[] | null>;
 }
 
 @Injectable({ providedIn: 'root' })
 export class OverviewPrefetchService {
   private readonly analyticsApi = inject(AnalyticsApiService);
-  private pending: Promise<OverviewPrefetchData> | null = null;
-  private cached: OverviewPrefetchData | null = null;
+  private slots: OverviewPrefetchSlots | null = null;
 
-  prefetch(): Promise<OverviewPrefetchData> {
-    if (!this.pending) {
-      this.pending = this.load().then((data) => {
-        this.cached = data;
-        this.pending = null;
-        return data;
-      });
+  /** Start the four analytics calls once; each settles independently. */
+  prefetch(): OverviewPrefetchSlots {
+    if (!this.slots) {
+      this.slots = {
+        dashboard: this.analyticsApi.dashboard().catch(() => null),
+        bestSellers: this.analyticsApi.bestSellers(5).catch(() => [] as AnalyticsBestSeller[]),
+        lowStock: this.analyticsApi.lowStock().catch(() => null),
+        inventoryMovements: this.analyticsApi
+          .inventoryMovementTrend('weekly')
+          .catch(() => null),
+      };
     }
-    return this.pending;
+    return this.slots;
   }
 
-  consume(): OverviewPrefetchData | null {
-    const data = this.cached;
-    this.cached = null;
-    return data;
-  }
-
-  private async load(): Promise<OverviewPrefetchData> {
-    const [dashboard, bestSellers, lowStock, inventoryMovements] = await Promise.allSettled([
-      this.analyticsApi.dashboard(),
-      this.analyticsApi.bestSellers(5),
-      this.analyticsApi.lowStock(),
-      this.analyticsApi.inventoryMovementTrend('weekly'),
-    ]);
-    return {
-      dashboard: dashboard.status === 'fulfilled' ? dashboard.value : null,
-      bestSellers: bestSellers.status === 'fulfilled' ? bestSellers.value : [],
-      lowStock: lowStock.status === 'fulfilled' ? lowStock.value : null,
-      inventoryMovements: inventoryMovements.status === 'fulfilled' ? inventoryMovements.value : null,
-    };
+  /** Hand the in-flight slots to the overview and forget them. */
+  consume(): OverviewPrefetchSlots | null {
+    const slots = this.slots;
+    this.slots = null;
+    return slots;
   }
 }
