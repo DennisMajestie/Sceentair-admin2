@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { auditTime } from 'rxjs';
@@ -25,6 +25,7 @@ export class App {
   private readonly realtime = inject(RealtimeService);
   private readonly store = inject(Store);
   private readonly paletteRef = viewChild(Palette);
+  private readonly mainRef = viewChild<ElementRef<HTMLElement>>('mainEl');
   protected readonly mobileNav = signal(false);
   protected readonly layoutAnimated = signal(false);
   protected readonly isSignin = signal(this.router.url.startsWith('/signin'));
@@ -41,9 +42,9 @@ export class App {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (e instanceof NavigationEnd) {
         this.isSignin.set(e.urlAfterRedirects.startsWith('/signin'));
-        // Every page load starts at the top of the document. Skip fragment links.
-        if (typeof window !== 'undefined' && !e.urlAfterRedirects.includes('#')) {
-          window.scrollTo(0, 0);
+        // Scroll only the page module, not the full page or sidebar.
+        if (!e.urlAfterRedirects.includes('#')) {
+          this.mainRef()?.nativeElement.scrollTo?.({ top: 0, left: 0 });
         }
       }
       if (!(e instanceof NavigationStart)) return;

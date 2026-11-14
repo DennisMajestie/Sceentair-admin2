@@ -196,7 +196,7 @@ export type SpinnerVariant =
 })
 export class Spinner {
   readonly size = input<'sm' | 'md' | 'lg' | number>('md');
-  readonly variant = input<SpinnerVariant>('default');
+  readonly variant = input<SpinnerVariant>('quantum');
   readonly color = input<string>('currentColor');
   readonly speed = input<number | string>('1.3');
   readonly label = input('');

@@ -16,12 +16,16 @@
 
 /* Island concept shell: gradient page, floating islands, no dividers. */
 .app {
-  min-height: 100vh;
+  height: 100dvh;
+  min-height: 100dvh;
   padding: 10px 20px 20px;
   background:
     radial-gradient(80% 70% at 0% 0%, var(--sd-tint), transparent 55%),
     var(--sd-page);
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .layout {
@@ -29,7 +33,10 @@
   grid-template-columns: 224px minmax(0, 1fr);
   gap: var(--sd-island-gap);
   margin-top: var(--sd-island-gap);
-  align-items: start;
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .realtime-status {
@@ -40,6 +47,7 @@
   background: var(--surface);
   color: var(--muted);
   font-size: 12px;
+  flex: none;
 }
 .layout.sd-collapsed {
   grid-template-columns: 76px minmax(0, 1fr);
@@ -50,8 +58,12 @@
 
 .main {
   min-width: 0;
+  min-height: 0;
   outline: none;
   container: main / inline-size;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
 }
 
 .main:has(app-drawer .scrim) {
@@ -60,7 +72,16 @@
 }
 
 @media (max-width: 860px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
   .layout {
     grid-template-columns: 1fr;
+    overflow: visible;
+  }
+  .main {
+    overflow: visible;
   }
 }
