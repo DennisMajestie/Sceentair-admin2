@@ -29,9 +29,10 @@
         document.documentElement.dataset['accent'] = 'pine';
       }
     })();
-    // API base URL is injected at build time via VESSA_API_BASE_URL env var.
-    // Falls back to localhost for local development.
-    window.VESSA_CONFIG = { apiBaseUrl: 'http://localhost:3000/api/v1' };
+    // API base URL: relative path uses the dev proxy (proxy.conf.json) so the
+    // httpOnly refresh cookie stays same-origin on localhost. Override for a
+    // cross-origin deployment (e.g. Vercel -> Render): set window.VESSA_CONFIG.apiBaseUrl.
+    window.VESSA_CONFIG = { apiBaseUrl: '/api/v1' };
   </script>
   <style>
     #app-preloader {
