@@ -852,8 +852,17 @@ export class Store {
     await this.hydrateMoves(next);
     } finally {
       // Merge only background-populated fields so concurrent updates made meanwhile are preserved.
+      // Product rows come from the core load with empty stock; the background pass
+      // fills it from the inventory summary. Apply that stock onto the current rows
+      // instead of dropping it (or replacing the rows), so on-hand values — and the
+      // low-stock counts derived from them — are real.
+      const stocked = new Map(next.products.map((product) => [product.id, product.stock]));
       this.state.update((current) => ({
         ...current,
+        products: current.products.map((product) => {
+          const stock = stocked.get(product.id);
+          return stock ? { ...product, stock } : product;
+        }),
         materials: next.materials,
         suppliers: next.suppliers,
         counts: next.counts,
