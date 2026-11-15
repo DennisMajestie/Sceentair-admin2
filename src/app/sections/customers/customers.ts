@@ -57,7 +57,7 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
         <span class="head__eyebrow">Customers</span>
         <h1 class="head__title">{{ view() === 'stockists' ? 'Stockists' : 'Shoppers' }}</h1>
         <p class="head__lead">
-          {{ view() === 'stockists' ? 'Trade accounts buying wholesale from Vessa.' : 'Everyone who shops with Vessa.' }}
+          {{ view() === 'stockists' ? 'Trade accounts buying wholesale from Sceentair.' : 'Everyone who shops with Sceentair.' }}
         </p>
       </div>
     </div>

@@ -31,7 +31,7 @@ const MONTHS = [
   template: `
     <div class="head">
       <div class="head__text">
-        <span class="head__eyebrow">The business behind Vessa</span>
+        <span class="head__eyebrow">The business behind Sceentair</span>
         <h1 class="head__title">Company</h1>
       </div>
     </div>
@@ -341,7 +341,7 @@ export class SettingsCompany {
         ]);
       }
     }
-    downloadCsv('vessa-stock.csv', rows);
+    downloadCsv('sceentair-stock.csv', rows);
   }
 
   protected downloadOrders(): void {
@@ -365,7 +365,7 @@ export class SettingsCompany {
         ]);
       }
     }
-    downloadCsv('vessa-orders.csv', rows);
+    downloadCsv('sceentair-orders.csv', rows);
   }
 
   protected downloadMoves(): void {
@@ -382,7 +382,7 @@ export class SettingsCompany {
         this.store.teammate(move.byId)?.name ?? move.byId,
       ]);
     }
-    downloadCsv('vessa-stock-ledger.csv', rows);
+    downloadCsv('sceentair-stock-ledger.csv', rows);
   }
 
 }

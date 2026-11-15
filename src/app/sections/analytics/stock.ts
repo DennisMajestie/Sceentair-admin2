@@ -538,7 +538,7 @@ export class AnalyticsStock {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'vessa-stock.csv';
+    a.download = 'sceentair-stock.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }

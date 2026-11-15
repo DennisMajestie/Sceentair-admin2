@@ -348,7 +348,7 @@ export class AnalyticsSales {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'vessa-sales.csv';
+    a.download = 'sceentair-sales.csv';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 0);
   }

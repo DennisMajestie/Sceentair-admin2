@@ -388,7 +388,7 @@ export class AnalyticsOverview {
           .join(','),
       )
       .join('\n');
-    download('vessa-reports.csv', header + rows);
+    download('sceentair-reports.csv', header + rows);
   }
 
   protected compact(value: number): string {

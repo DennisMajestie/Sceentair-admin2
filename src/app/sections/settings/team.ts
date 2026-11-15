@@ -133,7 +133,7 @@ function avatarToneForId(id: string): string {
       <div class="head__text">
         <span class="head__eyebrow">Team access and membership</span>
         <h1 class="head__title">Team &amp; roles</h1>
-        <p class="head__lead">Who works in Vessa and what they can do</p>
+        <p class="head__lead">Who works in Sceentair and what they can do</p>
       </div>
       <div class="head__actions">
         <button class="btn btn--primary" type="button" (click)="openCreate()">+ Add staff</button>

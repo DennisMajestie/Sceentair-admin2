@@ -52,7 +52,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
           </span>
           <span class="pack-card__variant">{{ variantLabel(row) }}</span>
           <span class="pack-card__meta">
-            <span>{{ row.silhouette ?? 'No silhouette' }}</span>
+            <span>{{ row.silhouette ?? 'Not set' }}</span>
             @if (row.targetYieldUnits) { <span>· target {{ row.targetYieldUnits }} units</span> }
           </span>
           <span class="pack-card__foot">
@@ -84,7 +84,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
           </div>
 
           <dl class="facts">
-            <div><dt>Silhouette</dt><dd>{{ pack.silhouette ?? '—' }}</dd></div>
+            <div><dt>Fit</dt><dd>{{ pack.silhouette ?? '—' }}</dd></div>
             <div><dt>Target yield</dt><dd>{{ pack.targetYieldUnits ?? '—' }}</dd></div>
             <div><dt>DXF</dt><dd>@if (pack.dxfUrl) { <a class="link" [href]="pack.dxfUrl" target="_blank" rel="noopener">Open pattern</a> } @else { '—' }</dd></div>
             <div><dt>Updated</dt><dd>{{ pack.updatedAt | date: 'medium' }}</dd></div>
@@ -133,7 +133,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
             <form class="create-form" (ngSubmit)="saveEdit()">
               <h3 class="dlabel">Edit pack</h3>
               <div class="cost-grid">
-                <label class="field"><span class="field__label">Silhouette</span><input type="text" [(ngModel)]="editForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
+                <label class="field"><span class="field__label">Fit</span><input type="text" [(ngModel)]="editForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
                 <label class="field"><span class="field__label">Target units</span><input type="number" min="0" step="1" [(ngModel)]="editForm.targetYieldUnits" name="targetYieldUnits" /></label>
                 <label class="field"><span class="field__label">Cutting yield %</span><input type="number" min="0" max="100" step="0.1" [(ngModel)]="editForm.cuttingEfficiencyPct" name="cuttingEfficiencyPct" /></label>
                 <label class="field"><span class="field__label">DXF URL</span><input type="url" [(ngModel)]="editForm.dxfUrl" name="dxfUrl" placeholder="https://…" /></label>
@@ -166,7 +166,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
           </select>
         </label>
         <div class="cost-grid">
-          <label class="field"><span class="field__label">Silhouette</span><input type="text" [(ngModel)]="createForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
+          <label class="field"><span class="field__label">Fit</span><input type="text" [(ngModel)]="createForm.silhouette" name="silhouette" placeholder="e.g. relaxed fit crew" /></label>
           <label class="field"><span class="field__label">Target units</span><input type="number" min="0" step="1" [(ngModel)]="createForm.targetYieldUnits" name="targetYieldUnits" /></label>
           <label class="field"><span class="field__label">Cutting yield %</span><input type="number" min="0" max="100" step="0.1" [(ngModel)]="createForm.cuttingEfficiencyPct" name="cuttingEfficiencyPct" /></label>
           <label class="field"><span class="field__label">DXF URL</span><input type="url" [(ngModel)]="createForm.dxfUrl" name="dxfUrl" placeholder="https://…" /></label>

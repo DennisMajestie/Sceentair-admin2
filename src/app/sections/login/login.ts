@@ -15,11 +15,11 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
     <div class="auth-screen" [class.scrolled]="scrolled()">
       <header class="auth-head">
         <div class="auth-head-inner">
-          <a class="auth-logo-link" routerLink="/" aria-label="Seentair home">
+          <a class="auth-logo-link" routerLink="/" aria-label="Sceentair home">
             <img
               class="auth-logo"
               [src]="theme.resolved() === 'dark' ? '/logo-dark.png' : '/logo-light.png'"
-              alt="Seentair — Style for Everyone"
+              alt="Sceentair — Style for Everyone"
             />
           </a>
           <button
@@ -48,7 +48,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
           <aside class="auth-brand" aria-hidden="true">
             <div class="auth-brand__copy">
               <p class="auth-brand__hello">WELCOME</p>
-              <p class="auth-brand__name">Seentair</p>
+              <p class="auth-brand__name">Sceentair</p>
               <p class="auth-brand__lede">Staff access to the ops terminal.</p>
             </div>
             <span class="auth-brand__orb auth-brand__orb--corner"></span>
@@ -93,7 +93,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
                 @if (!resetSent()) {
                   <label class="field">
                     <span class="field-label">Email</span>
-                    <input type="email" [(ngModel)]="email" name="remail" placeholder="you@seentair.ng" autocomplete="email" required />
+                    <input type="email" [(ngModel)]="email" name="remail" placeholder="you@sceentair.ng" autocomplete="email" required />
                     @if (errors().email) {
                       <span class="field-err">{{ errors().email }}</span>
                     }
@@ -152,7 +152,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
                     type="email"
                     [(ngModel)]="email"
                     name="email"
-                    placeholder="you@seentair.ng"
+                    placeholder="you@sceentair.ng"
                     autocomplete="email"
                     required
                   />

@@ -1,4 +1,4 @@
-/** Domain model for the Vessa stock & supply app. */
+/** Domain model for the Sceentair stock & supply app. */
 
 export type OrderStatus = 'new' | 'picking' | 'packed' | 'shipped' | 'delivered' | 'cancelled';
 export type OrderChannel = 'online' | 'wholesale' | 'studio';

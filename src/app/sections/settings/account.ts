@@ -124,7 +124,7 @@ import { ACCENTS, ThemeMode, ThemeService } from '../../core/theme';
             </label>
           </div>
           <p class="field__blurb">
-            Buttons, links, the active page and chart highlights. Pick one, or choose any colour — Vessa
+            Buttons, links, the active page and chart highlights. Pick one, or choose any colour — Sceentair
             tunes it so text stays readable in light and dark.
           </p>
         </div>

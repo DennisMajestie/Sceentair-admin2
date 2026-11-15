@@ -18,7 +18,7 @@ import { SdSlidingIndicator } from './sliding-indicator';
         <img
           class="brand__logo"
           [src]="theme.resolved() === 'dark' ? '/logo-dark.png' : '/logo-light.png'"
-          alt="Seentair — Style for Everyone"
+          alt="Sceentair — Style for Everyone"
         />
       </a>
 
