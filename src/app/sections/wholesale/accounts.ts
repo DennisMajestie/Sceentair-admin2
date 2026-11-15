@@ -253,7 +253,7 @@ export class WholesaleAccounts {
   protected async reviewAccount(id: string, decision: 'approved' | 'rejected'): Promise<void> {
     this.reviewing.set(true);
     try {
-      await this.wholesaleApi.reviewAccount(id, { status: decision, reviewedBy: '' });
+      await this.wholesaleApi.reviewAccount(id, { status: decision });
       await this.load();
       this.close();
     } catch (err) {

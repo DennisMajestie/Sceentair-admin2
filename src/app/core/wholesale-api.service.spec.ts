@@ -78,12 +78,12 @@ describe('WholesaleApiService', () => {
     expect(accounts.data[0].openingVolume).toBe(40);
   });
 
-  it('reviews an account through PATCH with reviewedBy set', async () => {
+  it('reviews an account through PATCH with status only', async () => {
     const { http, service } = init();
-    const promise = service.reviewAccount('wa-1', { status: 'approved', reviewedBy: 'u-1' });
+    const promise = service.reviewAccount('wa-1', { status: 'approved' });
     const req = http.expectOne('/api/v1/wholesale/accounts/wa-1');
     expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual({ status: 'approved', reviewedBy: 'u-1' });
+    expect(req.request.body).toEqual({ status: 'approved' });
     req.flush({ ...ACCOUNT, status: 'approved', reviewedBy: 'u-1' });
     expect((await promise).status).toBe('approved');
   });

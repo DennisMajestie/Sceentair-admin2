@@ -98,7 +98,8 @@ export interface CreateWholesaleApplicationInput {
 
 export interface ReviewWholesaleAccountInput {
   status: WholesaleAccountStatus;
-  reviewedBy: string | null;
+  /** Optional manual tier assignment; reviewedBy is set server-side from the caller. */
+  tierId?: string;
 }
 
 export interface CreateWholesaleTierInput {
