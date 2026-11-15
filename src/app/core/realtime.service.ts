@@ -1,13 +1,14 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import type { Socket } from 'socket.io-client';
-import { API_BASE_URL } from './api-config';
+import { API_BASE_URL, REALTIME_URL } from './api-config';
 
 export type RealtimeStatus = 'idle' | 'connecting' | 'connected' | 'offline';
 
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   private readonly baseUrl = inject(API_BASE_URL);
+  private readonly realtimeUrl = inject(REALTIME_URL);
   private readonly changes = new Subject<void>();
   private socket?: Socket;
   private token: string | null = null;
@@ -26,10 +27,12 @@ export class RealtimeService {
     this.token = token;
     this.status.set('connecting');
 
-    const origin = new URL(
-      this.baseUrl,
-      typeof window === 'undefined' ? 'http://localhost' : window.location.origin,
-    ).origin;
+    const origin =
+      this.realtimeUrl ||
+      new URL(
+        this.baseUrl,
+        typeof window === 'undefined' ? 'http://localhost' : window.location.origin,
+      ).origin;
     void this.openSocket(token, origin);
   }
 

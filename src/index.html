@@ -29,10 +29,12 @@
         document.documentElement.dataset['accent'] = 'pine';
       }
     })();
-    // API base URL: relative path uses the dev proxy (proxy.conf.json) so the
-    // httpOnly refresh cookie stays same-origin on localhost. Override for a
-    // cross-origin deployment (e.g. Vercel -> Render): set window.VESSA_CONFIG.apiBaseUrl.
-    window.VESSA_CONFIG = { apiBaseUrl: '/api/v1' };
+    // API base URL: always the relative /api/v1. Locally the Angular dev proxy
+    // forwards it; on Vercel vercel.json rewrites it to the Render API. Keeping
+    // every call same-origin is what lets the httpOnly refresh cookie stay
+    // first-party (browsers block third-party cookies). realtimeUrl is the
+    // direct API origin for the websocket, which cannot ride the rewrite.
+    window.VESSA_CONFIG = { apiBaseUrl: '/api/v1', realtimeUrl: 'http://localhost:3000' };
   </script>
   <style>
     #app-preloader {
