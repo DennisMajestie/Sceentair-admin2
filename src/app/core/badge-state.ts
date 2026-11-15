@@ -13,22 +13,25 @@ export class BadgeStateService {
 
   unseen(key: string, raw: number): number {
     const s = this.seen()[key] ?? 0;
-    // if raw decreased (items resolved), reset baseline to raw so badge stays 0
-    if (raw < s) { this.markSeen(key, raw); return 0; }
-    return Math.max(0, raw - s);
+    // Counts shrink when items get resolved. Re-anchor the baseline to the new
+    // (lower) raw so the next rise is measured from reality, not from a stale
+    // high-water mark that would resurrect old "notifications".
+    if (raw < s) { this.setSeen(key, raw); return 0; }
+    return raw - s;
   }
 
   markSeen(key: string, raw: number): void {
-    const cur = this.seen()[key] ?? 0;
-    if (raw <= cur) return;
-    const next = { ...this.seen(), [key]: raw };
-    this.seen.set(next);
-    write(next);
+    if (raw <= (this.seen()[key] ?? 0)) return;
+    this.setSeen(key, raw);
   }
 
   /** Mark current raw as fully viewed. */
   view(key: string, raw: number): void {
-    const next = { ...this.seen(), [key]: raw };
+    this.setSeen(key, raw);
+  }
+
+  private setSeen(key: string, value: number): void {
+    const next = { ...this.seen(), [key]: value };
     this.seen.set(next);
     write(next);
   }

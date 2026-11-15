@@ -76,7 +76,7 @@ import { Icon } from './icon';
           <div class="logout-dialog__actions">
             <button type="button" class="btn btn--ghost btn--sm" (click)="cancelLogout()">Cancel</button>
             <button type="button" class="btn btn--primary btn--sm logout-dialog__confirm" [disabled]="signingOut()" (click)="confirmLogout()">
-              {{ signingOut() ? 'Signing outâ€¦' : 'Sign out' }}
+              {{ signingOut() ? 'Signing out…' : 'Sign out' }}
             </button>
           </div>
         </div>
