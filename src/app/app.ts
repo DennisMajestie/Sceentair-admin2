@@ -46,6 +46,9 @@ export class App {
         const onSignin = e.urlAfterRedirects.startsWith('/signin');
         this.isSignin.set(onSignin);
         if (!this.resolved()) this.resolved.set(true);
+        // Any completed navigation means the app is up: never leave the raw
+        // preloader overlay on top of a rendered route.
+        hideAppPreloader();
         // Reset scroll on navigation (layout scroll container).
         if (!e.urlAfterRedirects.includes('#')) {
           this.layoutRef()?.nativeElement.scrollTo?.({ top: 0, left: 0 });

@@ -142,10 +142,12 @@ export class DashboardOverview {
     const slots: OverviewPrefetchSlots | null = this.prefetch.consume();
     if (slots) {
       this.applySlots(slots);
-      afterNextRender(() => hideAppPreloader(), { injector: this.injector });
     } else {
       void this.loadDashboard();
     }
+    // The dashboard paints immediately; the preloader must never outlive it,
+    // whether reached from sign-in (prefetched) or by direct URL / refresh.
+    afterNextRender(() => hideAppPreloader(), { injector: this.injector });
     effect(() => {
       this.store.data();
       afterNextRender(() => this.onData(), { injector: this.injector });
