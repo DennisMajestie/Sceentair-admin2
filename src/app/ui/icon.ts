@@ -49,6 +49,19 @@ const PATHS: Record<string, string> = {
   shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
   star: 'M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z',
   panel: 'M3 3h18v18H3zM6 6h12v12H6z',
+  chart: 'M3 11l18-5v12L3 14v-3zM11.6 16.8a3 3 0 11-5.8-1.6',
+};
+
+/**
+ * Glyphs that fill the whole 24px box read larger than their neighbours, so a
+ * few are drawn slightly smaller to keep the rail optically even.
+ */
+const OPTICAL_SCALE: Record<string, number> = {
+  cart: 0.88,
+  mail: 0.92,
+  customers: 0.92,
+  analytics: 0.94,
+  help: 0.92,
 };
 
 @Component({
@@ -66,7 +79,7 @@ const PATHS: Record<string, string> = {
       stroke-linejoin="round"
       aria-hidden="true"
     >
-      <path [attr.d]="path()" />
+      <path [attr.d]="path()" [attr.transform]="scale()" />
     </svg>
   `,
 })
@@ -75,4 +88,8 @@ export class Icon {
   readonly size = input(18);
   readonly weight = input(1.6);
   protected readonly path = computed(() => PATHS[this.name()] ?? PATHS['help']);
+  protected readonly scale = computed(() => {
+    const factor = OPTICAL_SCALE[this.name()];
+    return factor ? `translate(12 12) scale(${factor}) translate(-12 -12)` : null;
+  });
 }

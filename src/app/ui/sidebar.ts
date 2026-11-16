@@ -101,7 +101,7 @@ import { Icon } from './icon';
           [attr.aria-label]="state.collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
           [attr.data-tip]="state.collapsed() ? 'Expand sidebar' : 'Collapse sidebar'"
         >
-          <app-icon name="panel" [size]="18" />
+          <app-icon name="panel" [size]="20" />
           @if (!state.collapsed()) { <span class="ri__label">{{ state.collapsed() ? 'Expand' : 'Collapse' }}</span> }
         </button>
       </div>
