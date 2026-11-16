@@ -70,7 +70,7 @@ export const NAV: NavSection[] = [
   {
     id: 'production',
     label: 'Production',
-    icon: 'cube',
+    icon: 'factory',
     path: '/production',
     pages: [
       { label: 'Queue', path: '/production', badge: 'productionQueue' },
