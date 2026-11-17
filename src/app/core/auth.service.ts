@@ -36,6 +36,7 @@ export interface ApiAuthSession {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private static readonly RESTORE_RETRY_DELAYS = [0, 800, 2_500];
   private readonly http = inject(HttpClient);
   private readonly session = inject(ApiSession);
   private readonly baseUrl = inject(API_BASE_URL);
@@ -187,24 +188,46 @@ export class AuthService {
 
   private async restore(): Promise<boolean> {
     this.error.set(null);
-    try {
-      const result = await firstValueFrom(
-        this.http.post<TokenResponse>(
-          apiUrl(this.baseUrl, 'auth/refresh'),
-          {},
-          { withCredentials: true },
-        ),
-      );
-      await this.acceptToken(result.accessToken);
-      return true;
-    } catch (error) {
-      this.clear();
-      if (error instanceof HttpErrorResponse && (error.status === 401 || error.status === 403)) {
-        return false;
+    return this.withRefreshLock(() => this.attemptRestore());
+  }
+
+  /**
+   * The access token lives in memory only, so every page load re-mints it from
+   * the httpOnly cookie. A cold API start or a deploy must not look like a
+   * sign-out: retry transient failures and only treat 401/403 as "no session".
+   */
+  private async attemptRestore(): Promise<boolean> {
+    for (let attempt = 0; attempt < AuthService.RESTORE_RETRY_DELAYS.length; attempt++) {
+      const delay = AuthService.RESTORE_RETRY_DELAYS[attempt];
+      if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+      try {
+        const result = await firstValueFrom(
+          this.http.post<TokenResponse>(
+            apiUrl(this.baseUrl, 'auth/refresh'),
+            {},
+            { withCredentials: true },
+          ),
+        );
+        await this.acceptToken(result.accessToken);
+        return true;
+      } catch (error) {
+        this.clear();
+        const status = error instanceof HttpErrorResponse ? error.status : 0;
+        if (status === 401 || status === 403) return false;
+        if (attempt === AuthService.RESTORE_RETRY_DELAYS.length - 1) {
+          this.error.set(this.messageFor(error, 'Could not connect to the API.'));
+          return false;
+        }
       }
-      this.error.set(this.messageFor(error, 'Could not connect to the API.'));
-      return false;
     }
+    return false;
+  }
+
+  /** Refresh tokens rotate on every use: serialise refreshes across tabs. */
+  private async withRefreshLock<T>(run: () => Promise<T>): Promise<T> {
+    const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+    if (!locks) return run();
+    return locks.request('sceentair.auth.refresh', () => run());
   }
 
   private async acceptToken(token: string): Promise<void> {
