@@ -5,6 +5,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Store } from '../../core/store';
+import { AuthService } from '../../core/auth.service';
 import { CatalogueApiService, type ApiProductVariant } from '../../core/catalogue-api.service';
 import {
   ProductionApiService,
@@ -251,7 +252,11 @@ interface BatchRow {
     <app-drawer [open]="creating()" (close)="closeCreate()" label="New production run">
       <ng-container drawerTitle><div class="dtitle"><strong>New production run</strong></div></ng-container>
       <form class="create-form" (ngSubmit)="createBatch()">
-        <p class="note">One batch per variant, tied to an approved production request.</p>
+        @if (isOwner()) {
+          <p class="note">One batch per variant. As the business owner your start is approved automatically and recorded under your name.</p>
+        } @else {
+          <p class="note">One batch per variant, tied to an approved production request.</p>
+        }
 
         <label class="field"><span class="field__label">Product</span>
           <select [(ngModel)]="createForm.productId" name="productId" required (ngModelChange)="onProductChange($event)">
@@ -273,18 +278,20 @@ interface BatchRow {
           <label class="field"><span class="field__label">Quantity</span><input type="number" min="1" step="1" [(ngModel)]="createForm.quantity" name="quantity" required /></label>
           <label class="field"><span class="field__label">Planned date</span><input type="date" [(ngModel)]="createForm.plannedDate" name="plannedDate" /></label>
         </div>
-        <label class="field"><span class="field__label">Approved request</span>
-          <select [(ngModel)]="createForm.approvalRequestId" name="approvalRequestId" required>
-            <option value="">Select an approved production request…</option>
-            @for (a of approvedRequests(); track a.id) {
-              <option [value]="a.id">{{ (a.payload?.['product'] ?? a.payload?.['title'] ?? 'Production request') }} — {{ a.createdAt | date: 'mediumDate' }}</option>
+        @if (!isOwner()) {
+          <label class="field"><span class="field__label">Approved request</span>
+            <select [(ngModel)]="createForm.approvalRequestId" name="approvalRequestId" required>
+              <option value="">Select an approved production request…</option>
+              @for (a of approvedRequests(); track a.id) {
+                <option [value]="a.id">{{ (a.payload?.['product'] ?? a.payload?.['title'] ?? 'Production request') }} — {{ a.createdAt | date: 'mediumDate' }}</option>
+              }
+            </select>
+            @if (!approvedRequests().length) {
+              <span class="field-err">No approved production requests. Approve one in Approvals first.</span>
             }
-          </select>
-          @if (!approvedRequests().length) {
-            <span class="field-err">No approved production requests. Approve one in Approvals first.</span>
-          }
-        </label>
-        <button class="btn btn--primary" type="submit" [disabled]="creatingBusy() || !createForm.variantId || !createForm.quantity || !createForm.approvalRequestId">
+          </label>
+        }
+        <button class="btn btn--primary" type="submit" [disabled]="creatingBusy() || !createForm.variantId || !createForm.quantity || (!isOwner() && !createForm.approvalRequestId)">
           {{ creatingBusy() ? 'Creating…' : 'Create batch' }}
         </button>
       </form>
@@ -344,6 +351,7 @@ interface BatchRow {
 })
 export class ProductionQueue {
   private readonly store = inject(Store);
+  private readonly auth = inject(AuthService);
   private readonly api = inject(ProductionApiService);
   private readonly catalogueApi = inject(CatalogueApiService);
   private readonly route = inject(ActivatedRoute);
@@ -473,6 +481,8 @@ export class ProductionQueue {
     }
   }
 
+  protected readonly isOwner = computed(() => this.auth.user()?.role === 'business_owner_admin');
+
   protected readonly approvedRequests = computed(() =>
     this.store.approvals().filter((a) => a.actionType === 'production_start' && a.status === 'approved'),
   );
@@ -525,7 +535,7 @@ export class ProductionQueue {
     this.createForm.plannedDate = '';
     this.createForm.approvalRequestId = '';
     this.creating.set(true);
-    void this.store.refreshApprovals().catch(() => {});
+    if (!this.isOwner()) void this.store.refreshApprovals().catch(() => {});
   }
 
   protected closeCreate(): void {
@@ -539,7 +549,7 @@ export class ProductionQueue {
         variantId: this.createForm.variantId,
         quantity: Number(this.createForm.quantity) || 0,
         plannedDate: this.createForm.plannedDate || undefined,
-        approvalRequestId: this.createForm.approvalRequestId,
+        approvalRequestId: this.createForm.approvalRequestId || undefined,
       });
       this.toast.show('Production batch created', 'good');
       this.creating.set(false);

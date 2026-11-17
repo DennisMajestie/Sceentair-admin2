@@ -81,7 +81,8 @@ export interface CreateBatchInput {
   variantId: string;
   quantity: number;
   plannedDate?: string;
-  approvalRequestId: string;
+  /** Omitted by the business owner: their start is auto-approved server-side. */
+  approvalRequestId?: string;
 }
 
 export interface RecordCostInput {
