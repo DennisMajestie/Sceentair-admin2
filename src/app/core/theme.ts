@@ -14,6 +14,16 @@ export const ACCENTS: { id: Accent; label: string; hex: string }[] = [
   { id: 'slate', label: 'Graphite', hex: '#6b7380' },
 ];
 
+interface ViewTransitionLike {
+  readonly ready: Promise<void>;
+  readonly updateCallbackDone: Promise<void>;
+  readonly finished: Promise<void>;
+}
+
+type ViewTransitionDocument = Document & {
+  startViewTransition?: (update: () => void | Promise<void>) => ViewTransitionLike;
+};
+
 const THEME_KEY = 'vessa:theme';
 const ACCENT_KEY = 'vessa:accent';
 const ACCENT_CUSTOM_KEY = 'vessa:accent-custom';
@@ -57,6 +67,59 @@ export class ThemeService {
     this.mode.set(mode);
   }
 
+  /**
+   * Switch theme with a circular reveal that grows from the control the person
+   * clicked. Browsers without View Transitions (and reduced-motion users) get
+   * an instant switch instead.
+   */
+  async setModeAnimated(mode: ThemeMode, event?: MouseEvent): Promise<void> {
+    if (mode === this.mode()) return;
+    const doc = document as ViewTransitionDocument;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!doc.startViewTransition || reduced) {
+      this.setMode(mode);
+      return;
+    }
+
+    const { x, y } = revealOrigin(event);
+    const radius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y),
+    );
+    const root = document.documentElement;
+    root.classList.add('theme-reveal');
+    try {
+      const transition = doc.startViewTransition(async () => {
+        this.mode.set(mode);
+        // Let Angular flush the signal update into the DOM before the new
+        // snapshot is taken (calling tick() here would re-enter change detection).
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      });
+      if (await settle(transition.ready, 900)) {
+        try {
+          await root.animate(
+            {
+              clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${radius}px at ${x}px ${y}px)`],
+            },
+            {
+              duration: 720,
+              easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+              pseudoElement: '::view-transition-new(root)',
+            } as KeyframeAnimationOptions,
+          ).finished;
+        } catch {
+          // The reveal is decorative; the theme itself is already switched.
+        }
+      }
+      await settle(transition.finished, 900);
+    } catch {
+      // A cancelled or unsupported transition must never strand the old theme.
+      if (mode !== this.mode()) this.setMode(mode);
+    } finally {
+      root.classList.remove('theme-reveal');
+    }
+  }
+
   cycleMode(): void {
     const order: ThemeMode[] = ['light', 'dark', 'system'];
     const next = order[(order.indexOf(this.mode()) + 1) % order.length];
@@ -75,6 +138,23 @@ export class ThemeService {
   toggleRail(): void {
     this.railCollapsed.update((v) => !v);
   }
+}
+
+function settle(promise: Promise<unknown>, ms: number): Promise<boolean> {
+  return Promise.race([
+    promise.then(() => true, () => false),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), ms)),
+  ]);
+}
+
+function revealOrigin(event?: MouseEvent): { x: number; y: number } {
+  if (!event) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+  // Keyboard activation reports no coordinates; use the button's centre.
+  if (event.detail === 0 || (event.clientX === 0 && event.clientY === 0)) {
+    const rect = (event.currentTarget as HTMLElement | null)?.getBoundingClientRect?.();
+    if (rect) return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+  return { x: event.clientX, y: event.clientY };
 }
 
 function readTheme(): ThemeMode {

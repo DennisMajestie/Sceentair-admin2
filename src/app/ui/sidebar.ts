@@ -28,7 +28,7 @@ import { Icon } from './icon';
           [class.is-lit]="theme.resolved() === 'light'"
           [attr.aria-pressed]="theme.resolved() === 'light'"
           aria-label="Light mode"
-          (click)="theme.setMode('light')"
+          (click)="theme.setModeAnimated('light', $event)"
           [attr.data-tip]="state.collapsed() ? 'Light mode' : null"
         >
           <app-icon name="sun" [size]="20" />
@@ -40,7 +40,7 @@ import { Icon } from './icon';
           [class.is-lit]="theme.resolved() === 'dark'"
           [attr.aria-pressed]="theme.resolved() === 'dark'"
           aria-label="Dark mode"
-          (click)="theme.setMode('dark')"
+          (click)="theme.setModeAnimated('dark', $event)"
           [attr.data-tip]="state.collapsed() ? 'Dark mode' : null"
         >
           <app-icon name="moon" [size]="20" />

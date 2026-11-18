@@ -46,12 +46,16 @@ describe('Sidebar buttons', () => {
     expect(shell.collapsed()).toBe(!before);
   });
 
-  it('theme buttons switch light and dark modes', () => {
+  it('theme buttons switch light and dark modes', async () => {
+    const switching = spyOn(theme, 'setModeAnimated').and.callThrough();
+
     button('button[aria-label="Light mode"]').click();
+    await switching.calls.mostRecent().returnValue;
     fixture.detectChanges();
     expect(theme.resolved()).toBe('light');
 
     button('button[aria-label="Dark mode"]').click();
+    await switching.calls.mostRecent().returnValue;
     fixture.detectChanges();
     expect(theme.resolved()).toBe('dark');
   });
