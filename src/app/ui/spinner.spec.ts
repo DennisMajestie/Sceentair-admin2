@@ -6,6 +6,7 @@ describe('Spinner component', () => {
     const fixture = TestBed.createComponent(Spinner);
     fixture.componentRef.setInput('label', 'Loading orders');
     fixture.componentRef.setInput('size', 'md');
+    fixture.componentRef.setInput('variant', 'default');
     fixture.detectChanges();
 
     const el = fixture.nativeElement as HTMLElement;

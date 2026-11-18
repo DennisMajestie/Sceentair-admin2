@@ -340,6 +340,7 @@ describe('dashboard API response mapping', () => {
     const fixture = createComponent(analyticsApi);
 
     await (fixture.componentInstance as any).loadDashboard();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     const summary = fixture.nativeElement
