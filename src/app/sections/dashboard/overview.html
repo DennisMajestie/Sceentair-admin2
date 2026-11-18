@@ -45,7 +45,7 @@
       <span class="kpi__valuerow">
         <span class="kpi__value">
           @if (totalSales() !== null) {
-            <span class="sd-num" aria-hidden="true" data-kind="currency-full" [attr.data-to]="totalSales()"></span>
+            <span class="sd-num" aria-hidden="true" data-kind="currency-full" [attr.data-to]="totalSales()">{{ money(totalSales()!) }}</span>
             <span class="sr">{{ money(totalSales() ?? 0) }}</span>
           } @else {
             <span aria-label="Sales data unavailable">—</span>
@@ -71,7 +71,7 @@
       <span class="kpi__label">Open orders</span>
       <span class="kpi__valuerow">
         <span class="kpi__value">
-          <span class="sd-num" aria-hidden="true" [attr.data-to]="openOrders()"></span>
+          <span class="sd-num" aria-hidden="true" [attr.data-to]="openOrders()">{{ count(openOrders()) }}</span>
           <span class="sr">{{ count(openOrders()) }}</span>
         </span>
       </span>
@@ -95,7 +95,7 @@
       <span class="kpi__valuerow">
         <span class="kpi__value">
           @if (pendingApprovals() !== null) {
-            <span class="sd-num" aria-hidden="true" [attr.data-to]="pendingApprovals()"></span>
+            <span class="sd-num" aria-hidden="true" [attr.data-to]="pendingApprovals()">{{ count(pendingApprovals() ?? 0) }}</span>
             <span class="sr">{{ count(pendingApprovals() ?? 0) }}</span>
           } @else {
             <span aria-label="Pending approvals unavailable">—</span>
@@ -169,7 +169,7 @@
           <span class="stat-label">Number of sales</span>
           <span class="stat-value num">
             @if (numberOfSales() !== null) {
-              <span class="sd-num" aria-hidden="true" [attr.data-to]="numberOfSales()"></span>
+              <span class="sd-num" aria-hidden="true" [attr.data-to]="numberOfSales()">{{ numberOfSales() ?? 0 }}</span>
               <span class="sr">{{ numberOfSales() }}</span>
             } @else {
               <span aria-label="Sales data unavailable">—</span>
@@ -180,7 +180,7 @@
           <span class="stat-label">Total sales</span>
           <span class="stat-value num">
             @if (totalSales() !== null) {
-              <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="totalSales()"></span>
+              <span class="sd-num" aria-hidden="true" data-kind="currency" [attr.data-to]="totalSales()">{{ compact(totalSales()!) }}</span>
               <span class="sr">{{ money(totalSales()!) }}</span>
             } @else {
               <span aria-label="Sales data unavailable">—</span>

@@ -153,10 +153,10 @@ export class DashboardOverview {
       afterNextRender(() => this.onData(), { injector: this.injector });
     });
     effect(() => {
-      if (!this.dashboardData()) return;
-      afterNextRender(() => {
-        if (this.entranceDone) this.animateNumbers();
-      }, { injector: this.injector });
+      this.dashboardData();
+      // The value spans only exist once data arrives. Re-run after the DOM
+      // paints so a late API response is never left with empty KPI values.
+      afterNextRender(() => this.animateNumbers(), { injector: this.injector });
     });
     this.destroyRef.onDestroy(() => this.mm?.revert());
   }

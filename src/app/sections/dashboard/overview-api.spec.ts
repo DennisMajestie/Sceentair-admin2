@@ -186,6 +186,17 @@ describe('dashboard API response mapping', () => {
     expect(sparks[2].querySelector('svg').getAttribute('aria-label')).toBe('Approvals trend');
   });
 
+  it('paints KPI values even when the number animation has not run', async () => {
+    const fixture = createComponent(makeAnalyticsApi());
+    await (fixture.componentInstance as any).loadDashboard();
+    fixture.detectChanges();
+
+    for (const card of ['sales', 'open', 'approvals']) {
+      const el = fixture.nativeElement.querySelector(`.kpi--${card} .sd-num`);
+      expect(el?.textContent?.trim().length).toBeGreaterThan(0);
+    }
+  });
+
   it('omits KPI trend lines when the API has no series or trends', async () => {
     const fixture = createComponent(
       makeAnalyticsApi({ ...DASHBOARD, series: [], trends: { approvals: [], lowStock: [] } }),
