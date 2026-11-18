@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, ElementRef, NgZon
 import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { count as fmtCount, dateFull, money as fmtMoney, moneyCompact, relative, statusTone, statusLabel, until } from '../../core/format';
-import { Bars, Gauge } from '../../ui/chart';
+import { Bars, Gauge, Sparkline } from '../../ui/chart';
 import { Icon } from '../../ui/icon';
 import { ProductShot } from '../../ui/product-shot';
 import { ChartPeriodSelect } from './chart-period-select';
@@ -92,7 +92,7 @@ export function computeOverviewSpans(p: OverviewPresence): OverviewSpans {
 @Component({
   selector: 'app-dashboard-overview',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Bars, Gauge, Icon, ProductShot, ChartPeriodSelect, Spinner],
+  imports: [RouterLink, Bars, Gauge, Sparkline, Icon, ProductShot, ChartPeriodSelect, Spinner],
   host: {
     '[class.sd-pending]': 'pending()',
     '[style.--ov-welcome]': 'spans().welcome',
@@ -477,6 +477,16 @@ export class DashboardOverview {
   /** Dashboard aggregates from the API, falling back to local store data when the API has no value. */
   protected readonly apiDashboard = computed(() => this.dashboardData());
   protected readonly apiBestSellers = computed(() => this.dashboardBestSellers());
+
+  /** KPI sparklines come from the same dashboard response; older API builds have no trends. */
+  protected readonly salesSpark = computed(() =>
+    this.dashboardData()?.series?.map((p) => p.revenue) ?? [],
+  );
+  protected readonly ordersSpark = computed(() =>
+    this.dashboardData()?.series?.map((p) => p.orders) ?? [],
+  );
+  protected readonly approvalsSpark = computed(() => this.dashboardData()?.trends?.approvals ?? []);
+
 
   /** Low stock includes variant SKUs and raw materials from the API. */
   protected readonly lowCount = computed(() => {

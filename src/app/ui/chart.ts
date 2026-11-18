@@ -24,7 +24,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   selector: 'app-sparkline',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <svg class="spark" [attr.viewBox]="'0 0 ' + w() + ' ' + h()" preserveAspectRatio="none" role="img" [attr.aria-label]="label()">
+    <svg class="spark" [style.width.px]="w()" [style.height.px]="h()" [attr.viewBox]="'0 0 ' + w() + ' ' + h()" preserveAspectRatio="none" role="img" [attr.aria-label]="label()">
       @if (showGrid()) {
         @for (g of gridLines(); track g) {
           <line [attr.x1]="0" [attr.x2]="w()" [attr.y1]="g" [attr.y2]="g" class="spark__grid" />

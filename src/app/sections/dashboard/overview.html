@@ -58,6 +58,9 @@
     </div>
     <div class="kpi__meta">
       <span class="kpi__info">{{ numberOfSales() ?? '—' }} orders</span>
+      @if (salesSpark().length > 1) {
+        <app-sparkline class="kpi__trendchart" [values]="salesSpark()" [width]="80" [height]="30" color="var(--pine)" [fill]="false" label="Sales trend" />
+      }
     </div>
   </article>
 }
@@ -78,6 +81,9 @@
     </div>
     <div class="kpi__meta">
       <span class="kpi__info">{{ toShip() }} to dispatch</span>
+      @if (ordersSpark().length > 1) {
+        <app-sparkline class="kpi__trendchart" [values]="ordersSpark()" [width]="80" [height]="30" color="var(--ocean)" [fill]="false" label="Orders trend" />
+      }
     </div>
   </article>
 }
@@ -102,6 +108,9 @@
     </div>
     <div class="kpi__meta">
       <span class="kpi__info">Awaiting your review</span>
+      @if (approvalsSpark().length > 1) {
+        <app-sparkline class="kpi__trendchart" [values]="approvalsSpark()" [width]="80" [height]="30" color="var(--ochre)" [fill]="false" label="Approvals trend" />
+      }
     </div>
   </article>
 }

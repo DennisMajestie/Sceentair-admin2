@@ -174,6 +174,28 @@ describe('dashboard API response mapping', () => {
     expect((fixture.componentInstance as any).count(1974)).toBe('1,974');
   });
 
+  it('draws a trend line on each KPI card from the dashboard data', async () => {
+    const fixture = createComponent(makeAnalyticsApi());
+    await (fixture.componentInstance as any).loadDashboard();
+    fixture.detectChanges();
+
+    const sparks = fixture.nativeElement.querySelectorAll('app-sparkline.kpi__trendchart');
+    expect(sparks.length).toBe(3);
+    expect(sparks[0].querySelector('svg').getAttribute('aria-label')).toBe('Sales trend');
+    expect(sparks[1].querySelector('svg').getAttribute('aria-label')).toBe('Orders trend');
+    expect(sparks[2].querySelector('svg').getAttribute('aria-label')).toBe('Approvals trend');
+  });
+
+  it('omits KPI trend lines when the API has no series or trends', async () => {
+    const fixture = createComponent(
+      makeAnalyticsApi({ ...DASHBOARD, series: [], trends: { approvals: [], lowStock: [] } }),
+    );
+    await (fixture.componentInstance as any).loadDashboard();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('app-sparkline.kpi__trendchart').length).toBe(0);
+  });
+
   it('shows pending approvals as unavailable when null', async () => {
     const analyticsApi = makeAnalyticsApi({
       ...DASHBOARD,

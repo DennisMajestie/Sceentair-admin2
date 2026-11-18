@@ -204,8 +204,14 @@
   background-color: var(--well);
   display: grid;
   place-items: center;
-  color: var(--muted);
+  color: #fff;
 }
+
+:host > .kpi--sales .kpi__orb { background-color: var(--pine); }
+:host > .kpi--open .kpi__orb { background-color: var(--ocean); }
+:host > .kpi--approvals .kpi__orb { background-color: var(--ochre); }
+
+[data-theme='dark'] .kpi__orb { color: #1c1a17; }
 
 .kpi__stat {
   display: grid;
