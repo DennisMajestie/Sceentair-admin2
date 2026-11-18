@@ -25,9 +25,16 @@ import { Drawer } from '../../ui/drawer';
       <div class="head__text">
         <span class="head__eyebrow">Purchasing</span>
         <h1 class="head__title">Material purchases</h1>
-        <p class="head__lead">
-          {{ store.pos().length }} records · {{ money(totalCost()) }} total spent
-        </p>
+        @if (store.purchasesError()) {
+          <p class="head__lead error" role="alert">
+            Purchase records could not be loaded: {{ store.purchasesError() }}. The totals below are
+            incomplete, not zero.
+          </p>
+        } @else {
+          <p class="head__lead">
+            {{ store.pos().length }} records - {{ money(totalCost()) }} total spent
+          </p>
+        }
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" routerLink="/purchasing/materials">Materials</a>

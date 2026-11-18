@@ -607,6 +607,9 @@ export class Store {
 
   readonly data = this.state.asReadonly();
 
+  /** Set when the purchase feed fails, so "0 records" is never a silent lie. */
+  readonly purchasesError = signal('');
+
   /** Hydrate all entities from the API. Safe to call multiple times; failures leave prior state intact. */
   async resolveReturn(
     id: string,
@@ -730,8 +733,17 @@ export class Store {
       this.helpApi.tickets().then((r) => (next.tickets = r.data.map(mapTicket))).catch(() => { }),
       this.materialsApi
         .purchases(1, 100)
-        .then((r) => (next.pos = r.data.map(mapPurchase)))
-        .catch(() => { }),
+        .then((r) => {
+          next.pos = r.data.map(mapPurchase);
+          this.purchasesError.set('');
+        })
+        .catch((error: unknown) => {
+          this.purchasesError.set(
+            error instanceof Error && error.message
+              ? error.message
+              : 'The purchase records could not be loaded.',
+          );
+        }),
       this.usersApi
         .list(1, 100)
         .then((r) => (next.team = r.data.map(mapTeammate)))
