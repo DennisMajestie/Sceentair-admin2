@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NAV, matchSection } from '../core/nav';
@@ -10,6 +10,10 @@ import { SdShellStateService } from '../core/sd-shell-state.service';
 import { BadgeStateService } from '../core/badge-state';
 import { SdSlidingIndicator } from './sliding-indicator';
 import { Icon } from './icon';
+
+const BADGE_KEYS = [
+  ...new Set(NAV.flatMap((section) => section.pages.map((page) => page.badge).filter(Boolean) as string[])),
+];
 
 @Component({
   selector: 'app-sidebar',
@@ -352,6 +356,15 @@ export class Sidebar {
   private readonly logoutDialogRef = viewChild<ElementRef<HTMLDialogElement>>('logoutDialog');
 
   constructor() {
+    // One batched reconciliation pass outside change detection: writing from a
+    // template read made every badge flash as the baseline shifted mid-render.
+    effect(() => {
+      const values = BADGE_KEYS.map((key) => [key, this.rawBadgeValue(key)] as const);
+      untracked(() => {
+        for (const [key, raw] of values) this.badgeState.reconcile(key, raw);
+      });
+    });
+
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
       if (!(e instanceof NavigationEnd)) return;
       const url = e.urlAfterRedirects || '';

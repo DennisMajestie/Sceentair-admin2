@@ -24,10 +24,10 @@ describe('BadgeStateService', () => {
     expect(badge()).toBe(0);
   });
 
-  it('re-anchors a dropped baseline after rendering', async () => {
+  it('re-anchors a dropped baseline only when reconciled explicitly', () => {
     service.view('alerts', 10);
     expect(service.unseen('alerts', 4)).toBe(0);
-    await Promise.resolve();
+    service.reconcile('alerts', 4);
     expect(service.unseen('alerts', 4)).toBe(0);
     expect(service.unseen('alerts', 7)).toBe(3);
   });
