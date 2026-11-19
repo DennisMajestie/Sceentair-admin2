@@ -32,6 +32,7 @@ export interface TeamMemberRow {
   email: string;
   title: string;
   role: TeamRole;
+  apiRoleName?: string;
   roleLabel: string;
   status: string;
   statusTone: 'good' | 'warn' | 'info' | 'neutral';
@@ -58,16 +59,28 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 
 const ROLE_ORDER: TeamRole[] = ['admin', 'manager', 'staff', 'viewer'];
 
-/** Roles accepted by POST /users; the UI's admin/manager/staff/viewer labels are not API values. */
-export const CREATE_ROLES = [
+/** Real API role names — the UI's admin/manager/staff/viewer labels are not API values. */
+export const API_ROLES = [
   { id: 'business_owner_admin', label: 'Admin' },
   { id: 'management', label: 'Manager' },
   { id: 'sales', label: 'Sales' },
   { id: 'inventory', label: 'Inventory' },
   { id: 'production', label: 'Production' },
   { id: 'finance_accounting', label: 'Finance' },
+  { id: 'partner_investor', label: 'Partner investor' },
   { id: 'wholesaler', label: 'Wholesaler' },
+  { id: 'customer', label: 'Customer' },
 ] as const;
+
+/** A staff account is never created as a customer. */
+export const CREATE_ROLES = API_ROLES.filter((role) => role.id !== 'customer');
+
+const ROLE_TO_API: Record<TeamRole, string> = {
+  admin: 'business_owner_admin',
+  manager: 'management',
+  staff: 'sales',
+  viewer: 'wholesaler',
+};
 const AVATAR_TONES = ['pine', 'ochre', 'teal', 'ocean', 'sky', 'rose', 'sage', 'slate'];
 export function filterTeamMembers(
   rows: readonly TeamMemberRow[],
@@ -263,7 +276,7 @@ function avatarToneForId(id: string): string {
                 <td data-label="Role">
                   <select
                     class="role-select"
-                    [value]="member.role"
+                    [value]="apiRoleOf(member)"
                     [attr.aria-label]="'Change role for ' + member.name"
                     (change)="setMemberRole(member.id, $any($event.target).value)"
                   >
@@ -716,8 +729,10 @@ export class SettingsTeam {
   private readonly users = inject(UsersApiService);
 
   protected readonly count = fmtCount;
-  protected readonly teamRoleOptions = ROLE_ORDER.map((id) => ({ id, label: ROLE_LABELS[id] }));
+  protected readonly teamRoleOptions = API_ROLES;
   protected readonly createRoleOptions = CREATE_ROLES;
+  protected readonly apiRoleOf = (member: TeamMemberRow): string =>
+    member.apiRoleName || ROLE_TO_API[member.role];
   protected readonly role = signal<RoleFilter>('all');
   protected readonly searchInput = signal('');
   private readonly searchQuery = signal('');
@@ -779,8 +794,8 @@ export class SettingsTeam {
   }
 
   protected setMemberRole(id: string, value: string): void {
-    if (ROLE_ORDER.includes(value as TeamRole)) {
-      this.store.setTeammateRole(id, value as TeamRole);
+    if (API_ROLES.some((role) => role.id === value)) {
+      this.store.setTeammateApiRole(id, value);
     }
   }
 

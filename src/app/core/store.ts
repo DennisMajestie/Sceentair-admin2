@@ -1471,18 +1471,14 @@ export class Store {
   }
 
   /** Change a teammate's role from the Settings �?� Team screen. */
-  setTeammateRole(id: string, role: Teammate['role']): void {
-    const apiRole =
-      role === 'admin'
-        ? 'business_owner_admin'
-        : role === 'manager'
-          ? 'management'
-          : role === 'staff'
-            ? 'sales'
-            : 'wholesaler';
+  setTeammateApiRole(id: string, apiRole: string): void {
     this.state.update((s) => ({
       ...s,
-      team: s.team.map((t) => (t.id === id ? { ...t, role } : t)),
+      team: s.team.map((t) =>
+        t.id === id
+          ? { ...t, apiRoleName: apiRole, role: ROLE_MAP[apiRole] ?? t.role }
+          : t,
+      ),
     }));
     void this.usersApi
       .updateRole(id, apiRole)

@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { Store } from '../../core/store';
 import {
   calculateSeatUsage,
+  API_ROLES,
   CREATE_ROLES,
   filterTeamMembers,
   teamRoleCounts,
@@ -30,6 +31,12 @@ function member(overrides: Partial<TeamMemberRow> = {}): TeamMemberRow {
 
 
 describe('Team & roles helpers', () => {
+  it('members dropdown offers the Wholesaler API role', () => {
+    const ids: string[] = API_ROLES.map((role) => role.id);
+    expect(ids).toContain('wholesaler');
+    expect(ids).not.toContain('staff');
+  });
+
   it('create form offers only roles accepted by POST /users', () => {
     const ids: string[] = CREATE_ROLES.map((role) => role.id);
     expect(ids).not.toContain('staff');
