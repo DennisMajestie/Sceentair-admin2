@@ -80,6 +80,12 @@ export const routes: Routes = [
   },
 
   {
+    path: 'messages/inbox',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/messages/conversations').then((m) => m.ConversationsInbox),
+  },
+
+  {
     path: 'production',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/production/queue').then((m) => m.ProductionQueue),

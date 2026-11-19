@@ -54,7 +54,10 @@ export const NAV: NavSection[] = [
     label: 'Messages',
     icon: 'mail',
     path: '/messages',
-    pages: [{ label: 'Messages', path: '/messages', badge: 'messages' }],
+    pages: [
+      { label: 'Conversations', path: '/messages/inbox' },
+      { label: 'Order updates', path: '/messages', badge: 'messages' },
+    ],
   },
   {
     id: 'purchasing',
