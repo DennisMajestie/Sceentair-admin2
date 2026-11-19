@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Store } from '../../core/store';
-import { date as fmtDate, daysUntil, statusLabel, statusTone } from '../../core/format';
+import { date as fmtDate, daysUntil, money as fmtMoney, statusLabel, statusTone } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { ProductShot } from '../../ui/product-shot';
@@ -95,9 +95,27 @@ import { ProductShot } from '../../ui/product-shot';
         }
       </ng-container>
       @if (selected(); as b) {
-        <div class="drawer-body">
-          <div class="shot thumb thumb--xl"><app-product-shot [photo]="b.photo" [label]="b.product" /></div>
-          <h3 class="dproduct">{{ b.product }} {{ b.size }}</h3>
+        <div class="dbody">
+          <div class="dsummary">
+            <app-product-shot class="shot" [photo]="b.photo" [label]="b.product" />
+            <div class="dsummary__text">
+              <strong>{{ b.product }} {{ b.size }}</strong>
+              <span class="dmeta">{{ b.sku }} · {{ b.location }}</span>
+            </div>
+            <div class="dright">
+              <span class="stat__label">Remaining</span>
+              <strong class="dtotal">{{ b.left }}<small>/{{ b.qty }}</small></strong>
+            </div>
+          </div>
+
+          @if (b.status !== 'released') {
+            <div class="notice" role="status">
+              <app-icon name="alert" [size]="14" />
+              <span>{{ b.status === 'quarantine' ? 'This lot is quarantined pending QA release.' : 'This lot is on hold.' }}</span>
+            </div>
+          }
+
+          <h3 class="dlabel">Batch details</h3>
           <dl class="facts">
             <div><dt>SKU</dt><dd class="mono">{{ b.sku }}</dd></div>
             <div><dt>Location</dt><dd>{{ b.location }}</dd></div>
@@ -106,9 +124,10 @@ import { ProductShot } from '../../ui/product-shot';
             <div><dt>Produced</dt><dd class="num">{{ b.qty }}</dd></div>
             <div><dt>Remaining</dt><dd class="num">{{ b.left }}</dd></div>
             <div><dt>Chemist</dt><dd>{{ b.chemist }}</dd></div>
-            <div><dt>Value at cost</dt><dd class="num">{{ b.value }}</dd></div>
+            <div><dt>Value at cost</dt><dd class="num">{{ money(b.value) }}</dd></div>
           </dl>
-          <div class="dmeta">{{ b.share }}% of total product stock</div>
+
+          <div class="dfoot">{{ b.share }}% of total product stock</div>
         </div>
       }
     </app-drawer>
@@ -137,17 +156,57 @@ import { ProductShot } from '../../ui/product-shot';
     .dtitle strong {
       font-size: var(--fs-lg);
     }
-    .drawer-body {
+    .dbody {
       display: grid;
-      gap: 14px;
+      gap: 16px;
+    }
+    .dsummary {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
     .shot {
-      width: 100%;
-      height: 150px;
+      width: 64px;
+      height: 64px;
+      border-radius: 12px;
+      overflow: hidden;
+      flex: none;
     }
-    .dproduct {
-      font-size: var(--fs-xl);
+    .dsummary__text {
+      display: grid;
+      gap: 3px;
+      flex: 1;
+      min-width: 0;
+    }
+    .dsummary__text strong {
+      font-size: var(--fs-md);
+      line-height: 1.3;
+    }
+    .dmeta {
+      color: var(--faint);
+      font-size: var(--fs-xs);
+    }
+    .dright {
+      display: grid;
+      justify-items: end;
+      gap: 2px;
+    }
+    .dtotal {
+      font-size: var(--fs-2xl);
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    .dtotal small {
+      font-size: var(--fs-sm);
+      color: var(--faint);
+      font-weight: 600;
+    }
+    .dlabel {
+      font-size: var(--fs-2xs);
       font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--faint);
     }
     .facts {
       display: grid;
@@ -171,7 +230,19 @@ import { ProductShot } from '../../ui/product-shot';
       font-size: var(--fs-md);
       font-weight: 600;
     }
-    .dmeta {
+    .notice {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--well);
+      color: var(--muted);
+      font-size: var(--fs-xs);
+    }
+    .notice app-icon { color: var(--primary); }
+    .dfoot {
       font-size: var(--fs-sm);
       color: var(--muted);
     }
@@ -185,6 +256,7 @@ export class ProductBatches {
   protected readonly filter = signal('all');
   protected readonly query = signal('');
   protected readonly date = fmtDate;
+  protected readonly money = fmtMoney;
   protected readonly filters = [
     { id: 'all', label: 'All' },
     { id: 'released', label: 'Released' },

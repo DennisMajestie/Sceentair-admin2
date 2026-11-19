@@ -57,6 +57,17 @@ const ROLE_LABELS: Record<TeamRole, string> = {
 };
 
 const ROLE_ORDER: TeamRole[] = ['admin', 'manager', 'staff', 'viewer'];
+
+/** Roles accepted by POST /users; the UI's admin/manager/staff/viewer labels are not API values. */
+export const CREATE_ROLES = [
+  { id: 'business_owner_admin', label: 'Admin' },
+  { id: 'management', label: 'Manager' },
+  { id: 'sales', label: 'Sales' },
+  { id: 'inventory', label: 'Inventory' },
+  { id: 'production', label: 'Production' },
+  { id: 'finance_accounting', label: 'Finance' },
+  { id: 'wholesaler', label: 'Wholesaler' },
+] as const;
 const AVATAR_TONES = ['pine', 'ochre', 'teal', 'ocean', 'sky', 'rose', 'sage', 'slate'];
 export function filterTeamMembers(
   rows: readonly TeamMemberRow[],
@@ -347,13 +358,12 @@ function avatarToneForId(id: string): string {
           <label class="field"><span class="field__label">Email</span><input type="email" [(ngModel)]="createForm.email" name="newemail" required /></label>
           <label class="field"><span class="field__label">Role</span>
             <select [(ngModel)]="createForm.role" name="newrole">
-              @for (item of teamRoleOptions; track item.id) {
+              @for (item of createRoleOptions; track item.id) {
                 <option [value]="item.id">{{ item.label }}</option>
               }
             </select>
           </label>
           <label class="field"><span class="field__label">Password</span><input type="password" [(ngModel)]="createForm.password" name="newpassword" /></label>
-          <label class="field"><span class="field__label">Title</span><input type="text" [(ngModel)]="createForm.title" name="newtitle" /></label>
           <label class="field"><span class="field__label">Phone</span><input type="text" [(ngModel)]="createForm.phone" name="newphone" /></label>
         </div>
         <div class="form-actions">
@@ -707,13 +717,14 @@ export class SettingsTeam {
 
   protected readonly count = fmtCount;
   protected readonly teamRoleOptions = ROLE_ORDER.map((id) => ({ id, label: ROLE_LABELS[id] }));
+  protected readonly createRoleOptions = CREATE_ROLES;
   protected readonly role = signal<RoleFilter>('all');
   protected readonly searchInput = signal('');
   private readonly searchQuery = signal('');
   protected readonly busy = signal(false);
   protected readonly creating = signal(false);
   protected readonly deactivateTarget = signal<TeamMemberRow | null>(null);
-  protected readonly createForm = { name: '', email: '', role: 'staff', title: '', phone: '', password: '' };
+  protected readonly createForm = { name: '', email: '', role: 'sales', phone: '', password: '' };
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private entranceContext?: gsap.Context;
   private filterContext?: gsap.Context;
@@ -776,8 +787,7 @@ export class SettingsTeam {
   protected openCreate(): void {
     this.createForm.name = '';
     this.createForm.email = '';
-    this.createForm.role = 'staff';
-    this.createForm.title = '';
+    this.createForm.role = 'sales';
     this.createForm.phone = '';
     this.createForm.password = '';
     this.creating.set(true);
@@ -796,7 +806,6 @@ export class SettingsTeam {
         email: this.createForm.email.trim(),
         role: this.createForm.role,
         password: this.createForm.password,
-        title: this.createForm.title.trim() || undefined,
         phone: this.createForm.phone.trim() || undefined,
       };
       const user = await this.users.create(input);

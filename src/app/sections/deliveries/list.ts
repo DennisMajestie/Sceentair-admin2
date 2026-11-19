@@ -127,6 +127,11 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
               <label class="field field--check"><span class="field__label">VAT enabled</span><input type="checkbox" [(ngModel)]="settingsForm.vatEnabled" name="shipPanelVat" /></label>
               <label class="field"><span class="field__label">VAT rate %</span><input type="number" min="0" max="100" [(ngModel)]="settingsForm.vatRatePercent" name="shipPanelVatRate" /></label>
               <label class="field field--check"><span class="field__label">Coupons enabled</span><input type="checkbox" [(ngModel)]="settingsForm.couponsEnabled" name="shipPanelCoupons" /></label>
+              <label class="field field--wide">
+                <span class="field__label">Storefront WhatsApp link</span>
+                <input type="url" placeholder="https://wa.me/2348000000000" [(ngModel)]="settingsForm.supportWhatsappUrl" name="shipPanelWhatsapp" />
+                <span class="field__hint">Shown as the floating WhatsApp button. Leave blank to hide it.</span>
+              </label>
             </div>
             <div class="ship-save">
               <label class="field"><span class="field__label">Reason for change</span><input type="text" placeholder="Required for the audit trail" [(ngModel)]="reason" name="shipPanelReason" /></label>
@@ -294,6 +299,8 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
     .ship-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
     .ship-save { display: flex; align-items: flex-end; gap: 10px; margin-top: 12px; }
     .ship-save .field { flex: 1; min-width: 0; }
+    .field--wide { grid-column: 1 / -1; }
+    .field__hint { font-size: var(--fs-2xs); color: var(--faint); }
     .ship-panel__labelrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 10px; }
     .ship-panel__label { margin: 0; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .ship-empty { color: var(--muted); text-align: center; }
@@ -338,7 +345,7 @@ export class DeliveriesList {
     const existing = new Set(this.pricingRows().map((row) => row.zone.trim().toLowerCase()));
     return this.zones.filter((zone) => !existing.has(zone.toLowerCase()));
   });
-  protected settingsForm = { shippingEnabled: false, freeDeliveryThreshold: 0, vatEnabled: false, vatRatePercent: 0, couponsEnabled: false };
+  protected settingsForm = { shippingEnabled: false, freeDeliveryThreshold: 0, vatEnabled: false, vatRatePercent: 0, couponsEnabled: false, supportWhatsappUrl: '' };
   protected reason = '';
   protected addRowForm: { zone: string; baseFee: number; pricePerKg: number } = { zone: NIGERIA_GEOPOLITICAL_ZONES[0], baseFee: 0, pricePerKg: 0 };
   private pricingLoaded = false;
@@ -378,6 +385,11 @@ export class DeliveriesList {
     if (vatEnabled !== current.vatEnabled) changed.vatEnabled = vatEnabled;
     if (vatRatePercent !== current.vatRatePercent) changed.vatRatePercent = vatRatePercent;
     if (couponsEnabled !== current.couponsEnabled) changed.couponsEnabled = couponsEnabled;
+    const whatsapp = this.settingsForm.supportWhatsappUrl.trim();
+    const whatsappUrl = whatsapp === '' ? null : whatsapp;
+    if (whatsappUrl !== (current.supportWhatsappUrl ?? null)) {
+      changed.supportWhatsappUrl = whatsappUrl;
+    }
     if (Object.keys(changed).length === 1) {
       this.toasts.show('No changes to save', 'info');
       return;
@@ -455,6 +467,7 @@ export class DeliveriesList {
     this.settingsForm.shippingEnabled = settings.shippingEnabled;
     this.settingsForm.vatEnabled = settings.vatEnabled;
     this.settingsForm.couponsEnabled = settings.couponsEnabled;
+    this.settingsForm.supportWhatsappUrl = settings.supportWhatsappUrl ?? '';
     this.settingsForm.freeDeliveryThreshold = settings.freeDeliveryThreshold ?? 0;
     this.settingsForm.vatRatePercent = settings.vatRatePercent ?? 0;
   }

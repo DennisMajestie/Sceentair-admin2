@@ -32,6 +32,7 @@ const SETTINGS = {
   pricesIncludeVat: false,
   deliveryTaxable: true,
   couponsEnabled: true,
+  supportWhatsappUrl: 'https://wa.me/2348000000000',
 };
 
 describe('LogisticsApiService', () => {

@@ -21,6 +21,8 @@ export interface ApiShippingSettings {
   pricesIncludeVat: boolean;
   deliveryTaxable: boolean;
   couponsEnabled: boolean;
+  /** WhatsApp contact link shown as the storefront's floating button. */
+  supportWhatsappUrl: string | null;
 }
 
 /** Settings update; the API requires the reason for the audit trail. */
@@ -33,6 +35,7 @@ export interface ApiShippingSettingsUpdate {
   pricesIncludeVat?: boolean;
   deliveryTaxable?: boolean;
   couponsEnabled?: boolean;
+  supportWhatsappUrl?: string | null;
   reason: string;
 }
 

@@ -47,7 +47,6 @@ export interface ApiCreateUserInput {
   role: string;
   password: string;
   phone?: string;
-  title?: string;
 }
 
 export interface ApiUserList {
