@@ -7,6 +7,7 @@ import { map } from 'rxjs';
 import { Store } from '../../core/store';
 import { AuthService } from '../../core/auth.service';
 import { CatalogueApiService, type ApiProductVariant } from '../../core/catalogue-api.service';
+import { MaterialsApiService } from '../../core/materials-api.service';
 import {
   ProductionApiService,
   type ApiProductionBatch,
@@ -184,6 +185,25 @@ interface BatchRow {
           } @else {
             <p class="note">No BOM recorded for this batch.</p>
           }
+          @if (bom().length) {
+            @if (!usageOpen()) {
+              <button class="btn btn--ghost btn--tiny" type="button" (click)="openUsage()">Record material usage</button>
+            } @else {
+              <form class="usage-row" (ngSubmit)="recordUsage()">
+                <select [(ngModel)]="usageForm.materialId" name="usageMaterial" aria-label="Material used">
+                  @for (row of bom(); track row.materialId) {
+                    <option [value]="row.materialId">{{ row.materialName }}</option>
+                  }
+                </select>
+                <input type="number" min="1" step="1" [(ngModel)]="usageForm.quantityUsed" name="usageQuantity" aria-label="Quantity used" />
+                <button class="btn btn--primary btn--tiny" type="submit" [disabled]="usageBusy()">{{ usageBusy() ? 'Saving.' : 'Record usage' }}</button>
+                <button class="btn btn--ghost btn--tiny" type="button" (click)="usageOpen.set(false)">Cancel</button>
+              </form>
+              @if (usageError()) {
+                <p class="note neg">{{ usageError() }}</p>
+              }
+            }
+          }
 
           <h3 class="dlabel">Cost breakdown</h3>
           @if (cost(); as c) {
@@ -331,6 +351,13 @@ interface BatchRow {
     .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
     .barcode-row { display: flex; gap: 10px; }
     .barcode-row input { flex: 1; }
+    .usage-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .usage-row select, .usage-row input {
+      height: 36px; padding: 0 10px; border: 1px solid var(--line);
+      border-radius: 8px; background: var(--surface); color: var(--text); font-size: var(--fs-sm);
+    }
+    .usage-row select { flex: 1; min-width: 130px; }
+    .usage-row input { width: 80px; }
     .cost-form, .rejection-form, .create-form { display: grid; gap: 12px; }
     .cost-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     .field { display: grid; gap: 5px; }
@@ -354,6 +381,7 @@ export class ProductionQueue {
   private readonly auth = inject(AuthService);
   private readonly api = inject(ProductionApiService);
   private readonly catalogueApi = inject(CatalogueApiService);
+  private readonly materialsApi = inject(MaterialsApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
 
@@ -372,6 +400,10 @@ export class ProductionQueue {
   protected readonly barcodeInputOpen = signal(false);
   protected readonly variantOptions = signal<ApiProductVariant[]>([]);
   protected readonly bom = signal<ApiBatchBomRow[]>([]);
+  protected readonly usageOpen = signal(false);
+  protected readonly usageBusy = signal(false);
+  protected readonly usageError = signal<string | null>(null);
+  protected readonly usageForm = { materialId: '', quantityUsed: 0 };
   protected readonly cost = signal<ApiProductionCost | null>(null);
   protected readonly rejections = signal<ApiQCRejection[]>([]);
   protected readonly scans = signal<ApiBatchScan[]>([]);
@@ -598,6 +630,41 @@ export class ProductionQueue {
       this.toast.show('Barcode could not be registered.', 'bad');
     } finally {
       this.busy.set(false);
+    }
+  }
+
+  protected openUsage(): void {
+    const first = this.bom()[0];
+    if (!first) return;
+    this.usageForm.materialId = first.materialId;
+    this.usageForm.quantityUsed = Math.max(1, first.plannedQuantity - first.consumedQuantity);
+    this.usageError.set(null);
+    this.usageOpen.set(true);
+  }
+
+  protected async recordUsage(): Promise<void> {
+    const b = this.selectedBatch();
+    const quantityUsed = Math.trunc(Number(this.usageForm.quantityUsed));
+    if (!b || !this.usageForm.materialId || !Number.isFinite(quantityUsed) || quantityUsed < 1) {
+      this.usageError.set('Choose a material and a whole quantity of at least 1.');
+      return;
+    }
+    this.usageBusy.set(true);
+    this.usageError.set(null);
+    try {
+      await this.materialsApi.usage({
+        materialId: this.usageForm.materialId,
+        quantityUsed,
+        batchId: b.id,
+      });
+      this.toast.show('Material usage recorded', 'good');
+      this.usageOpen.set(false);
+      await this.selectBatch(b.id);
+      void this.store.load();
+    } catch (err) {
+      this.usageError.set(err instanceof Error ? err.message : 'Could not record usage.');
+    } finally {
+      this.usageBusy.set(false);
     }
   }
 
