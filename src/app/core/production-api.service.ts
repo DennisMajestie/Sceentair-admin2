@@ -35,6 +35,19 @@ export interface ApiProductionBatchList {
   stages: string[];
 }
 
+/** Server-side WIP snapshot (units per stage + materials issued to runs). */
+export interface ApiWipSummary {
+  stages: Array<{ stage: string; batches: number; units: number }>;
+  totalUnits: number;
+  activeBatches: number;
+  materials: Array<{
+    materialId: string;
+    materialName: string;
+    unit: string;
+    quantity: number;
+  }>;
+}
+
 export interface ApiProductionCost {
   id: string;
   materialCost: number;
@@ -119,6 +132,12 @@ export class ProductionApiService {
       this.http.get<ApiProductionBatchList>(apiUrl(this.baseUrl, 'production-batches'), {
         params,
       }),
+    );
+  }
+
+  wip(): Promise<ApiWipSummary> {
+    return firstValueFrom(
+      this.http.get<ApiWipSummary>(apiUrl(this.baseUrl, 'production-batches/wip')),
     );
   }
 

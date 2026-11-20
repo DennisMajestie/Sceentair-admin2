@@ -77,6 +77,7 @@ export const NAV: NavSection[] = [
     path: '/production',
     pages: [
       { label: 'Queue', path: '/production', badge: 'productionQueue' },
+      { label: 'WIP', path: '/production/wip' },
       { label: 'Tech packs', path: '/production/tech-packs', badge: 'techPacks' },
       { label: 'Floor kiosk', path: '/production/kiosk', badge: 'kiosk' },
     ],

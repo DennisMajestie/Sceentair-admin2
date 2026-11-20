@@ -9,9 +9,9 @@ import {
   InventoryApiService,
   type InventoryItemType,
 } from '../../core/inventory-api.service';
+import { ApiWipSummary, ProductionApiService } from '../../core/production-api.service';
 import { CatalogueApiService, type ApiProductVariant } from '../../core/catalogue-api.service';
 import { MaterialsApiService, type ApiMaterial } from '../../core/materials-api.service';
-import { ProductionApiService } from '../../core/production-api.service';
 import { ReturnsApiService } from '../../core/returns-api.service';
 
 interface VariantRef {
@@ -126,7 +126,12 @@ function fingerprint(hash: string | null): string | null {
       <article class="card kpi">
         <span class="stat__label">Work in progress</span>
         <span class="kpi__value">{{ count(wipUnits()) }}</span>
-        <span class="kpi__meta">units still in the queue</span>
+        <span class="kpi__meta">units across {{ count(wipBatches()) }} active batches</span>
+      </article>
+      <article class="card kpi">
+        <span class="stat__label">Materials in WIP</span>
+        <span class="kpi__value">{{ count(wipMaterials()) }}</span>
+        <span class="kpi__meta">issued to open batches</span>
       </article>
       <article class="card kpi">
         <span class="stat__label">Returns awaiting</span>
@@ -134,6 +139,44 @@ function fingerprint(hash: string | null): string | null {
         <span class="kpi__meta">requested by customers</span>
       </article>
     </section>
+
+    @if (wipSummary(); as wip) {
+      @if (wip.stages.length > 0 || wip.materials.length > 0) {
+        <section class="card wip-panel">
+          <h2 class="wip-title">Work in progress</h2>
+          <div class="wip-grid">
+            <div>
+              <h3 class="wip-subtitle">By production stage</h3>
+              <table>
+                <thead><tr><th>Stage</th><th>Batches</th><th>Units</th></tr></thead>
+                <tbody>
+                  @for (stage of wip.stages; track stage.stage) {
+                    <tr><td>{{ titleCase(stage.stage) }}</td><td>{{ stage.batches }}</td><td>{{ stage.units }}</td></tr>
+                  }
+                  @if (wip.stages.length === 0) {
+                    <tr><td colspan="3" class="empty">No active batches.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3 class="wip-subtitle">Materials issued to WIP</h3>
+              <table>
+                <thead><tr><th>Material</th><th>Quantity</th></tr></thead>
+                <tbody>
+                  @for (material of wip.materials; track material.materialId) {
+                    <tr><td>{{ material.materialName }}</td><td>{{ material.quantity }} {{ material.unit }}</td></tr>
+                  }
+                  @if (wip.materials.length === 0) {
+                    <tr><td colspan="2" class="empty">No materials issued.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      }
+    }
 
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Item type filter">
@@ -219,6 +262,15 @@ function fingerprint(hash: string | null): string | null {
     }
   `,
   styles: `
+    .wip-panel { margin-bottom: var(--gap); padding: 14px 16px; }
+    .wip-title { margin: 0 0 10px; font-size: var(--fs-lg); }
+    .wip-subtitle { margin: 0 0 6px; font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); }
+    .wip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .wip-grid table { width: 100%; border-collapse: collapse; }
+    .wip-grid th, .wip-grid td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+    .wip-grid th { font-size: var(--fs-2xs); color: var(--faint); text-transform: uppercase; }
+    .empty { color: var(--muted); text-align: center; }
+    @media (max-width: 800px) { .wip-grid { grid-template-columns: 1fr; } }
     .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--gap); margin-bottom: var(--gap); }
     .kpi { display: grid; gap: 4px; }
     .kpi__value { font-size: var(--fs-3xl); font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1.05; }
@@ -243,9 +295,9 @@ function fingerprint(hash: string | null): string | null {
 })
 export class WarehouseStock {
   private readonly inventoryApi = inject(InventoryApiService);
+  private readonly productionApi = inject(ProductionApiService);
   private readonly catalogueApi = inject(CatalogueApiService);
   private readonly materialsApi = inject(MaterialsApiService);
-  private readonly productionApi = inject(ProductionApiService);
   private readonly returnsApi = inject(ReturnsApiService);
 
   protected readonly count = fmtCount;
@@ -259,7 +311,7 @@ export class WarehouseStock {
   protected readonly filter = signal<'all' | InventoryItemType>('all');
   protected readonly ledgerReport = signal<LedgerReport | null>(null);
   protected readonly ledgerBus = signal(false);
-  protected readonly wip = signal(0);
+  protected readonly wipSummary = signal<ApiWipSummary | null>(null);
   protected readonly returnsAwaitingRequested = signal(0);
   protected readonly query = signal('');
 
@@ -302,18 +354,9 @@ export class WarehouseStock {
           })
           .catch(() => this.materialsRef.set(new Map())),
         this.productionApi
-          .list(1, 100)
-          .then((list) => {
-            const stages = list.stages ?? [];
-            const lastStage = stages[stages.length - 1];
-            const wip = stages.length
-              ? list.data.filter(
-                  (b) => (stages as string[]).indexOf(b.stage) < (stages as string[]).indexOf(lastStage),
-                )
-              : [];
-            this.wip.set(wip.reduce((a, b) => a + b.quantity, 0));
-          })
-          .catch(() => this.wip.set(0)),
+          .wip()
+          .then((summary) => this.wipSummary.set(summary))
+          .catch(() => this.wipSummary.set(null)),
         this.returnsApi
           .list(1, 50)
           .then((list) =>
@@ -395,7 +438,11 @@ export class WarehouseStock {
   );
 
   protected readonly returnsAwaiting = computed(() => this.returnsAwaitingRequested());
-  protected readonly wipUnits = computed(() => this.wip());
+  protected readonly wipUnits = computed(() => this.wipSummary()?.totalUnits ?? 0);
+  protected readonly wipBatches = computed(() => this.wipSummary()?.activeBatches ?? 0);
+  protected readonly wipMaterials = computed(() =>
+    (this.wipSummary()?.materials ?? []).reduce((sum, m) => sum + m.quantity, 0),
+  );
 
   protected readonly visible = computed(() => {
     const term = this.query().trim().toLowerCase();

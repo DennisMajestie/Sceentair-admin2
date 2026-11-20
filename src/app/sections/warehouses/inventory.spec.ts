@@ -59,7 +59,11 @@ function makeApis(overrides: {
   summary?: unknown;
   ledger?: unknown;
 } = {}): Apis {
-  const inventoryApi = jasmine.createSpyObj('InventoryApiService', ['summary', 'ledgerVerify']);
+  const inventoryApi = jasmine.createSpyObj('InventoryApiService', [
+    'summary',
+    'ledgerVerify',
+  ]);
+
   inventoryApi.summary.and.returnValue(
     Promise.resolve(
       (overrides.summary ?? [
@@ -97,7 +101,13 @@ function makeApis(overrides: {
   materialsApi.list.and.returnValue(
     Promise.resolve({ data: [MATERIAL], total: 1 } as never),
   );
-  const productionApi = jasmine.createSpyObj('ProductionApiService', ['list']);
+  const productionApi = jasmine.createSpyObj('ProductionApiService', ['list', 'wip']);
+  productionApi.wip.and.resolveTo({
+    stages: [{ stage: 'cutting', batches: 2, units: 40 }],
+    totalUnits: 40,
+    activeBatches: 2,
+    materials: [{ materialId: 'm-shea', materialName: 'Shea butter', unit: 'kg', quantity: 12 }],
+  });
   productionApi.list.and.returnValue(
     Promise.resolve(
       {
@@ -186,13 +196,20 @@ describe('warehouses inventory list', () => {
     await (component as never as { load(): Promise<void> }).load();
     await fixture.whenStable();
 
-    expect((component as never as { wipUnits(): number }).wipUnits()).toBe(30);
+    expect((component as never as { wipUnits(): number }).wipUnits()).toBe(40);
+    expect((component as never as { wipBatches(): number }).wipBatches()).toBe(2);
+    expect((component as never as { wipMaterials(): number }).wipMaterials()).toBe(12);
+    expect(apis.productionApi.wip).toHaveBeenCalled();
     expect(
       (component as never as { returnsAwaiting(): number }).returnsAwaiting(),
     ).toBe(2);
     expect(
       (component as never as { materialCount(): number }).materialCount(),
     ).toBe(1);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'Materials issued to WIP',
+    );
   });
 
   it('filters by type and search term', async () => {

@@ -106,6 +106,11 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/production/kiosk').then((m) => m.FloorKiosk),
   },
   {
+    path: 'production/wip',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/wip').then((m) => m.ProductionWip),
+  },
+  {
     path: 'production/:id',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/production/queue').then((m) => m.ProductionQueue),
