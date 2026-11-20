@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, output, signal } from '@angular/core';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '../core/store';
 import { ThemeService } from '../core/theme';
@@ -8,10 +8,21 @@ import { relative as relativeTime } from '../core/format';
 import { Icon } from './icon';
 import { SdSlidingIndicator } from './sliding-indicator';
 
+/** routerLinkActive uses prefix matching, which keeps /production active on its child pages. */
+export function activePageFor(url: string, pages: readonly { path: string }[]): string {
+  const path = (url || '').split('?')[0].split('#')[0];
+  let best = '';
+  for (const page of pages) {
+    const matches = path === page.path || path.startsWith(`${page.path}/`);
+    if (matches && page.path.length > best.length) best = page.path;
+  }
+  return best;
+}
+
 @Component({
   selector: 'app-topbar',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, RouterLink, RouterLinkActive, SdSlidingIndicator],
+  imports: [Icon, RouterLink, SdSlidingIndicator],
   template: `
     <header class="top">
       <a class="brand" routerLink="/dashboard/overview">
@@ -24,7 +35,12 @@ import { SdSlidingIndicator } from './sliding-indicator';
 
       <nav class="tabs" aria-label="Pages in this section" sdSlidingIndicator itemSelector=".tab">
         @for (page of section().pages; track page.path) {
-          <a class="tab" [routerLink]="page.path" routerLinkActive="is-on" ariaCurrentWhenActive="page">
+          <a
+            class="tab"
+            [routerLink]="page.path"
+            [class.is-on]="activePage() === page.path"
+            [attr.aria-current]="activePage() === page.path ? 'page' : null"
+          >
             {{ page.label }}
             @if (page.badge && badgeValue(page.badge) > 0) {
               <em>{{ badgeValue(page.badge) }}</em>
@@ -424,10 +440,17 @@ export class Topbar {
   protected readonly accountOpen = signal(false);
 
   protected readonly section = signal(matchSection(this.router.url));
+  private readonly currentUrl = signal(this.router.url);
+  protected readonly activePage = computed(() =>
+    activePageFor(this.currentUrl(), this.section().pages),
+  );
 
   constructor() {
     this.router.events.pipe(takeUntilDestroyed()).subscribe((e) => {
-      if (e instanceof NavigationEnd) this.section.set(matchSection(e.urlAfterRedirects));
+      if (e instanceof NavigationEnd) {
+        this.section.set(matchSection(e.urlAfterRedirects));
+        this.currentUrl.set(e.urlAfterRedirects);
+      }
     });
   }
   protected readonly me = computed(() => this.store.settings().me);
