@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -10,7 +10,7 @@ import { CouponsApiService, type ClaimCouponInput, type Coupon } from '../../cor
 @Component({
   selector: 'app-coupons-wallet',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">

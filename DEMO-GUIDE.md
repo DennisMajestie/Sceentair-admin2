@@ -1,6 +1,6 @@
 # Vessa Admin - Client Demo Guide
 
-Everything below was verified against the local stack on 11 Nov 2026: all 43 routes render, zero console errors, zero horizontal overflow, backend and frontend running, and every module populated with demo data (see "Demo data" below).
+Everything below was verified against the local stack on 11 Nov 2026 (43 routes at the time): zero console errors, zero horizontal overflow, backend and frontend running, and every module populated with demo data (see "Demo data" below). The Production → WIP tab at `/production/wip` was added after that pass and still needs a demo walkthrough.
 
 - Frontend: http://localhost:4200 (Angular 20)
 - Backend: http://localhost:3000/api/v1 (NestJS + Postgres, DB `seentair_dev`)
@@ -112,8 +112,9 @@ Sign in on `/signin`. Point out: branded split layout, password visibility toggl
 ### 2.5 Production (2 min)
 
 1. **Production queue** - batches by stage: Production Planned, Cutting, Sewing, Finishing, Quality Check; advance stage, cancel. 3 batches seeded at Cutting - advance one live.
-2. **Tech packs** - measurements, cutting efficiency, yield per colourway.
-3. **Floor kiosk** - full-screen station for the factory floor; hand this to a machinist, not a manager. Now carries the 3 seeded batches.
+2. **WIP** - server-side work-in-progress snapshot: units and batches per stage with share bars, and materials issued to open runs. Refresh after advancing a batch to see the numbers move.
+3. **Tech packs** - measurements, cutting efficiency, yield per colourway.
+4. **Floor kiosk** - full-screen station for the factory floor; hand this to a machinist, not a manager. Now carries the 3 seeded batches.
 
 ### 2.6 Purchasing (1 min)
 
@@ -178,6 +179,7 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 | Purchasing | Materials | `/purchasing/materials` | Materials | Raw materials | 4 |
 | Purchasing | Suppliers | `/purchasing/suppliers` | Suppliers | Directory | 3 |
 | Production | Queue | `/production` | Production queue | Stages | 3 |
+| Production | WIP | `/production/wip` | Work in progress | Stage + materials | 3 |
 | Production | Tech packs | `/production/tech-packs` | Tech packs | Measurements | 3 |
 | Production | Floor kiosk | `/production/kiosk` | Production line | Floor station | 3 |
 | Warehouses | Inventory | `/warehouses/inventory` | Inventory | Movement ledger | 56 |

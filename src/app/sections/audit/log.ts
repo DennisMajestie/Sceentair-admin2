@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { AuditApiService, type ApiAuditEntry, type ApiAuditVerify } from '../../core/audit-api.service';
@@ -98,7 +98,7 @@ function describeRefund(state: Record<string, unknown>): string {
 @Component({
   selector: 'app-audit-log',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [Icon, Drawer],
   template: `
     <div class="head">
       <div class="head__text">

@@ -15,7 +15,6 @@ import {
 } from '../../core/tech-packs-api.service';
 import { date as fmtDate } from '../../core/format';
 import { ToastService } from '../../core/toast';
-import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 
 const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
@@ -23,7 +22,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
 @Component({
   selector: 'app-production-tech-packs',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, DatePipe, Spinner],
+  imports: [RouterLink, Drawer, FormsModule, DatePipe, Spinner],
   template: `
     <div class="head">
       <div class="head__text">

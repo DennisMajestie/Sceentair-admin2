@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { Spinner } from '../../ui/spinner';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -17,7 +17,7 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
 @Component({
   selector: 'app-partners-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">

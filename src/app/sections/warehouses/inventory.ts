@@ -302,6 +302,7 @@ export class WarehouseStock {
 
   protected readonly count = fmtCount;
   protected readonly money = fmtMoney;
+  protected readonly titleCase = titleCase;
 
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);

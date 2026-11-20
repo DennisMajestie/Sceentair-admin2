@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, Router, RouterLink, ParamMap } from '@angular/router';
+import { ActivatedRoute, Router, ParamMap } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
@@ -10,7 +10,7 @@ import { ToastService } from '../../core/toast';
 @Component({
   selector: 'app-media-library',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer],
+  imports: [Icon, Drawer],
   template: `
     <div class="head">
       <div class="head__text">
@@ -36,7 +36,7 @@ import { ToastService } from '../../core/toast';
       </article>
       <article class="stat">
         <span class="stat__label">Total size</span>
-        <strong class="stat__value">{{ totalSizeMB }} MB</strong>
+        <strong class="stat__value">{{ totalSizeMB() }} MB</strong>
         <span class="stat__detail">Combined file size</span>
       </article>
     </div>

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import {
@@ -52,7 +52,7 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
 @Component({
   selector: 'app-approvals-pending',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule],
   template: `
     <div class="head">
       <div class="head__text">
