@@ -44,6 +44,7 @@ import {
   Approval,
 } from './models';
 import { canAdvanceOrder } from './order-flow';
+import { NETWORK_ERROR_MESSAGE, friendlyErrorMessage, isNetworkError } from './network-error';
 
 function emptySeed(): import('./models').Seed {
   return {
@@ -610,6 +611,13 @@ export class Store {
   /** Set when the purchase feed fails, so "0 records" is never a silent lie. */
   readonly purchasesError = signal('');
 
+  /** Set when a core API call cannot reach the server, for the shell's connection warning. */
+  readonly connectionError = signal('');
+
+  private noteNetworkError(error: unknown): void {
+    if (isNetworkError(error)) this.connectionError.set(NETWORK_ERROR_MESSAGE);
+  }
+
   /** Hydrate all entities from the API. Safe to call multiple times; failures leave prior state intact. */
   async resolveReturn(
     id: string,
@@ -636,6 +644,7 @@ export class Store {
   }
 
   async load(): Promise<void> {
+    this.connectionError.set('');
     const next: import('./models').Seed = { ...emptySeed() };
     const me = this.auth.user();
     if (me) {
@@ -655,10 +664,20 @@ export class Store {
       this.catalogueApi
         .list({ page: 1, limit: 100 })
         .then((r) => (next.products = r.data.map(mapProduct)))
-        .catch(() => { }),
+        .catch((error: unknown) => this.noteNetworkError(error)),
       Promise.all([
-        this.customersApi.list({ page: 1, limit: 100 }).catch(() => ({ data: [] as ApiCustomer[], total: 0 })),
-        this.ordersApi.list({ page: 1, limit: 100 }).catch(() => ({ data: [] as ApiOrder[], total: 0 })),
+        this.customersApi
+          .list({ page: 1, limit: 100 })
+          .catch((error: unknown) => {
+            this.noteNetworkError(error);
+            return { data: [] as ApiCustomer[], total: 0 };
+          }),
+        this.ordersApi
+          .list({ page: 1, limit: 100 })
+          .catch((error: unknown) => {
+            this.noteNetworkError(error);
+            return { data: [] as ApiOrder[], total: 0 };
+          }),
       ]).then(([cRes, oRes]) => {
         const unified = synthesizeGuestShoppers(cRes.data, oRes.data);
         next.customers = unified.customers.map(mapCustomer);
@@ -702,7 +721,7 @@ export class Store {
             },
           ];
         })
-        .catch(() => { }),
+        .catch((error: unknown) => this.noteNetworkError(error)),
     ]);
     this.state.set(next);
     this.background = this.loadBackground(next);
@@ -739,9 +758,7 @@ export class Store {
         })
         .catch((error: unknown) => {
           this.purchasesError.set(
-            error instanceof Error && error.message
-              ? error.message
-              : 'The purchase records could not be loaded.',
+            friendlyErrorMessage(error, 'The purchase records could not be loaded.'),
           );
         }),
       this.usersApi

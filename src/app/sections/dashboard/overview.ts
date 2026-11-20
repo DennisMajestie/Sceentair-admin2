@@ -12,6 +12,7 @@ import { AuthService } from '../../core/auth.service';
 import { gsap } from 'gsap';
 import { hideAppPreloader } from '../../core/app-preloader';
 import { OverviewPrefetchService, OverviewPrefetchSlots } from '../../core/overview-prefetch';
+import { NETWORK_ERROR_MESSAGE, friendlyErrorMessage } from '../../core/network-error';
 import {
   AnalyticsInventoryMovementMonth,
   AnalyticsInventoryMovementPeriod,
@@ -171,8 +172,8 @@ export class DashboardOverview {
       .catch(() => this.dashboardData.set(null))
       .finally(() => {
         if (!this.dashboardData()) {
-          this.dashboardErrors.set([{ label: 'Inventory totals', message: 'The analytics service is unreachable.' }]);
-          this.dashboardError.set('Dashboard data could not be loaded. The analytics service is unreachable.');
+          this.dashboardErrors.set([{ label: 'Inventory totals', message: NETWORK_ERROR_MESSAGE }]);
+          this.dashboardError.set(`Dashboard data could not be loaded. ${NETWORK_ERROR_MESSAGE}`);
         }
         this.pending.set(false);
       });
@@ -256,9 +257,8 @@ export class DashboardOverview {
       .then((movements) => this.inventoryMovements.set(movements))
       .catch((error) => {
         this.inventoryMovements.set(null);
-        const msg = this.errorMessage(error);
-        this.chartError.set(msg);
-        noteError('Inventory movement chart', msg);
+        this.chartError.set(this.errorMessage(error));
+        noteError('Inventory movement chart', error);
       })
       .finally(() => {
         syncErrors();
@@ -267,7 +267,7 @@ export class DashboardOverview {
   }
 
   private errorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : 'Unknown error';
+    return friendlyErrorMessage(error, 'Unknown error');
   }
 
   /** Dashboard aggregates from the API. */

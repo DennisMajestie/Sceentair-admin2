@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, ElementRef, effect, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { NavigationEnd, NavigationStart, Router, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { auditTime } from 'rxjs';
@@ -6,16 +6,18 @@ import { Topbar } from './ui/topbar';
 import { Sidebar } from './ui/sidebar';
 import { Palette } from './ui/palette';
 import { ToastHost } from './ui/toast-host';
+import { Icon } from './ui/icon';
 import { hideAppPreloader } from './core/app-preloader';
 import { SdShellStateService } from './core/sd-shell-state.service';
 import { ApiSession } from './core/api-session';
 import { RealtimeService } from './core/realtime.service';
 import { Store } from './core/store';
+import { NETWORK_ERROR_MESSAGE } from './core/network-error';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, Topbar, Sidebar, Palette, ToastHost],
+  imports: [RouterOutlet, Topbar, Sidebar, Palette, ToastHost, Icon],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -33,7 +35,12 @@ export class App {
   protected readonly resolved = signal(false);
 
   protected readonly collapsed = this.state.collapsed;
-  protected readonly realtimeStatus = this.realtime.status;
+  protected readonly connectionProblem = computed(
+    () => !!this.store.connectionError() || this.realtime.connectionError() !== '',
+  );
+  protected readonly connectionMessage = computed(
+    () => this.store.connectionError() || this.realtime.connectionError() || NETWORK_ERROR_MESSAGE,
+  );
 
   constructor() {
     effect(() => this.realtime.connect(this.session.accessToken()));
@@ -77,5 +84,10 @@ export class App {
 
   protected togglePalette(): void {
     this.paletteRef()?.toggle();
+  }
+
+  protected retryConnection(): void {
+    void this.store.load();
+    this.realtime.reconnect();
   }
 }
