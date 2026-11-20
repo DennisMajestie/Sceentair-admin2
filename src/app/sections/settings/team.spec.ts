@@ -5,6 +5,8 @@ import {
   calculateSeatUsage,
   API_ROLES,
   CREATE_ROLES,
+  hasApiRoleOption,
+  roleLabelFor,
   filterTeamMembers,
   teamRoleCounts,
   teamStatusCounts,
@@ -18,7 +20,7 @@ function member(overrides: Partial<TeamMemberRow> = {}): TeamMemberRow {
     name: 'Avery Lane',
     email: 'avery@example.test',
     title: 'Warehouse lead',
-    role: 'manager',
+    role: 'management',
     roleLabel: 'Manager',
     status: 'Active',
     statusTone: 'good',
@@ -44,7 +46,7 @@ describe('Team & roles helpers', () => {
     expect(ids).toContain('wholesaler');
   });
 
-  it('filters members by role and by name, email, or title', () => {
+  it('filters members by their real API role and by name, email, or title', () => {
     const rows = [
       member(),
       member({
@@ -52,27 +54,43 @@ describe('Team & roles helpers', () => {
         name: 'Jordan Reed',
         email: 'jordan@example.test',
         title: 'Finance',
-        role: 'viewer',
-        roleLabel: 'Viewer',
+        role: 'wholesaler',
+        roleLabel: 'Wholesaler',
       }),
     ];
 
-    expect(filterTeamMembers(rows, 'manager', '').map((row) => row.id)).toEqual(['member-1']);
+    expect(filterTeamMembers(rows, 'management', '').map((row) => row.id)).toEqual(['member-1']);
+    expect(filterTeamMembers(rows, 'wholesaler', '').map((row) => row.id)).toEqual(['member-2']);
     expect(filterTeamMembers(rows, 'all', 'JORDAN').map((row) => row.id)).toEqual(['member-2']);
     expect(filterTeamMembers(rows, 'all', 'example.test').length).toBe(2);
-    expect(filterTeamMembers(rows, 'viewer', 'warehouse')).toEqual([]);
+    expect(filterTeamMembers(rows, 'wholesaler', 'warehouse')).toEqual([]);
   });
 
-  it('counts only roles present in the member data', () => {
+  it('counts each API role present instead of collapsing roles into four buckets', () => {
     const counts = teamRoleCounts([
       member(),
-      member({ id: 'member-2', role: 'manager' }),
-      member({ id: 'member-3', role: 'viewer', roleLabel: 'Viewer' }),
+      member({ id: 'member-2', role: 'management' }),
+      member({ id: 'member-3', role: 'wholesaler', roleLabel: 'Wholesaler' }),
+      member({ id: 'member-4', role: 'sales', roleLabel: 'Sales' }),
     ]);
 
     expect(counts).toEqual([
-      { id: 'manager', label: 'Manager', count: 2 },
-      { id: 'viewer', label: 'Viewer', count: 1 },
+      { id: 'management', label: 'Manager', count: 2 },
+      { id: 'sales', label: 'Sales', count: 1 },
+      { id: 'wholesaler', label: 'Wholesaler', count: 1 },
+    ]);
+  });
+
+  it('only offers roles the API accepts', () => {
+    expect(hasApiRoleOption('wholesaler')).toBeTrue();
+    expect(hasApiRoleOption('viewer')).toBeFalse();
+  });
+
+  it('labels unknown API roles instead of falling back to Admin', () => {
+    expect(roleLabelFor('wholesaler')).toBe('Wholesaler');
+    expect(roleLabelFor('regional_manager')).toBe('Regional Manager');
+    expect(teamRoleCounts([member({ role: 'regional_manager' })])).toEqual([
+      { id: 'regional_manager', label: 'Regional Manager', count: 1 },
     ]);
   });
 

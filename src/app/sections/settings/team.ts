@@ -17,21 +17,21 @@ import { gsap } from 'gsap';
 import { AuthService } from '../../core/auth.service';
 import { Store } from '../../core/store';
 import { count as fmtCount } from '../../core/format';
-import { TeamRole } from '../../core/models';
 import { ToastService } from '../../core/toast';
+import { friendlyErrorMessage } from '../../core/network-error';
 import { ApiCreateUserInput, UsersApiService } from '../../core/users-api.service';
 import { StaffPermissionsComponent } from './staff-permissions.component';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 
-export type RoleFilter = 'all' | TeamRole;
+export type RoleFilter = 'all' | string;
 
 export interface TeamMemberRow {
   id: string;
   name: string;
   email: string;
   title: string;
-  role: TeamRole;
+  role: string;
   apiRoleName?: string;
   roleLabel: string;
   status: string;
@@ -50,16 +50,7 @@ export interface SeatUsage {
   percent: number;
 }
 
-const ROLE_LABELS: Record<TeamRole, string> = {
-  admin: 'Admin',
-  manager: 'Manager',
-  staff: 'Staff',
-  viewer: 'Viewer',
-};
-
-const ROLE_ORDER: TeamRole[] = ['admin', 'manager', 'staff', 'viewer'];
-
-/** Real API role names — the UI's admin/manager/staff/viewer labels are not API values. */
+/** Real API role names — the old admin/manager/staff/viewer buckets hid distinct roles. */
 export const API_ROLES = [
   { id: 'business_owner_admin', label: 'Admin' },
   { id: 'management', label: 'Manager' },
@@ -72,10 +63,28 @@ export const API_ROLES = [
   { id: 'customer', label: 'Customer' },
 ] as const;
 
+const ROLE_ORDER: string[] = API_ROLES.map((role) => role.id);
+
+/** A role the API adds later still gets a readable label instead of falling back to "Admin". */
+export function hasApiRoleOption(role: string): boolean {
+  return API_ROLES.some((item) => item.id === role);
+}
+
+export function roleLabelFor(role: string): string {
+  const known = API_ROLES.find((item) => item.id === role)?.label;
+  if (known) return known;
+  return role
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 /** A staff account is never created as a customer. */
 export const CREATE_ROLES = API_ROLES.filter((role) => role.id !== 'customer');
 
-const ROLE_TO_API: Record<TeamRole, string> = {
+/** Fallback for legacy store rows that only carry one of the old coarse roles. */
+const ROLE_TO_API: Record<string, string> = {
   admin: 'business_owner_admin',
   manager: 'management',
   staff: 'sales',
@@ -98,13 +107,19 @@ export function filterTeamMembers(
 
 export function teamRoleCounts(
   rows: readonly TeamMemberRow[],
-): { id: TeamRole; label: string; count: number }[] {
-  const presentRoles = new Set(rows.map((member) => member.role));
-  return ROLE_ORDER.filter((role) => presentRoles.has(role)).map((role) => ({
-    id: role,
-    label: ROLE_LABELS[role],
-    count: rows.filter((member) => member.role === role).length,
-  }));
+): { id: string; label: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const member of rows) counts.set(member.role, (counts.get(member.role) ?? 0) + 1);
+  const order = [...ROLE_ORDER, ...[...counts.keys()].sort()];
+  const seen = new Set<string>();
+  const result: { id: string; label: string; count: number }[] = [];
+  for (const role of order) {
+    const count = counts.get(role);
+    if (count === undefined || seen.has(role)) continue;
+    seen.add(role);
+    result.push({ id: role, label: roleLabelFor(role), count });
+  }
+  return result;
 }
 
 export function teamStatusCounts(rows: readonly TeamMemberRow[]): { active: number; pending: number } {
@@ -277,9 +292,13 @@ function avatarToneForId(id: string): string {
                   <select
                     class="role-select"
                     [value]="apiRoleOf(member)"
+                    [disabled]="roleBusyId() === member.id"
                     [attr.aria-label]="'Change role for ' + member.name"
                     (change)="setMemberRole(member.id, $any($event.target).value)"
                   >
+                    @if (!hasRoleOption(member)) {
+                      <option [value]="apiRoleOf(member)">{{ apiRoleLabelOf(member) }}</option>
+                    }
                     @for (item of teamRoleOptions; track item.id) {
                       <option [value]="item.id">{{ item.label }}</option>
                     }
@@ -731,8 +750,13 @@ export class SettingsTeam {
   protected readonly count = fmtCount;
   protected readonly teamRoleOptions = API_ROLES;
   protected readonly createRoleOptions = CREATE_ROLES;
-  protected readonly apiRoleOf = (member: TeamMemberRow): string =>
-    member.apiRoleName || ROLE_TO_API[member.role];
+  protected readonly roleBusyId = signal<string | null>(null);
+  protected readonly apiRoleOf = (member: TeamMemberRow): string => member.role;
+  protected readonly apiRoleLabelOf = (member: TeamMemberRow): string => roleLabelFor(member.role);
+
+  protected hasRoleOption(member: TeamMemberRow): boolean {
+    return hasApiRoleOption(member.role);
+  }
   protected readonly role = signal<RoleFilter>('all');
   protected readonly searchInput = signal('');
   private readonly searchQuery = signal('');
@@ -749,26 +773,29 @@ export class SettingsTeam {
   protected readonly meId = computed(() => this.store.settings().me.id);
 
   protected readonly rows = computed(() =>
-    this.store.team().map((member) => ({
-      id: member.id,
-      name: member.name,
-      email: member.email,
-      title: member.title,
-      role: member.role,
-      apiRoleName: member.apiRoleName,
-      roleLabel: ROLE_LABELS[member.role],
-      status: member.status.charAt(0).toUpperCase() + member.status.slice(1),
-      statusTone: teamStatusTone(member.status),
-      location: member.locId ? this.store.location(member.locId)?.name : undefined,
-      isMe: member.id === this.meId(),
-      initials: member.name
-        .split(/\s+/)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase() ?? '')
-        .join(''),
-      avatarTone: avatarToneForId(member.id),
-      permissions: member.permissions,
-    })),
+    this.store.team().map((member) => {
+      const role = member.apiRoleName || ROLE_TO_API[member.role] || 'unknown';
+      return {
+        id: member.id,
+        name: member.name,
+        email: member.email,
+        title: member.title,
+        role,
+        apiRoleName: member.apiRoleName,
+        roleLabel: roleLabelFor(role),
+        status: member.status.charAt(0).toUpperCase() + member.status.slice(1),
+        statusTone: teamStatusTone(member.status),
+        location: member.locId ? this.store.location(member.locId)?.name : undefined,
+        isMe: member.id === this.meId(),
+        initials: member.name
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((part) => part[0]?.toUpperCase() ?? '')
+          .join(''),
+        avatarTone: avatarToneForId(member.id),
+        permissions: member.permissions,
+      };
+    }),
   );
 
   protected readonly roleFilters = computed(() => teamRoleCounts(this.rows()));
@@ -793,9 +820,20 @@ export class SettingsTeam {
     });
   }
 
-  protected setMemberRole(id: string, value: string): void {
-    if (API_ROLES.some((role) => role.id === value)) {
-      this.store.setTeammateApiRole(id, value);
+  protected async setMemberRole(id: string, value: string): Promise<void> {
+    if (this.roleBusyId() === id) return;
+    if (!hasApiRoleOption(value)) {
+      this.toasts.show('That role is not available.', 'bad');
+      return;
+    }
+    this.roleBusyId.set(id);
+    try {
+      await this.store.setTeammateApiRole(id, value);
+      this.toasts.show(`Role changed to ${roleLabelFor(value)}`, 'good');
+    } catch (error) {
+      this.toasts.show(friendlyErrorMessage(error, 'Could not change the role.'), 'bad');
+    } finally {
+      this.roleBusyId.set(null);
     }
   }
 

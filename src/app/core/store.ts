@@ -338,8 +338,21 @@ function titleCase(value: string): string {
     .join(' ');
 }
 
+/** The API may send `role` as an object with `name` or as a bare role string. */
+function roleNameOf(u: import('./users-api.service').ApiUser): string {
+  const role = u.role as unknown;
+  const name =
+    typeof role === 'string' ? role : (role as { name?: unknown } | null | undefined)?.name;
+  return typeof name === 'string' ? name.trim() : '';
+}
+
 function mapTeammate(u: import('./users-api.service').ApiUser): Teammate {
-  const roleName = u.role?.name ?? '';
+  const roleName = roleNameOf(u);
+  const role = u.role as unknown;
+  const permissions =
+    role && typeof role === 'object' && 'permissions' in role
+      ? ((role as { permissions?: Teammate['permissions'] }).permissions ?? [])
+      : [];
   return {
     id: u.id,
     name: u.name,
@@ -353,7 +366,7 @@ function mapTeammate(u: import('./users-api.service').ApiUser): Teammate {
     tone: 'sage',
     status: u.status,
     since: Date.parse(u.createdAt) || 0,
-    permissions: u.role.permissions ?? [],
+    permissions,
   };
 }
 
@@ -1488,7 +1501,8 @@ export class Store {
   }
 
   /** Change a teammate's role from the Settings �?� Team screen. */
-  setTeammateApiRole(id: string, apiRole: string): void {
+  async setTeammateApiRole(id: string, apiRole: string): Promise<void> {
+    const previous = this.state().team.find((t) => t.id === id);
     this.state.update((s) => ({
       ...s,
       team: s.team.map((t) =>
@@ -1497,15 +1511,29 @@ export class Store {
           : t,
       ),
     }));
-    void this.usersApi
-      .updateRole(id, apiRole)
-      .then((user) =>
+    try {
+      const updated = mapTeammate(await this.usersApi.updateRole(id, apiRole));
+      this.state.update((s) => ({
+        ...s,
+        team: s.team.map((t) =>
+          t.id === id
+            ? {
+                ...updated,
+                apiRoleName: updated.apiRoleName || apiRole,
+                role: ROLE_MAP[apiRole] ?? updated.role,
+              }
+            : t,
+        ),
+      }));
+    } catch (error) {
+      if (previous) {
         this.state.update((s) => ({
           ...s,
-          team: s.team.map((t) => (t.id === id ? mapTeammate(user) : t)),
-        })),
-      )
-      .catch(() => this.load());
+          team: s.team.map((t) => (t.id === id ? previous : t)),
+        }));
+      }
+      throw error;
+    }
   }
 
   /** Add a teammate row after the API creates a staff account. */
