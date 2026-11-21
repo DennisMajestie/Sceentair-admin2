@@ -180,6 +180,45 @@ interface MaterialRow {
             <div><dt>Storage location</dt><dd>{{ m.storageLocation ?? 'Not set' }}</dd></div>
           </dl>
 
+          @if (editing()) {
+            <form class="create-form" (ngSubmit)="saveEdit()">
+              <p class="cnote">Only master details can change here. Stock moves through purchases, usage and counts.</p>
+              <label class="field"><span class="field__label">Name</span>
+                <input type="text" [(ngModel)]="editForm.name" name="editName" required />
+              </label>
+              <div class="cgrid">
+                <label class="field"><span class="field__label">Unit</span>
+                  <input type="text" [(ngModel)]="editForm.unit" name="editUnit" required />
+                </label>
+                <label class="field"><span class="field__label">Reorder threshold</span>
+                  <input type="number" min="0" step="1" [(ngModel)]="editForm.reorderThreshold" name="editReorder" />
+                </label>
+              </div>
+              <label class="field"><span class="field__label">Kind</span>
+                <select [(ngModel)]="editForm.category" name="editCategory">
+                  <option value="">Uncategorised</option>
+                  @for (f of filters; track f.id) {
+                    @if (f.id !== 'all') { <option [value]="f.id">{{ f.label }}</option> }
+                  }
+                </select>
+              </label>
+              <label class="field"><span class="field__label">Storage location</span>
+                <input type="text" [(ngModel)]="editForm.storageLocation" name="editLocation" />
+              </label>
+              @if (editError()) { <p class="field-err">{{ editError() }}</p> }
+              <div class="edit-actions">
+                <button class="btn btn--primary" type="submit" [disabled]="editBusy() || !editForm.name.trim() || !editForm.unit.trim()">
+                  {{ editBusy() ? 'Saving…' : 'Save details' }}
+                </button>
+                <button class="btn btn--ghost" type="button" (click)="closeEdit()">Cancel</button>
+              </div>
+            </form>
+          } @else {
+            <div class="edit-actions">
+              <button class="btn btn--ghost" type="button" (click)="openEdit()">Edit details</button>
+            </div>
+          }
+
           @if (m.lowStock) {
             <div class="notice" role="status">
               <app-icon name="alert" [size]="14" />
@@ -288,6 +327,7 @@ interface MaterialRow {
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
     .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
+    .edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     @media (max-width: 700px) { .cgrid { grid-template-columns: 1fr; } }
   `,
 })
@@ -446,6 +486,17 @@ export class PurchasingMaterials {
   };
   protected readonly batches = this.store.batches;
 
+  protected readonly editing = signal(false);
+  protected readonly editBusy = signal(false);
+  protected readonly editError = signal<string | null>(null);
+  protected readonly editForm = {
+    name: '',
+    unit: '',
+    category: '',
+    storageLocation: '',
+    reorderThreshold: 0,
+  };
+
   protected openUsage(): void {
     this.usageForm.materialId = this.selected()?.id ?? '';
     this.usageForm.quantityUsed = 0;
@@ -480,6 +531,45 @@ export class PurchasingMaterials {
       this.usageError.set(err instanceof Error ? err.message : 'Could not record the usage.');
     } finally {
       this.usageBusy.set(false);
+    }
+  }
+
+  protected openEdit(): void {
+    const current = this.selected();
+    if (!current) return;
+    this.editForm.name = current.name;
+    this.editForm.unit = current.unit;
+    this.editForm.category = current.category ?? '';
+    this.editForm.storageLocation = current.storageLocation ?? '';
+    this.editForm.reorderThreshold = current.reorderThreshold;
+    this.editError.set(null);
+    this.editing.set(true);
+  }
+
+  protected closeEdit(): void {
+    this.editing.set(false);
+  }
+
+  protected async saveEdit(): Promise<void> {
+    const current = this.selected();
+    if (!current) return;
+    this.editBusy.set(true);
+    this.editError.set(null);
+    try {
+      const updated = await this.materialsApi.update(current.id, {
+        name: this.editForm.name.trim(),
+        unit: this.editForm.unit.trim(),
+        category: this.editForm.category || null,
+        storageLocation: this.editForm.storageLocation.trim() || null,
+        reorderThreshold: Math.max(0, Math.trunc(Number(this.editForm.reorderThreshold)) || 0),
+      });
+      this.materials.update((list) => list.map((m) => (m.id === updated.id ? updated : m)));
+      this.editing.set(false);
+      this.toast.show('Material details saved', 'good');
+    } catch (err) {
+      this.editError.set(err instanceof Error ? err.message : 'Could not save the material details.');
+    } finally {
+      this.editBusy.set(false);
     }
   }
 

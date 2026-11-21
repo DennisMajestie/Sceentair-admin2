@@ -35,8 +35,9 @@ const LOW_MATERIAL: ApiMaterial = {
 };
 
 function makeMaterialsApi(listResult: { data: ApiMaterial[]; total: number } = { data: [], total: 0 }) {
-  const api = jasmine.createSpyObj('MaterialsApiService', ['list', 'lowStock', 'valuation', 'detail', 'purchases']);
+  const api = jasmine.createSpyObj('MaterialsApiService', ['list', 'lowStock', 'valuation', 'detail', 'purchases', 'update']);
   api.list.and.returnValue(Promise.resolve(listResult));
+  api.update.and.resolveTo(MATERIAL);
   api.valuation.and.returnValue(Promise.resolve([
     { ...MATERIAL, lastUnitCost: 14.2, lastPurchaseAt: '2026-01-10T00:00:00Z', currentValue: 653.2 },
     { ...LOW_MATERIAL, lastUnitCost: 31.0, lastPurchaseAt: '2026-01-05T00:00:00Z', currentValue: 105.4 },
@@ -49,7 +50,7 @@ function makeToast() {
   return jasmine.createSpyObj('ToastService', ['show', 'dismiss']);
 }
 
-function createComponent(materialsApi: ReturnType<typeof makeMaterialsApi>) {
+function createComponent(materialsApi: ReturnType<typeof makeMaterialsApi>, routeId: string | null = null) {
   TestBed.configureTestingModule({
     imports: [PurchasingMaterials],
     providers: [
@@ -60,8 +61,8 @@ function createComponent(materialsApi: ReturnType<typeof makeMaterialsApi>) {
       {
         provide: ActivatedRoute,
         useValue: { 
-          paramMap: of({ get: () => null } as unknown as ParamMap),
-          snapshot: { paramMap: { get: () => null } as unknown as ParamMap },
+          paramMap: of({ get: () => routeId } as unknown as ParamMap),
+          snapshot: { paramMap: { get: () => routeId } as unknown as ParamMap },
         },
       },
       { provide: Router, useValue: { url: '', events: of(null), navigate: jasmine.createSpy('navigate') } },
@@ -176,5 +177,34 @@ describe('purchasing materials response mapping', () => {
     expect(result.data[0].supplierName).toBe('Nkuru Shea Collective');
     expect(result.data[0].purchasedAt).toBe('2026-01-15T10:00:00Z');
     expect(result.data[0].recordedBy).toBe('m-menon');
+  });
+});
+
+describe('purchasing materials edit', () => {
+  it('sends master details only and refreshes the row from the response', async () => {
+    const materialsApi = makeMaterialsApi({ data: [MATERIAL], total: 1 });
+    const updated = { ...MATERIAL, unit: 'yards', reorderThreshold: 8 };
+    materialsApi.update.and.resolveTo(updated);
+    const fixture = createComponent(materialsApi, 'm-shea');
+    const component = fixture.componentInstance as any;
+
+    await component.loadMaterials();
+    await fixture.whenStable();
+    component.openEdit();
+    expect(component.editForm.unit).toBe('kg');
+
+    component.editForm.unit = 'yards';
+    component.editForm.reorderThreshold = 8;
+    await component.saveEdit();
+
+    expect(materialsApi.update).toHaveBeenCalledWith('m-shea', {
+      name: 'Unrefined shea butter',
+      unit: 'yards',
+      category: 'fabrics',
+      storageLocation: 'Lab R-04',
+      reorderThreshold: 8,
+    });
+    expect(component.rows()[0].unit).toBe('yards');
+    expect(component.editing()).toBeFalse();
   });
 });

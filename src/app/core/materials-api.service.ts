@@ -85,6 +85,14 @@ export interface CreateMaterialInput {
   reorderThreshold?: number | null;
 }
 
+export interface UpdateMaterialInput {
+  name?: string;
+  unit?: string;
+  category?: string | null;
+  storageLocation?: string | null;
+  reorderThreshold?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MaterialsApiService {
   private readonly http = inject(HttpClient);
@@ -129,6 +137,15 @@ export class MaterialsApiService {
   create(input: CreateMaterialInput): Promise<ApiMaterial> {
     return firstValueFrom(
       this.http.post<ApiMaterial>(apiUrl(this.baseUrl, 'materials'), input),
+    );
+  }
+
+  update(id: string, input: UpdateMaterialInput): Promise<ApiMaterial> {
+    return firstValueFrom(
+      this.http.patch<ApiMaterial>(
+        apiUrl(this.baseUrl, `materials/${encodeURIComponent(id)}`),
+        input,
+      ),
     );
   }
 
