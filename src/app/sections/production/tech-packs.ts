@@ -82,6 +82,11 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
             <div class="dright"><span class="stat__label">Cutting yield</span><strong class="dtotal">{{ pack.cuttingEfficiencyPct ?? '—' }}{{ pack.cuttingEfficiencyPct !== null ? '%' : '' }}</strong></div>
           </div>
 
+          <div class="stage-track" aria-label="Tech pack status">
+            <span class="stage-dot" [class.is-current]="pack.status !== 'approved'" [class.is-done]="pack.status === 'approved'"><i></i>Draft</span>
+            <span class="stage-dot" [class.is-current]="pack.status === 'approved'"><i></i>Approved</span>
+          </div>
+
           <dl class="facts">
             <div><dt>Fit</dt><dd>{{ pack.silhouette ?? '—' }}</dd></div>
             <div><dt>Target yield</dt><dd>{{ pack.targetYieldUnits ?? '—' }}</dd></div>
@@ -193,12 +198,19 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
     .dmeta { color: var(--faint); font-size: var(--fs-xs); }
     .dsummary { display: flex; justify-content: space-between; gap: 16px; }
     .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
+    .dtotal { font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
     .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
+    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
     .facts div { display: grid; gap: 2px; }
     .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+    .stage-track { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 12px; background: var(--well); border-radius: var(--sd-r-card); }
+    .stage-dot { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-2xs); color: var(--faint); }
+    .stage-dot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
+    .stage-dot.is-done { color: var(--muted); }
+    .stage-dot.is-done i { background: var(--good); }
+    .stage-dot.is-current { color: var(--text); font-weight: 700; }
+    .stage-dot.is-current i { background: var(--primary); }
     .link { color: var(--primary); }
     .dnote { font-size: var(--fs-md); color: var(--muted); line-height: 1.55; white-space: pre-wrap; }
     .revision-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
@@ -213,8 +225,8 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
     .field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--primary); }
     .empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 54px 20px; border: 1px dashed var(--line); border-radius: var(--sd-r-card); color: var(--muted); text-align: center; }
     .empty strong { color: var(--text); }
-    @media (max-width: 1100px) { .pack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 700px) { .pack-grid { grid-template-columns: 1fr; } .cost-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .pack-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 700px) { .pack-grid { grid-template-columns: 1fr; } .cost-grid { grid-template-columns: 1fr; } .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   `,
 })
 export class ProductionTechPacks {
