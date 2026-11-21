@@ -581,6 +581,143 @@ svg {
   font-weight: 600;
 }
 
+/* Shared drawer content, card-and-tile language (see customer detail drawer). */
+.dw-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+}
+.dw-avatar {
+  display: grid;
+  flex: 0 0 50px;
+  width: 50px;
+  height: 50px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 14%, var(--surface));
+  color: var(--primary);
+  font-size: 15px;
+  font-weight: 700;
+}
+.dw-head-text {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+.dw-head-text strong {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.dw-head-text span {
+  color: var(--faint);
+  font-size: 12px;
+}
+.dw-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+.dw-chip {
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--well);
+  color: var(--muted);
+  font-size: 12px;
+}
+.dw-chip--warn {
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  color: var(--warn);
+}
+.dw-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.dw-tile {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--well);
+  color: var(--text);
+}
+.dw-tile--wide {
+  grid-column: 1 / -1;
+}
+.dw-tile-icon {
+  display: grid;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary);
+}
+.dw-tile-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+.dw-tile-copy small,
+.dw-stat span {
+  color: var(--faint);
+  font-size: 11px;
+}
+.dw-tile-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.dw-stat {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--well);
+}
+.dw-stat strong {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.dw-section {
+  display: grid;
+  gap: 10px;
+}
+.dw-section h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.dw-meter {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--well);
+}
+.dw-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+}
+.dw-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

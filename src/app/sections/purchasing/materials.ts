@@ -157,39 +157,52 @@ interface MaterialRow {
     <app-drawer [open]="!!selected()" (close)="close()" label="Material detail">
       <ng-container drawerTitle>
         @if (selected(); as m) {
-          <div class="dtitle">
-            <strong>{{ m.name }}</strong>
-            <span class="badge" [style.color]="m.color" [style.background]="m.tint">{{ kindLabel(m.category) }}</span>
+          <div class="dw-head">
+            <span class="dw-avatar">{{ m.name.charAt(0).toUpperCase() }}</span>
+            <span class="dw-head-text">
+              <strong>{{ m.name }}</strong>
+              <span>{{ kindLabel(m.category) }} · {{ m.unit }}</span>
+            </span>
           </div>
         }
       </ng-container>
       @if (selected(); as m) {
         <div class="dbody">
-          <div class="dsummary">
-            <div><span class="stat__label">Category</span><span class="dmeta">{{ kindLabel(m.category) }}</span></div>
-            <div class="dright"><span class="stat__label">On hand</span><strong class="dtotal">{{ m.currentQuantity }}</strong></div>
+          <div class="dw-chips">
+            <span class="dw-chip">Since {{ m.formattedCreatedAt }}</span>
+            <span class="dw-chip">{{ kindLabel(m.category) }}</span>
+            @if (m.lowStock) { <span class="dw-chip dw-chip--warn">Low stock</span> }
           </div>
 
-          <div class="stage-track" aria-label="Stock status">
-            <span class="stage-dot" [class.is-current]="!m.lowStock && m.currentQuantity > 0" [class.is-done]="m.lowStock || m.currentQuantity === 0"><i></i>In stock</span>
-            <span class="stage-dot" [class.is-current]="m.lowStock && m.currentQuantity > 0" [class.is-done]="m.currentQuantity === 0"><i></i>Reorder</span>
-            <span class="stage-dot" [class.is-current]="m.currentQuantity === 0"><i></i>Out of stock</span>
+          <div class="dw-grid">
+            <div class="dw-tile">
+              <span class="dw-tile-icon"><app-icon name="package" [size]="16" /></span>
+              <span class="dw-tile-copy"><small>Unit</small><strong>{{ m.unit }}</strong></span>
+            </div>
+            <div class="dw-tile">
+              <span class="dw-tile-icon"><app-icon name="map-pin" [size]="16" /></span>
+              <span class="dw-tile-copy"><small>Storage location</small><strong>{{ m.storageLocation ?? 'Not set' }}</strong></span>
+            </div>
+            <div class="dw-tile">
+              <span class="dw-tile-icon"><app-icon name="chart" [size]="16" /></span>
+              <span class="dw-tile-copy"><small>Reorder at</small><strong>{{ m.reorderThreshold }}</strong></span>
+            </div>
+            <div class="dw-tile">
+              <span class="dw-tile-icon"><app-icon name="cart" [size]="16" /></span>
+              <span class="dw-tile-copy"><small>Last purchase</small><strong>{{ m.lastPurchaseAt ?? '—' }}</strong></span>
+            </div>
           </div>
 
-          <dl class="facts">
-            <div><dt>Unit</dt><dd>{{ m.unit }}</dd></div>
-            <div><dt>On hand</dt><dd class="num">{{ m.currentQuantity }}</dd></div>
-            <div><dt>Reorder at</dt><dd class="num">{{ m.reorderThreshold }}</dd></div>
-            <div><dt>Last unit cost</dt><dd class="num">{{ m.lastUnitCost === null ? '�?"' : money(m.lastUnitCost) }}</dd></div>
-            <div><dt>Current value</dt><dd class="num">{{ money(m.currentValue) }}</dd></div>
-            <div><dt>Last purchase</dt><dd>{{ m.lastPurchaseAt === null ? '�?"' : m.lastPurchaseAt }}</dd></div>
-            <div><dt>Created</dt><dd>{{ m.formattedCreatedAt }}</dd></div>
-          </dl>
-
-          <h3 class="dlabel">Supply</h3>
-          <dl class="facts">
-            <div><dt>Storage location</dt><dd>{{ m.storageLocation ?? 'Not set' }}</dd></div>
-          </dl>
+          <div class="dw-section">
+            <h3>Stock</h3>
+            <div class="dw-grid">
+              <div class="dw-stat"><strong>{{ m.currentQuantity }}</strong><span>On hand ({{ m.unit }})</span></div>
+              <div class="dw-stat"><strong>{{ money(m.currentValue) }}</strong><span>Current value</span></div>
+              <div class="dw-stat"><strong>{{ m.reorderThreshold }}</strong><span>Reorder point</span></div>
+              <div class="dw-stat"><strong>{{ m.lastUnitCost === null ? '—' : money(m.lastUnitCost) }}</strong><span>Last unit cost</span></div>
+            </div>
+            <div class="dw-meter" role="progressbar" aria-label="Stock level" aria-valuemin="0" aria-valuemax="100" [attr.aria-valuenow]="stockPct(m)"><span [style.width.%]="stockPct(m)"></span></div>
+          </div>
 
           @if (editing()) {
             <form class="create-form" (ngSubmit)="saveEdit()">
@@ -225,8 +238,8 @@ interface MaterialRow {
               </div>
             </form>
           } @else {
-            <div class="edit-actions">
-              <button class="btn btn--ghost" type="button" (click)="openEdit()">Edit details</button>
+            <div class="dw-actions">
+              <button class="btn btn--primary" type="button" (click)="openEdit()">Edit details</button>
             </div>
           }
 
@@ -316,26 +329,6 @@ interface MaterialRow {
     .clickable { cursor: pointer; }
     .strong { font-weight: 700; }
     .low { color: var(--bad); font-weight: 700; }
-    .dtitle { display: flex; align-items: center; gap: 9px; }
-    .dtitle strong { font-size: var(--fs-lg); }
-    .dbody { display: grid; gap: 16px; }
-    .dlink { font-weight: 700; color: var(--primary); }
-    .dmeta { color: var(--faint); font-size: var(--fs-xs); }
-    .dsummary { display: flex; justify-content: space-between; gap: 16px; }
-    .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
-    .stage-track { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 12px; background: var(--well); border-radius: var(--sd-r-card); }
-    .stage-dot { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-2xs); color: var(--faint); }
-    .stage-dot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
-    .stage-dot.is-done { color: var(--muted); }
-    .stage-dot.is-done i { background: var(--good); }
-    .stage-dot.is-current { color: var(--text); font-weight: 700; }
-    .stage-dot.is-current i { background: var(--primary); }
     .notice {
       display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs);
     }
@@ -350,11 +343,15 @@ interface MaterialRow {
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
     .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
     .edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    @media (max-width: 1100px) { .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-    @media (max-width: 700px) { .cgrid { grid-template-columns: 1fr; } .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (max-width: 700px) { .cgrid { grid-template-columns: 1fr; } }
   `,
 })
 export class PurchasingMaterials {
+  protected stockPct(m: { currentQuantity: number; reorderThreshold: number }): number {
+    const target = m.reorderThreshold > 0 ? m.reorderThreshold * 2 : Math.max(m.currentQuantity, 1);
+    return Math.max(0, Math.min(100, (m.currentQuantity / target) * 100));
+  }
+
   private readonly materialsApi = inject(MaterialsApiService);
   private readonly toast = inject(ToastService);
   private readonly store = inject(Store);
