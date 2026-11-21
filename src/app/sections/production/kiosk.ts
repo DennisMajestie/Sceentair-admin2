@@ -29,25 +29,45 @@ import { ToastService } from '../../core/toast';
         </div>
       </div>
 
-      <div class="kiosk__scanbar">
+      <section class="stats" aria-label="Production line summary">
+        <article class="stat">
+          <span class="stat__label">On the floor</span>
+          <span class="stat__value">{{ active().length }}</span>
+        </article>
+        <article class="stat">
+          <span class="stat__label">Stages in use</span>
+          <span class="stat__value">{{ stageColumns().length }}</span>
+        </article>
+        <article class="stat">
+          <span class="stat__label">Total runs</span>
+          <span class="stat__value">{{ batches().length }}</span>
+        </article>
+      </section>
+
+      <section class="card kiosk__scan-card">
+        <div class="card__head">
+          <h2 class="card__title">Find a batch</h2>
+          <span class="card__sub">Scan a barcode or type it to jump straight to a run.</span>
+        </div>
         <input class="kiosk__scan" type="text" inputmode="text" autocomplete="off" placeholder="Scan or type barcode..." aria-label="Scan barcode" [value]="query()" (input)="query.set($any($event.target).value)" />
-      </div>
-
-      @if (loading()) {
-        <p class="kiosk__note"><app-spinner size="sm" label="Loading the floor" /></p>
-      } @else if (loadError()) {
-        <p class="kiosk__note kiosk__note--error">{{ loadError() }} <button class="kiosk__retry" type="button" (click)="load()">Retry</button></p>
-      }
-
-      @if (query().trim()) {
-        <button type="button" class="kiosk__clear" (click)="query.set('')">Clear scan filter</button>
-      }
+        @if (query().trim()) {
+          <button type="button" class="btn btn--sm btn--soft kiosk__clear" (click)="query.set('')">Clear filter</button>
+        }
+        @if (loading()) {
+          <p class="kiosk__note"><app-spinner size="sm" label="Loading the floor" /></p>
+        } @else if (loadError()) {
+          <p class="kiosk__note kiosk__note--error">{{ loadError() }} <button class="btn btn--sm btn--soft" type="button" (click)="load()">Retry</button></p>
+        }
+      </section>
 
       @if (!selectedBatch()) {
         <div class="kiosk__stages" aria-label="Batches by stage">
           @for (stage of stageColumns(); track stage.name) {
-            <section class="kiosk__stage">
-              <h2 class="kiosk__stageName">{{ stage.name }} <span>{{ stage.batches.length }}</span></h2>
+            <section class="card kiosk__stage" [attr.aria-label]="stage.name + ' stage'">
+              <div class="card__head">
+                <h2 class="card__title kiosk__stageName">{{ stage.name }}</h2>
+                <span class="card__sub">{{ stage.batches.length }} {{ stage.batches.length === 1 ? 'batch' : 'batches' }}</span>
+              </div>
               @for (b of stage.batches; track b.id) {
                 <button type="button" class="kiosk__tile" (click)="selectBatch(b)">
                   <span class="kiosk__lot">{{ lotOf(b) }}</span>
@@ -64,7 +84,7 @@ import { ToastService } from '../../core/toast';
       } @else {
         @if (selectedBatch(); as b) {
           <section class="kiosk__detail" aria-label="Batch actions">
-            <div class="kiosk__hero">
+            <div class="card kiosk__hero">
               <span class="kiosk__lot">{{ lotOf(b) }}</span>
               <span class="kiosk__product">{{ productName(b) }}</span>
               <span class="kiosk__qty">{{ b.quantity }} units · current stage: <strong>{{ b.stage }}</strong></span>
@@ -72,20 +92,20 @@ import { ToastService } from '../../core/toast';
 
             <div class="kiosk__actions">
               @if (nextStage()) {
-                <button class="kiosk__big kiosk__big--go" type="button" [disabled]="busy()" (click)="advance()">
+                <button class="btn kiosk__big kiosk__big--go" type="button" [disabled]="busy()" (click)="advance()">
                   {{ busy() ? 'Working...' : 'Move to ' + nextStage() }}
                 </button>
               } @else {
-                <p class="kiosk__note">Final stage reached.</p>
+                <p class="card kiosk__note">Final stage reached.</p>
               }
-              <button class="kiosk__big kiosk__big--qc" type="button" [disabled]="busy()" (click)="qcOpen.set(!qcOpen())">
+              <button class="btn kiosk__big kiosk__big--qc" type="button" [disabled]="busy()" (click)="qcOpen.set(!qcOpen())">
                 {{ qcOpen() ? 'Close rejection form' : 'Log QC rejection' }}
               </button>
-              <button class="kiosk__big kiosk__big--ghost" type="button" (click)="selectedId.set(null)">Back to line</button>
+              <button class="btn kiosk__big kiosk__big--ghost" type="button" (click)="selectedId.set(null)">Back to line</button>
             </div>
 
             @if (qcOpen()) {
-              <form class="kiosk__qc" (ngSubmit)="saveRejection()">
+              <form class="card kiosk__qc" (ngSubmit)="saveRejection()">
                 <label class="kiosk__field"><span>Qty rejected</span><input type="number" min="1" step="1" [(ngModel)]="rejectionForm.quantity" name="rqty" required /></label>
                 <label class="kiosk__field"><span>Reason</span><input type="text" [(ngModel)]="rejectionForm.reason" name="rreason" placeholder="stitch defect" required /></label>
                 <label class="kiosk__field"><span>Disposition</span>
@@ -94,7 +114,7 @@ import { ToastService } from '../../core/toast';
                     <option value="burned">Burned</option>
                   </select>
                 </label>
-                <button class="kiosk__big kiosk__big--qc" type="submit" [disabled]="busy() || !rejectionForm.reason.trim()">Save rejection</button>
+                <button class="btn kiosk__big kiosk__big--qc" type="submit" [disabled]="busy() || !rejectionForm.reason.trim()">Save rejection</button>
               </form>
             }
 
@@ -115,36 +135,34 @@ import { ToastService } from '../../core/toast';
   `,
   styles: `
     :host { display: block; }
-    .kiosk { display: grid; gap: 16px; }
-    .kiosk__scanbar { display: flex; }
-    .kiosk__scan { flex: 1; height: 56px; font-size: var(--fs-xl); padding: 0 18px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface); color: var(--text); }
+    .kiosk { display: grid; gap: var(--sd-island-gap); align-content: start; }
+    .kiosk .stats { margin-bottom: 0; }
+    .kiosk__scan-card { display: grid; gap: 10px; }
+    .kiosk__scan-card .card__head { margin-bottom: 0; }
+    .kiosk__scan { width: 100%; height: 56px; font-size: var(--fs-xl); padding: 0 18px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); }
     .kiosk__scan::placeholder { color: var(--faint); }
     .kiosk__scan:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
-    .kiosk__stages { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(280px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 12px; }
-    .kiosk__stage { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 14px; min-height: 320px; }
-    .kiosk__stageName { font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0 0 12px; display: flex; justify-content: space-between; align-items: center; }
-    .kiosk__stageName span { color: var(--text); font-variant-numeric: tabular-nums; }
+    .kiosk__stages { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--sd-island-gap); align-items: start; }
+    .kiosk__stage { display: grid; align-content: start; gap: 4px; min-height: 0; }
+    .kiosk__stage .card__head { margin-bottom: 8px; }
+    .kiosk__stageName { font-size: var(--fs-md); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text); }
     .kiosk__tile { display: grid; gap: 4px; width: 100%; text-align: left; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-tile); padding: 16px; margin-bottom: 10px; color: var(--text); cursor: pointer; min-height: 96px; font: inherit; }
     .kiosk__tile:hover, .kiosk__tile:focus-visible { border-color: var(--primary); }
     .kiosk__tile:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
     .kiosk__lot { font-family: var(--mono); font-size: var(--fs-sm); color: var(--primary); font-weight: 700; }
     .kiosk__product { font-size: var(--fs-xl); font-weight: 750; }
     .kiosk__qty { color: var(--muted); font-size: var(--fs-md); }
-    .kiosk__empty { color: var(--faint); font-size: var(--fs-sm); padding: 8px 4px; }
-    .kiosk__detail { display: grid; gap: 18px; }
-    .kiosk__hero { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); padding: 22px; display: grid; gap: 6px; }
+    .kiosk__empty { color: var(--faint); font-size: var(--fs-sm); padding: 16px 6px; }
+    .kiosk__detail { display: grid; gap: var(--sd-island-gap); }
+    .kiosk__hero { display: grid; gap: 6px; }
     .kiosk__hero .kiosk__product { font-size: clamp(var(--fs-3xl), 4vw, var(--fs-display)); }
     .kiosk__hero .kiosk__qty { font-size: var(--fs-lg); }
-    .kiosk__actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-    .kiosk__big { min-height: 76px; border: 1px solid transparent; border-radius: var(--r-tile); font-size: var(--fs-lg); font-weight: 750; cursor: pointer; font: inherit; font-size: var(--fs-lg); font-weight: 750; }
-    .kiosk__big--go { background: var(--primary); color: var(--on-primary); }
-    .kiosk__big--go:hover { filter: brightness(1.05); }
-    .kiosk__big--qc { background: var(--bad); color: #fff; }
-    .kiosk__big--qc:hover { filter: brightness(1.05); }
-    .kiosk__big--ghost { background: var(--surface-2); color: var(--text); border-color: var(--line-2); }
-    .kiosk__big:disabled { opacity: 0.55; cursor: not-allowed; }
-    .kiosk__big:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-    .kiosk__qc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; background: var(--surface); padding: 16px; border-radius: var(--r-card); border: 1px solid var(--line); }
+    .kiosk__actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .kiosk__big { min-height: 64px; justify-content: center; border-radius: var(--r-tile); font-size: var(--fs-lg); font-weight: 750; }
+    .kiosk__big--go { background: var(--primary); border-color: transparent; color: var(--on-primary); }
+    .kiosk__big--qc { background: var(--bad); border-color: transparent; color: #fff; }
+    .kiosk__big--ghost { background: var(--surface-2); color: var(--text); }
+    .kiosk__qc { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: end; }
     .kiosk__field { display: grid; gap: 6px; }
     .kiosk__field span { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 700; }
     .kiosk__field input, .kiosk__field select { height: 52px; font-size: var(--fs-lg); padding: 0 14px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); font: inherit; }
@@ -153,13 +171,10 @@ import { ToastService } from '../../core/toast';
     .kiosk__scans { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
     .kiosk__scans li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-tile); font-size: var(--fs-md); }
     .kiosk__scans span { color: var(--muted); }
-    .kiosk__note { color: var(--muted); font-size: var(--fs-md); padding: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-tile); }
+    .kiosk__note { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: var(--fs-md); }
     .kiosk__note--error { color: var(--bad); }
-    .kiosk__retry { margin-left: 10px; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); cursor: pointer; font: inherit; font-size: var(--fs-sm); }
-    .kiosk__retry:hover { border-color: var(--primary); }
-    .kiosk__clear { justify-self: start; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); border-radius: 999px; height: 40px; padding: 0 16px; cursor: pointer; font: inherit; font-size: var(--fs-sm); }
-    .kiosk__clear:hover { border-color: var(--primary); }
-    @media (max-width: 900px) { .kiosk__actions { grid-template-columns: 1fr; } .kiosk__qc { grid-template-columns: 1fr 1fr; } }
+    .kiosk__clear { justify-self: start; }
+    @media (max-width: 900px) { .kiosk__qc { grid-template-columns: 1fr 1fr; } }
   `,
 })
 export class FloorKiosk {

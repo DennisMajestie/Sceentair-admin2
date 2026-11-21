@@ -12,7 +12,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, FormsModule],
   template: `
-    <div class="auth-screen" [class.scrolled]="scrolled()">
+    <div class="auth-screen" [class.auth-dark]="isDarkMode()" [class.scrolled]="scrolled()">
       <header class="auth-head">
         <div class="auth-head-inner">
           <a class="auth-logo-link" routerLink="/" aria-label="Sceentair home">
@@ -217,6 +217,16 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
   styles: `
     :host {
       display: block;
+      /* Captured here so the page's own --muted/--ink overrides cannot shadow them. */
+      --auth-text: var(--text);
+      --auth-muted: var(--muted);
+      --auth-surface: var(--surface);
+      --auth-surface-2: var(--surface-2);
+      --auth-well: var(--well);
+      --auth-line: var(--line);
+      --auth-line-2: var(--line-2);
+      --auth-good: var(--good);
+      --auth-bad: var(--bad);
     }
 
     .auth-screen {
@@ -226,11 +236,34 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
       --ink: #17130e;
       --muted: #837e71;
       --cream: #f4f1ea;
+      --panel: #fdfcf9;
+      --field-label: #8a857a;
+      --placeholder: #aba697;
+      --checkbox-border: #d8d4c9;
+      --checkbox-bg: #ffffff;
+      --error: #b4453a;
+      --success: #47713a;
 
       display: block;
       min-height: 100vh;
       background: var(--sd-page);
       color: var(--ink);
+    }
+
+    .auth-screen.auth-dark {
+      --gold: #f2c056;
+      --gold-strong: #e0a93e;
+      --on-gold: #2b1e02;
+      --ink: var(--auth-text);
+      --muted: var(--auth-muted);
+      --cream: var(--auth-well);
+      --panel: var(--auth-surface);
+      --field-label: var(--auth-muted);
+      --placeholder: color-mix(in srgb, var(--auth-muted) 70%, transparent);
+      --checkbox-border: var(--auth-line-2);
+      --checkbox-bg: var(--auth-surface);
+      --error: var(--auth-bad);
+      --success: var(--auth-good);
     }
 
     .auth-head {
@@ -286,7 +319,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
     }
     .theme-toggle:hover {
       transform: rotate(15deg);
-      background: var(--surface-2, #f5f5f0);
+      background: var(--auth-surface-2);
     }
     .theme-toggle:focus-visible {
       outline: 2px solid var(--gold);
@@ -397,7 +430,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fdfcf9;
+      background: var(--panel);
       border-radius: 0 22px 22px 0;
       padding: clamp(1.4rem, 3.4vw, 3rem) clamp(1.3rem, 4vw, 3.6rem);
       box-shadow: 0 42px 90px -42px rgb(0 0 0 / 0.5);
@@ -445,7 +478,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
     .field-label {
       display: block;
       margin-bottom: 0.45rem;
-      color: #8a857a;
+      color: var(--field-label);
       font-size: 0.64rem;
       font-weight: 800;
       letter-spacing: 0.22em;
@@ -462,7 +495,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
       padding: 0 1.1rem;
     }
     .field input::placeholder {
-      color: #aba697;
+      color: var(--placeholder);
     }
     .field input:focus-visible {
       outline: 2px solid var(--gold);
@@ -477,7 +510,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
       letter-spacing: 0.35em;
     }
     .field-err {
-      color: #b4453a;
+      color: var(--error);
       font-size: 0.78rem;
       margin-top: 0.4rem;
     }
@@ -485,7 +518,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
       text-align: center;
     }
     .success {
-      color: #47713a;
+      color: var(--success);
       font-size: 0.85rem;
       margin-top: 0.75rem;
       text-align: center;
@@ -556,9 +589,9 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
       width: 19px;
       height: 19px;
       flex: none;
-      border: 1.5px solid #d8d4c9;
+      border: 1.5px solid var(--checkbox-border);
       border-radius: 4px;
-      background: #fff;
+      background: var(--checkbox-bg);
       position: relative;
       cursor: pointer;
       transition: background 0.15s ease, border-color 0.15s ease;

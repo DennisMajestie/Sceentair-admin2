@@ -515,6 +515,72 @@ svg {
   gap: 8px;
 }
 
+/* Shared drawer content primitives — pages may refine these locally. */
+.dtitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.dtitle strong {
+  font-size: var(--fs-lg);
+  font-weight: 700;
+}
+.dbody {
+  display: grid;
+  gap: 16px;
+}
+.dsummary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dmeta {
+  display: block;
+  margin-top: 4px;
+  color: var(--faint);
+  font-size: var(--fs-xs);
+}
+.dright {
+  display: grid;
+  justify-items: end;
+}
+.dtotal {
+  font-size: var(--fs-2xl);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.dlabel {
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+  margin: 0;
+}
+.facts div {
+  display: grid;
+  gap: 2px;
+}
+.facts dt {
+  font-size: var(--fs-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--faint);
+  font-weight: 700;
+}
+.facts dd {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

@@ -16,6 +16,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { gsap } from 'gsap';
+import { lockDrawerScroll, unlockDrawerScroll } from './drawer-scroll-lock';
 
 @Component({
   selector: 'sd-detail-drawer',
@@ -64,10 +65,7 @@ export class SdDetailDrawerComponent implements AfterViewInit {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private animation?: gsap.core.Tween;
   private closing = false;
-  private previousOverflow = '';
-  private previousGutter = '';
-  private hadOpenClass = false;
-  private scrollLocked = false;
+  private locked = false;
 
   constructor() {
     this.destroyRef.onDestroy(() => this.zone.runOutsideAngular(() => this.destroy()));
@@ -154,15 +152,9 @@ export class SdDetailDrawerComponent implements AfterViewInit {
   }
 
   private lockScroll(): void {
-    if (this.scrollLocked) return;
-    const root = document.documentElement;
-    this.previousOverflow = document.body.style.overflow;
-    this.previousGutter = root.style.scrollbarGutter;
-    this.hadOpenClass = root.classList.contains('sd-detail-open');
-    root.classList.add('sd-detail-open');
-    document.body.style.overflow = 'hidden';
-    root.style.scrollbarGutter = 'stable';
-    this.scrollLocked = true;
+    if (this.locked) return;
+    lockDrawerScroll();
+    this.locked = true;
   }
 
   private finishClose(dialog: HTMLDialogElement): void {
@@ -173,12 +165,9 @@ export class SdDetailDrawerComponent implements AfterViewInit {
   }
 
   private unlockScroll(): void {
-    if (!this.scrollLocked) return;
-    document.body.style.overflow = this.previousOverflow;
-    const root = document.documentElement;
-    root.style.scrollbarGutter = this.previousGutter;
-    if (!this.hadOpenClass) root.classList.remove('sd-detail-open');
-    this.scrollLocked = false;
+    if (!this.locked) return;
+    unlockDrawerScroll();
+    this.locked = false;
   }
 
   private destroy(): void {
