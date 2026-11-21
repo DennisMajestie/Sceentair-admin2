@@ -165,6 +165,17 @@ interface MaterialRow {
       </ng-container>
       @if (selected(); as m) {
         <div class="dbody">
+          <div class="dsummary">
+            <div><span class="stat__label">Category</span><span class="dmeta">{{ kindLabel(m.category) }}</span></div>
+            <div class="dright"><span class="stat__label">On hand</span><strong class="dtotal">{{ m.currentQuantity }}</strong></div>
+          </div>
+
+          <div class="stage-track" aria-label="Stock status">
+            <span class="stage-dot" [class.is-current]="!m.lowStock && m.currentQuantity > 0" [class.is-done]="m.lowStock || m.currentQuantity === 0"><i></i>In stock</span>
+            <span class="stage-dot" [class.is-current]="m.lowStock && m.currentQuantity > 0" [class.is-done]="m.currentQuantity === 0"><i></i>Reorder</span>
+            <span class="stage-dot" [class.is-current]="m.currentQuantity === 0"><i></i>Out of stock</span>
+          </div>
+
           <dl class="facts">
             <div><dt>Unit</dt><dd>{{ m.unit }}</dd></div>
             <div><dt>On hand</dt><dd class="num">{{ m.currentQuantity }}</dd></div>
@@ -309,11 +320,22 @@ interface MaterialRow {
     .dtitle strong { font-size: var(--fs-lg); }
     .dbody { display: grid; gap: 16px; }
     .dlink { font-weight: 700; color: var(--primary); }
+    .dmeta { color: var(--faint); font-size: var(--fs-xs); }
+    .dsummary { display: flex; justify-content: space-between; gap: 16px; }
+    .dright { display: grid; justify-items: end; }
+    .dtotal { font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
     .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
+    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
     .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
+    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; color: var(--faint); font-weight: 700; }
     .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
+    .stage-track { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 12px; background: var(--well); border-radius: var(--sd-r-card); }
+    .stage-dot { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-2xs); color: var(--faint); }
+    .stage-dot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
+    .stage-dot.is-done { color: var(--muted); }
+    .stage-dot.is-done i { background: var(--good); }
+    .stage-dot.is-current { color: var(--text); font-weight: 700; }
+    .stage-dot.is-current i { background: var(--primary); }
     .notice {
       display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs);
     }
@@ -328,7 +350,8 @@ interface MaterialRow {
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
     .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
     .edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    @media (max-width: 700px) { .cgrid { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) { .facts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 700px) { .cgrid { grid-template-columns: 1fr; } .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   `,
 })
 export class PurchasingMaterials {
