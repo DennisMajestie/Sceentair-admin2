@@ -58,6 +58,11 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/orders/all').then((m) => m.OrdersAll),
   },
   {
+    path: 'orders/in-store',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/orders/in-store').then((m) => m.OrdersInStore),
+  },
+  {
     path: 'orders/board',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/board').then((m) => m.OrdersBoard),

@@ -42,6 +42,7 @@ export interface ApiOrder {
   customer: { id: string; name: string; email: string; phone?: string | null } | null;
   guestName: string | null;
   guestEmail: string | null;
+  guestPhone: string | null;
   channel: ApiOrderChannel;
   source: string | null;
   status: ApiOrderStatus;
@@ -65,6 +66,14 @@ export interface ApiOrder {
 export interface ApiOrderList {
   data: ApiOrder[];
   total: number;
+}
+
+export interface CreateOrderInput {
+  items: Array<{ variantId: string; quantity: number }>;
+  channel?: ApiOrderChannel;
+  source?: string;
+  customerId?: string;
+  walkIn?: { name: string; phone: string };
 }
 
 export interface ApiPublicConfig {
@@ -138,6 +147,12 @@ export class OrdersApiService {
   tracking(id: string): Promise<ApiTracking> {
     return firstValueFrom(
       this.http.get<ApiTracking>(apiUrl(this.baseUrl, `orders/${encodeURIComponent(id)}/tracking`)),
+    );
+  }
+
+  create(input: CreateOrderInput): Promise<ApiOrder> {
+    return firstValueFrom(
+      this.http.post<ApiOrder>(apiUrl(this.baseUrl, 'orders'), input),
     );
   }
 

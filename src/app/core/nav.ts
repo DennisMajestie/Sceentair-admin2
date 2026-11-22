@@ -43,6 +43,7 @@ export const NAV: NavSection[] = [
     path: '/orders/all',
     pages: [
       { label: 'All orders', path: '/orders/all', badge: 'allOrders' },
+      { label: 'In-store sale', path: '/orders/in-store' },
       { label: 'Board', path: '/orders/board', badge: 'board' },
       { label: 'Returns', path: '/orders/returns', badge: 'returns' },
       { label: 'Deliveries', path: '/deliveries', badge: 'deliveries' },

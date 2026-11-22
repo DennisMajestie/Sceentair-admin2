@@ -48,6 +48,7 @@ const ORDER_FOR_CUSTOMER: ApiOrder = {
   customer: { id: 'c-juniper-moss-apothecary', name: 'Juniper & Moss Apothecary', email: 'clara@junipermoss.com', phone: '(896) 555-0129' },
   guestName: null,
   guestEmail: null,
+  guestPhone: null,
   channel: 'wholesale',
   source: null,
   status: 'delivered',

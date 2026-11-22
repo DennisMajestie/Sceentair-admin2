@@ -170,6 +170,7 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 | Products | Batches | `/products/batches` | Batches | Yield/efficiency | 3 |
 | Products | Reviews | `/products/reviews` | Review moderation | Moderation | 0 |
 | Orders | All orders | `/orders/all` | All orders | Drawer, status | 6 |
+| Orders | In-store sale | `/orders/in-store` | Record in-store sale | Named buyer + payment | New |
 | Orders | Board | `/orders/board` | Board | Kanban | 6 |
 | Orders | Returns | `/orders/returns` | Returns | RMA flow | 1 |
 | Orders | Deliveries | `/deliveries` | Deliveries | Tracking | 1 |

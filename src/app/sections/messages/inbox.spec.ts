@@ -14,6 +14,7 @@ function makeOrder(over: Partial<ApiOrder> = {}): ApiOrder {
     customer: { id: 'c1', name: 'Adaeze O.', email: 'adaeze@example.ng', phone: null },
     guestName: null,
     guestEmail: null,
+    guestPhone: null,
     channel: 'retail',
     source: null,
     status: 'order_received',
