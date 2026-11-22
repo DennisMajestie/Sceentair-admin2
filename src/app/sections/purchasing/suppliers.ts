@@ -234,9 +234,6 @@ interface SupplierRow {
     .scard__since { font-size: var(--fs-2xs); color: var(--faint); }
     .destructive { color: var(--bad); }
     .remove-row { display: flex; gap: 10px; justify-content: flex-end; }
-    .dtitle { display: flex; align-items: center; gap: 9px; }
-    .dtitle strong { font-size: var(--fs-lg); }
-    .dbody { display: grid; gap: 16px; }
     .supplier-form, .cost-grid { display: grid; gap: 12px; }
     .cost-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .field { display: grid; gap: 5px; }
@@ -246,11 +243,6 @@ interface SupplierRow {
     .field--check { justify-items: start; }
     .field--check input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--primary); }
     .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dnote { font-size: var(--fs-md); color: var(--muted); }
     .notice {
       display: flex; align-items: center; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); color: var(--muted); font-size: var(--fs-xs);

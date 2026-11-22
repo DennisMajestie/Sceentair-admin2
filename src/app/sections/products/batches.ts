@@ -148,23 +148,6 @@ import { ProductShot } from '../../ui/product-shot';
       color: var(--warn);
       font-weight: 600;
     }
-    .dtitle {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-    .dtitle strong {
-      font-size: var(--fs-lg);
-    }
-    .dbody {
-      display: grid;
-      gap: 16px;
-    }
-    .dsummary {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
     .shot {
       width: 64px;
       height: 64px;
@@ -181,54 +164,6 @@ import { ProductShot } from '../../ui/product-shot';
     .dsummary__text strong {
       font-size: var(--fs-md);
       line-height: 1.3;
-    }
-    .dmeta {
-      color: var(--faint);
-      font-size: var(--fs-xs);
-    }
-    .dright {
-      display: grid;
-      justify-items: end;
-      gap: 2px;
-    }
-    .dtotal {
-      font-size: var(--fs-2xl);
-      font-variant-numeric: tabular-nums;
-      line-height: 1;
-    }
-    .dtotal small {
-      font-size: var(--fs-sm);
-      color: var(--faint);
-      font-weight: 600;
-    }
-    .dlabel {
-      font-size: var(--fs-2xs);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--faint);
-    }
-    .facts {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px 16px;
-      margin: 0;
-    }
-    .facts div {
-      display: grid;
-      gap: 2px;
-    }
-    .facts dt {
-      font-size: var(--fs-2xs);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--faint);
-      font-weight: 700;
-    }
-    .facts dd {
-      margin: 0;
-      font-size: var(--fs-md);
-      font-weight: 600;
     }
     .notice {
       display: flex;

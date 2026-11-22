@@ -211,8 +211,6 @@ function errorText(err: unknown, fallback: string): string {
     .notice { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); margin: var(--gap) 0; }
     .notice--error { color: var(--bad); border-color: var(--bad); }
     .notice--info { color: var(--primary); border-color: var(--primary); margin: 0; }
-    .dtitle { display: grid; gap: 2px; }
-    .dbody { display: grid; gap: 16px; }
     .order-link { font-size: var(--fs-sm); }
     .thread { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
     .bubble { display: grid; gap: 3px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--well); }

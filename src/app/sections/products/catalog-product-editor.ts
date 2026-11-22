@@ -295,8 +295,6 @@ function extractCreatedId(created: unknown): string | null {
     </app-drawer>
   `,
   styles: `
-    .dtitle { display: flex; align-items: baseline; gap: 9px; min-width: 0; }
-    .dtitle strong { font-size: var(--fs-lg); }
     .psub { overflow: hidden; color: var(--faint); font-size: 11px; text-overflow: ellipsis; }
     .pform { display: grid; gap: 12px; }
     .psection { display: grid; gap: 12px; margin-top: 2px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -328,7 +326,6 @@ function extractCreatedId(created: unknown): string | null {
     .category-inline input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; font-size: var(--fs-md); }
     .add-category { justify-self: start; padding: 0; border: 0; background: transparent; color: var(--primary); font: inherit; font-size: var(--fs-xs); font-weight: 700; cursor: pointer; }
     .form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-    .dlabel { margin: 0; font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
     .variants-list { display: grid; gap: 6px; }
     .variant-row {
       display: flex;

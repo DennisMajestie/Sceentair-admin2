@@ -166,16 +166,6 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
     .account-card__tier { color: var(--faint); font-size: var(--fs-xs); }
     .account-empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 54px 20px; border: 1px dashed var(--line); border-radius: var(--sd-r-card); color: var(--muted); text-align: center; }
     .account-empty strong { color: var(--text); }
-    .dsummary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .dmeta { display: block; margin-top: 4px; color: var(--faint); font-size: var(--fs-xs); }
-    .dbody { display: grid; gap: 16px; }
-    .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .ddecide { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
     @media (max-width: 1100px) { .account-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .account-grid { grid-template-columns: 1fr; } }

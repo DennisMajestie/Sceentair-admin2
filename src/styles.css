@@ -515,61 +515,77 @@ svg {
   gap: 8px;
 }
 
-/* Shared drawer content primitives — pages may refine these locally. */
+/* Shared drawer content primitives — the card-and-tile language used across drawers. */
 .dtitle {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--well);
 }
 .dtitle strong {
-  font-size: var(--fs-lg);
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 .dbody {
   display: grid;
   gap: 16px;
 }
 .dsummary {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.dsummary > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--well);
 }
 .dmeta {
   display: block;
-  margin-top: 4px;
+  margin-top: 3px;
   color: var(--faint);
-  font-size: var(--fs-xs);
+  font-size: 11px;
+  line-height: 1.35;
 }
 .dright {
   display: grid;
   justify-items: end;
 }
 .dtotal {
-  font-size: var(--fs-2xl);
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .dlabel {
-  font-size: var(--fs-2xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--faint);
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
 }
 .facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
+  gap: 8px;
   margin: 0;
 }
 .facts div {
   display: grid;
-  gap: 2px;
+  min-width: 0;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--well);
 }
 .facts dt {
-  font-size: var(--fs-2xs);
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--faint);
@@ -577,9 +593,36 @@ svg {
 }
 .facts dd {
   margin: 0;
-  font-size: var(--fs-md);
+  font-size: 13px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
+.stage-track {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  padding: 12px;
+  background: var(--well);
+  border-radius: var(--sd-r-card);
+}
+.stage-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-2xs);
+  color: var(--faint);
+}
+.stage-dot i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  display: inline-block;
+}
+.stage-dot.is-done { color: var(--muted); }
+.stage-dot.is-done i { background: var(--good); }
+.stage-dot.is-current { color: var(--text); font-weight: 700; }
+.stage-dot.is-current i { background: var(--primary); }
 
 /* Shared drawer content, card-and-tile language (see customer detail drawer). */
 .dw-head {

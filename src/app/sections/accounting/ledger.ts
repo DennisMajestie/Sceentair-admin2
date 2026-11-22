@@ -283,11 +283,6 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
     .ledger-card__reference { color: var(--faint); font-size: var(--fs-xs); }
     .ledger-empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 54px 20px; border: 1px dashed var(--line); border-radius: var(--sd-r-card); color: var(--muted); text-align: center; }
     .ledger-empty strong { color: var(--text); }
-    .dsummary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .dmeta { display: block; margin-top: 4px; color: var(--faint); font-size: var(--fs-xs); }
-    .dbody { display: grid; gap: 16px; }
-    .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
     .entry-bar { display: grid; gap: 12px; margin-bottom: var(--gap); padding: 16px; border: 1px solid var(--line); border-radius: var(--sd-r-card); background: var(--surface); box-shadow: var(--shadow); }
     .entry-bar__fields { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
     .entry-bar__note { grid-column: 1 / -1; }
@@ -297,11 +292,6 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
     .field { display: grid; gap: 5px; min-width: 0; }
     .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font-size: var(--fs-md); }
     .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--primary); }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     @media (max-width: 1100px) { .ledger-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .entry-bar__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px) { .ledger-grid { grid-template-columns: 1fr; } }
   `,

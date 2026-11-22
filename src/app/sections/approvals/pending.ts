@@ -237,16 +237,6 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
     .approval-card__justification { color: var(--faint); font-size: var(--fs-xs); }
     .approval-empty { grid-column: 1 / -1; display: grid; justify-items: center; gap: 10px; padding: 54px 20px; border: 1px dashed var(--line); border-radius: var(--sd-r-card); color: var(--muted); text-align: center; }
     .approval-empty strong { color: var(--text); }
-    .dsummary { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-    .dmeta { display: block; margin-top: 4px; color: var(--faint); font-size: var(--fs-xs); }
-    .dbody { display: grid; gap: 16px; }
-    .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dnote { font-size: var(--fs-md); color: var(--muted); margin-bottom: 12px; }
     .dpayload { font-family: var(--fs-mono, monospace); font-size: var(--fs-2xs); white-space: pre-wrap; word-break: break-all; background: var(--well); border: 1px solid var(--line); border-radius: var(--r-card); padding: 10px; color: var(--muted); margin: 8px 0; }
     .ddecide { display: flex; gap: 10px; margin-top: 12px; }

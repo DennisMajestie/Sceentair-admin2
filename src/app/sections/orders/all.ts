@@ -451,7 +451,6 @@ const API_FLOW: ApiOrderStatus[] = [
     .dhead__text, .customer__text { display: grid; min-width: 0; gap: 2px; }
     .dhead__text strong { font-size: var(--fs-md); }
     .dhead__text span, .customer__text span { overflow: hidden; color: var(--muted); font-size: var(--fs-2xs); text-overflow: ellipsis; white-space: nowrap; }
-    .dbody { display: grid; gap: 13px; padding-bottom: 2px; }
     .dstatus { display: flex; gap: 7px; }
     .flow { display: flex; align-items: flex-start; justify-content: space-between; gap: 0; padding: 3px 5px 8px; }
     .flow__item { position: relative; z-index: 0; display: grid; flex: 1; justify-items: center; gap: 5px; color: var(--faint); font-size: 10px; }
@@ -472,14 +471,6 @@ const API_FLOW: ApiOrderStatus[] = [
     .btn--tiny { padding: 4px 10px; font-size: var(--fs-xs); border: 1px solid var(--line-2); border-radius: var(--sd-r-pill); background: none; color: var(--text); cursor: pointer; }
     .pay-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: var(--sd-r-card); background: var(--surface); }
     .pay-form__actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
-    .dlabel {
-      margin: 2px 0 -5px;
-      font-size: var(--fs-2xs);
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--faint);
-    }
     .lines { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
     .line { display: flex; align-items: center; gap: 11px; }
     .line { min-height: 62px; padding: 7px 0; border-bottom: 1px solid var(--line); }
@@ -498,10 +489,6 @@ const API_FLOW: ApiOrderStatus[] = [
     .customer__text { flex: 1; }
     .customer__text strong { font-size: var(--fs-xs); }
     .customer__link { color: var(--primary); font-size: var(--fs-2xs); font-weight: 700; text-decoration: none; }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-sm); font-weight: 600; }
     .timeline { list-style: none; margin: 0; padding: 0 0 4px; display: grid; gap: 11px; }
     .timeline li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; }
     .timeline__dot { width: 9px; height: 9px; border-radius: 999px; background: var(--primary); margin-top: 4px; }

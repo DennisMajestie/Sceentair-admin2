@@ -623,14 +623,6 @@ function avatarToneForId(id: string): string {
       color: var(--muted);
       font-size: 12px;
     }
-    .dtitle {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-    }
-    .dtitle strong {
-      font-size: var(--fs-lg);
-    }
     .staff-form,
     .staff-grid {
       display: grid;

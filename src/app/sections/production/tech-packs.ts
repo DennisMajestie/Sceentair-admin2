@@ -193,20 +193,6 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
     .pack-card__foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding-top: 10px; }
     .efficiency { font-weight: 700; color: var(--good); font-size: var(--fs-sm); }
     .efficiency.is-low { color: var(--warn); }
-    .dbody { display: grid; gap: 16px; }
-    .dtitle strong { display: block; }
-    .dmeta { color: var(--faint); font-size: var(--fs-xs); }
-    .dsummary { display: flex; justify-content: space-between; gap: 16px; }
-    .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-weight: 700; font-variant-numeric: tabular-nums; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
-    .stage-track { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 12px; background: var(--well); border-radius: var(--sd-r-card); }
-    .stage-dot { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-2xs); color: var(--faint); }
-    .stage-dot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
     .stage-dot.is-done { color: var(--muted); }
     .stage-dot.is-done i { background: var(--good); }
     .stage-dot.is-current { color: var(--text); font-weight: 700; }

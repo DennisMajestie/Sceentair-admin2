@@ -331,20 +331,6 @@ interface BatchRow {
     .batch-card__product { font-size: var(--fs-lg); font-weight: 700; }
     .batch-card__variant { color: var(--muted); font-size: var(--fs-sm); }
     .batch-card__meta { color: var(--muted); font-size: var(--fs-xs); display: flex; gap: 6px; }
-    .dbody { display: grid; gap: 16px; }
-    .dtitle strong { display: block; }
-    .dmeta { color: var(--faint); font-size: var(--fs-xs); }
-    .dsummary { display: flex; justify-content: space-between; gap: 16px; }
-    .dright { display: grid; justify-items: end; }
-    .dtotal { font-size: var(--fs-2xl); font-variant-numeric: tabular-nums; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
-    .stage-track { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 12px; background: var(--well); border-radius: var(--sd-r-card); }
-    .stage-dot { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-2xs); color: var(--faint); }
-    .stage-dot i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); display: inline-block; }
     .stage-dot.is-done { color: var(--muted); }
     .stage-dot.is-done i { background: var(--good); }
     .stage-dot.is-current { color: var(--text); font-weight: 700; }

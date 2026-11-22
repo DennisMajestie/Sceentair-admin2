@@ -129,14 +129,6 @@ interface TicketRow {
     .tcard__body { font-size: var(--fs-sm); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .tcard__foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
     .tcard__at { font-size: var(--fs-2xs); color: var(--faint); }
-    .dtitle { display: flex; align-items: center; gap: 9px; }
-    .dtitle strong { font-size: var(--fs-lg); }
-    .dbody { display: grid; gap: 16px; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dmessage { display: grid; gap: 4px; padding: 12px 14px; border-radius: var(--r-tile); background: var(--surface-2); }
     .dmessage--reply { background: var(--well); }
     .dmessage__who { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }

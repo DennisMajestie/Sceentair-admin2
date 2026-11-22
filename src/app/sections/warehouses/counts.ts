@@ -281,14 +281,6 @@ function errorText(err: unknown): string {
     .sub { display: block; font-size: var(--fs-2xs); color: var(--faint); }
     .cnt-link { font-weight: 700; color: var(--text); }
     .counter { display: inline-flex; align-items: center; gap: 8px; }
-    .dtitle { display: flex; align-items: center; gap: 9px; }
-    .dtitle strong { font-size: var(--fs-lg); }
-    .dbody { display: grid; gap: 16px; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.05em; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .move-form { display: grid; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); }
     .move-form__target { margin: 0; font-size: var(--fs-xs); font-weight: 700; }
     .move-form__fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }

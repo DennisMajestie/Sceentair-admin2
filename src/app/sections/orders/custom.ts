@@ -195,16 +195,6 @@ const STATUS_LABEL: Record<CustomOrderStatus, string> = {
     .rowbtn { cursor: pointer; }
     .rowbtn:hover td { background: var(--well); }
     .table-empty { text-align: center; color: var(--muted); padding: 30px 12px; }
-    .dbody { display: grid; gap: 16px; }
-    .dtitle strong { display: block; }
-    .dmeta { color: var(--faint); font-size: var(--fs-xs); }
-    .dsummary { display: flex; justify-content: space-between; gap: 16px; }
-    .dright { display: grid; justify-items: end; text-align: right; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); }
-    .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 16px; margin: 0; }
-    .facts div { display: grid; gap: 2px; }
-    .facts dt { font-size: var(--fs-2xs); text-transform: uppercase; color: var(--faint); font-weight: 700; }
-    .facts dd { margin: 0; font-size: var(--fs-md); font-weight: 600; }
     .dnote { font-size: var(--fs-md); color: var(--muted); line-height: 1.5; }
     .actions, .quote-form, .actions-row { display: grid; gap: 10px; }
     .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }

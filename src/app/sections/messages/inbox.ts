@@ -292,8 +292,6 @@ function errorText(err: unknown, fallback: string): string {
     .notice--info { border-color: var(--primary); color: var(--primary); margin-bottom: 0; }
     .cs-skel { display: grid; gap: 8px; }
     .cs-row { height: 58px; border-radius: 8px; background: var(--well); }
-    .dtitle { display: grid; gap: 2px; }
-    .dbody { display: grid; gap: 16px; }
     .dform { display: grid; gap: 12px; }
     .dform__actions { display: flex; justify-content: flex-end; }
     .field { display: grid; gap: 5px; }
@@ -301,7 +299,6 @@ function errorText(err: unknown, fallback: string): string {
     .field select:focus-visible, .field textarea:focus-visible { outline: 2px solid var(--primary); }
     .field-error { color: var(--bad); font-size: var(--fs-xs); }
     .macros { display: flex; flex-wrap: wrap; gap: 8px; }
-    .dlabel { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--faint); margin: 0; }
     .activity { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
     .activity__item { display: grid; gap: 2px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--well); }
     .activity__item--empty { color: var(--muted); font-size: var(--fs-sm); text-align: center; }
