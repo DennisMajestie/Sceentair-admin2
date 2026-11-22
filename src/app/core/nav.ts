@@ -77,6 +77,7 @@ export const NAV: NavSection[] = [
     path: '/production',
     pages: [
       { label: 'Queue', path: '/production', badge: 'productionQueue' },
+      { label: 'Planning', path: '/production/planning' },
       { label: 'WIP', path: '/production/wip' },
       { label: 'Tech packs', path: '/production/tech-packs', badge: 'techPacks' },
       { label: 'Floor kiosk', path: '/production/kiosk', badge: 'kiosk' },
@@ -112,6 +113,7 @@ export const NAV: NavSection[] = [
     path: '/marketing/campaigns',
     pages: [
       { label: 'Campaigns', path: '/marketing/campaigns', badge: 'campaigns' },
+      { label: 'Loyalty', path: '/marketing/loyalty' },
       { label: 'Coupon wallet', path: '/coupons/wallet', badge: 'couponWallet' },
       { label: 'Coupon campaigns', path: '/coupons/campaigns', badge: 'couponCampaigns' },
       { label: 'Media library', path: '/media', badge: 'media' },
@@ -124,6 +126,7 @@ export const NAV: NavSection[] = [
     path: '/accounting/ledger',
     pages: [
       { label: 'Accounting ledger', path: '/accounting/ledger', badge: 'ledger' },
+      { label: 'Payroll', path: '/accounting/payroll' },
       { label: 'Approval queue', path: '/approvals', badge: 'approvals' },
       { label: 'Audit log', path: '/audit/log', badge: 'audit' },
       { label: 'Partners', path: '/partners', badge: 'partners' },
@@ -137,6 +140,7 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Reports', path: '/analytics/overview', badge: 'reports' },
       { label: 'Sales', path: '/analytics/sales', badge: 'sales' },
+      { label: 'Profitability', path: '/analytics/profitability' },
       { label: 'Stock health', path: '/analytics/stock', badge: 'stockHealth' },
     ],
   },

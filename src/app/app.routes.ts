@@ -106,6 +106,11 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/production/kiosk').then((m) => m.FloorKiosk),
   },
   {
+    path: 'production/planning',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/production/planning').then((m) => m.ProductionPlanning),
+  },
+  {
     path: 'production/wip',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/production/wip').then((m) => m.ProductionWip),
@@ -166,6 +171,11 @@ export const routes: Routes = [
     loadComponent: () => import('./sections/accounting/ledger').then((m) => m.AccountingLedger),
   },
   {
+    path: 'accounting/payroll',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/accounting/payroll').then((m) => m.AccountingPayroll),
+  },
+  {
     path: 'approvals',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/approvals/pending').then((m) => m.ApprovalsPending),
@@ -224,6 +234,11 @@ export const routes: Routes = [
     path: 'marketing/campaigns/:id',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/marketing/campaigns').then((m) => m.MarketingCampaigns),
+  },
+  {
+    path: 'marketing/loyalty',
+    canActivate: [requireAuth],
+    loadComponent: () => import('./sections/marketing/loyalty').then((m) => m.MarketingLoyalty),
   },
   {
     path: 'partners',
@@ -296,6 +311,12 @@ export const routes: Routes = [
     path: 'analytics/sales',
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/analytics/sales').then((m) => m.AnalyticsSales),
+  },
+  {
+    path: 'analytics/profitability',
+    canActivate: [requireAuth],
+    loadComponent: () =>
+      import('./sections/analytics/profitability').then((m) => m.AnalyticsProfitability),
   },
   {
     path: 'analytics/stock',

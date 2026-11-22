@@ -113,6 +113,15 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
 
           <div class="dmeta">{{ r.customer }}</div>
 
+          @if (r.photoUrls.length > 0) {
+            <div class="photo-links">
+              <span class="dlabel">Photos</span>
+              @for (url of r.photoUrls; track url) {
+                <a [href]="url" target="_blank" rel="noopener">Photo {{ $index + 1 }}</a>
+              }
+            </div>
+          }
+
           @if (r.status === 'requested') {
             <h3 class="dlabel">Resolve return</h3>
             <div class="resolve-form">
@@ -143,6 +152,10 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
                 <span>Bay tag</span>
                 <input type="text" class="resolve-input" [(ngModel)]="resolveBayTag" placeholder="e.g. BAY-001" />
               </label>
+              <label class="resolve-label">
+                <span>Photo links (comma separated)</span>
+                <input type="text" class="resolve-input" [(ngModel)]="resolvePhotos" placeholder="e.g. https://…/front.jpg, https://…/tag.jpg" />
+              </label>
               <div class="resolve-actions">
                 <button type="button" class="btn btn--ghost" (click)="clearResolve()">Clear</button>
                 <button type="button" class="btn" [disabled]="!resolveResolution()?.trim()" (click)="submitResolve(r.id)">Submit decision</button>
@@ -157,6 +170,8 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
     </app-drawer>
   `,
   styles: `
+    .photo-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
+    .photo-links a { font-size: var(--fs-sm); color: var(--primary); }
     .return-link { color: inherit; text-decoration: none; }
     .return-link:hover { color: var(--primary); text-decoration: underline; }
     .strong { font-weight: 700; }
@@ -188,6 +203,7 @@ export class OrdersReturns {
   protected readonly resolveDamaged = signal(false);
   protected readonly resolveTrackingNumber = signal('');
   protected readonly resolveBayTag = signal('');
+  protected readonly resolvePhotos = signal('');
   protected readonly resolveError = signal<string | null>(null);
   protected readonly resolveLoading = signal(false);
 
@@ -226,6 +242,7 @@ export class OrdersReturns {
         customer: this.store.customer(o?.customerId ?? '')?.name ?? '',
         trackingNumber: r.trackingNumber,
         bayTag: r.bayTag,
+        photoUrls: r.photoUrls ?? [],
       };
     }),
   );
@@ -258,6 +275,7 @@ export class OrdersReturns {
     this.resolveDamaged.set(false);
     this.resolveTrackingNumber.set('');
     this.resolveBayTag.set('');
+    this.resolvePhotos.set('');
     this.resolveError.set(null);
   }
 
@@ -272,6 +290,10 @@ export class OrdersReturns {
         damaged: this.resolveDamaged(),
         trackingNumber: this.resolveTrackingNumber() || undefined,
         bayTag: this.resolveBayTag() || undefined,
+        photoUrls: this.resolvePhotos()
+          .split(',')
+          .map((url) => url.trim())
+          .filter(Boolean),
       };
       await this.store.resolveReturn(id, input);
       this.close();

@@ -82,6 +82,23 @@ export interface ApiBatchTelemetry {
   recordedAt: string;
 }
 
+/** Production suggestions: recent sales + open orders minus stock and WIP. */
+export interface ApiPlanningRow {
+  variantId: string;
+  sku: string;
+  productName: string;
+  soldLastWindow: number;
+  openOrderUnits: number;
+  stockOnHand: number;
+  inProduction: number;
+  suggested: number;
+}
+
+export interface ApiPlanning {
+  windowDays: number;
+  variants: ApiPlanningRow[];
+}
+
 export interface ApiBatchBomRow {
   materialId: string;
   materialName: string;
@@ -138,6 +155,12 @@ export class ProductionApiService {
   wip(): Promise<ApiWipSummary> {
     return firstValueFrom(
       this.http.get<ApiWipSummary>(apiUrl(this.baseUrl, 'production-batches/wip')),
+    );
+  }
+
+  planning(): Promise<ApiPlanning> {
+    return firstValueFrom(
+      this.http.get<ApiPlanning>(apiUrl(this.baseUrl, 'production-batches/planning')),
     );
   }
 

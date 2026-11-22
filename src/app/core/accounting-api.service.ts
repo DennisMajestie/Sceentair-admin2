@@ -21,6 +21,28 @@ export interface ApiLedgerList {
   total: number;
 }
 
+export interface ApiPayrollRun {
+  id: string;
+  periodMonth: string;
+  lines: Array<{ name: string; amount: number; note?: string }>;
+  totalAmount: number;
+  status: string;
+  approvalRequestId: string;
+  ledgerEntryId: string | null;
+  postedAt: string | null;
+}
+
+export interface ApiPayrollList {
+  data: ApiPayrollRun[];
+  total: number;
+}
+
+export interface CreatePayrollInput {
+  periodMonth: string;
+  lines: Array<{ name: string; amount: number; note?: string }>;
+  approvalRequestId: string;
+}
+
 export interface ApiLedgerReport {
   type: LedgerReportType;
   total: number;
@@ -59,6 +81,19 @@ export class AccountingApiService {
         apiUrl(this.baseUrl, `accounting/reports/${type}`),
         { params },
       ),
+    );
+  }
+
+  payrollRuns(limit = 50): Promise<ApiPayrollList> {
+    const params = new HttpParams().set('limit', String(limit));
+    return firstValueFrom(
+      this.http.get<ApiPayrollList>(apiUrl(this.baseUrl, 'payroll/runs'), { params }),
+    );
+  }
+
+  createPayrollRun(input: CreatePayrollInput): Promise<ApiPayrollRun> {
+    return firstValueFrom(
+      this.http.post<ApiPayrollRun>(apiUrl(this.baseUrl, 'payroll/runs'), input),
     );
   }
 

@@ -46,6 +46,20 @@ export interface AnalyticsLowStock {
   variantThreshold: number;
 }
 
+export interface ProductProfitability {
+  products: Array<{
+    productId: string;
+    productName: string;
+    unitsSold: number;
+    revenue: number;
+    costOfUnitsSold: number | null;
+    margin: number | null;
+    marginPct: number | null;
+    costBasis: 'recorded' | 'estimated' | 'unknown';
+  }>;
+  withRecordedCost: boolean;
+}
+
 export interface AnalyticsInventoryValuation {
   finishedGoodsUnits: number;
   stockedVariantCount: number;
@@ -94,6 +108,17 @@ export class AnalyticsApiService {
       .set('direction', direction);
     return firstValueFrom(
       this.http.get<AnalyticsBestSeller[]>(apiUrl(this.baseUrl, 'analytics/best-sellers'), { params }),
+    );
+  }
+
+  productProfitability(limit = 8, from?: string, to?: string): Promise<ProductProfitability> {
+    let params = new HttpParams().set('limit', limit);
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return firstValueFrom(
+      this.http.get<ProductProfitability>(apiUrl(this.baseUrl, 'analytics/product-profitability'), {
+        params,
+      }),
     );
   }
 

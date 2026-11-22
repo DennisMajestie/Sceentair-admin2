@@ -179,6 +179,7 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 | Purchasing | Materials | `/purchasing/materials` | Materials | Raw materials | 4 |
 | Purchasing | Suppliers | `/purchasing/suppliers` | Suppliers | Directory | 3 |
 | Production | Queue | `/production` | Production queue | Stages | 3 |
+| Production | Planning | `/production/planning` | Planning | Sales vs stock/WIP | Derived |
 | Production | WIP | `/production/wip` | Work in progress | Stage + materials | 3 |
 | Production | Tech packs | `/production/tech-packs` | Tech packs | Measurements | 3 |
 | Production | Floor kiosk | `/production/kiosk` | Production line | Floor station | 3 |
@@ -190,15 +191,18 @@ Sidebar label -> route -> page title. Use this if the client asks "where do I fi
 | Wholesale | Wholesale accounts | `/wholesale/accounts` | Wholesale accounts | Approvals | 2 |
 | Wholesale | Wholesale tiers | `/wholesale/tiers` | Wholesale tiers | Pricing tiers | 1 |
 | Marketing | Campaigns | `/marketing/campaigns` | Campaigns | CRM campaigns | 3 |
+| Marketing | Loyalty | `/marketing/loyalty` | Loyalty | Points balances | Derived |
 | Marketing | Coupon wallet | `/coupons/wallet` | Coupon wallet | Customer coupons | 0 (owner's own) |
 | Marketing | Coupon campaigns | `/coupons/campaigns` | Coupon campaigns | Issue coupons | 1 |
 | Marketing | Media library | `/media` | Media library | Assets | Session-only |
 | Finance | Accounting ledger | `/accounting/ledger` | Accounting ledger | Revenue/expense | 7 |
+| Finance | Payroll | `/accounting/payroll` | Payroll | Runs + approval | 0 |
 | Finance | Approval queue | `/approvals` | Approval queue | Owner approvals | 0 (self-approve) |
 | Finance | Audit log | `/audit/log` | Audit log | Hash chain | 179 |
 | Finance | Partners | `/partners` | Partners | Equity/profit | 1 |
 | Analytics | Reports | `/analytics/overview` | Reports | Report builder | Derived |
 | Analytics | Sales | `/analytics/sales` | Sales | Who/what/when | 6 rows |
+| Analytics | Profitability | `/analytics/profitability` | Product profitability | Revenue vs cost | Derived |
 | Analytics | Stock health | `/analytics/stock` | Stock health | Cover/value | 19 rows |
 | Settings | Account | `/settings/account` | Account | Profile | Form |
 | Settings | Company | `/settings/company` | Company | Business config | Form |

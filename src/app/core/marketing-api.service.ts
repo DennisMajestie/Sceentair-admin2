@@ -22,6 +22,20 @@ export interface CampaignList {
   total: number;
 }
 
+export interface CampaignRoi {
+  campaigns: Array<{
+    id: string;
+    name: string;
+    orders: number;
+    revenue: number;
+    roi: number | null;
+  }>;
+  attributedRevenue: number;
+  unattributedRevenue: number;
+  spend: number;
+  roi: number | null;
+}
+
 export interface CreateCampaignInput {
   name: string;
   type: CampaignType;
@@ -43,6 +57,10 @@ export class MarketingApiService {
     return firstValueFrom(
       this.http.get<CampaignList | Campaign[]>(apiUrl(this.baseUrl, 'campaigns'), { params }),
     ).then((result) => normalizeList<Campaign>(result));
+  }
+
+  roi(): Promise<CampaignRoi> {
+    return firstValueFrom(this.http.get<CampaignRoi>(apiUrl(this.baseUrl, 'campaigns/roi')));
   }
 
   create(input: CreateCampaignInput): Promise<Campaign> {

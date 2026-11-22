@@ -50,6 +50,7 @@ interface BatchRow {
         </p>
       </div>
       <div class="head__actions">
+        <a class="btn btn--ghost" routerLink="/production/planning">Planning</a>
         <a class="btn btn--ghost" routerLink="/production/wip">WIP snapshot</a>
         <a class="btn btn--ghost" routerLink="/production/tech-packs">Tech packs</a>
         <a class="btn btn--ghost" routerLink="/production/kiosk">Floor kiosk</a>

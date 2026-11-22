@@ -6,7 +6,8 @@ import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { ToastService } from '../../core/toast';
-import { MarketingApiService, type Campaign, type CampaignList, type CampaignType } from '../../core/marketing-api.service';
+import { MarketingApiService, type Campaign, type CampaignList, type CampaignType, type CampaignRoi } from '../../core/marketing-api.service';
+import { money as fmtMoney } from '../../core/format';
 
 @Component({
   selector: 'app-marketing-campaigns',
@@ -35,6 +36,39 @@ import { MarketingApiService, type Campaign, type CampaignList, type CampaignTyp
         <span class="stat__detail">Active campaigns</span>
       </article>
     </div>
+
+    @if (roi(); as performance) {
+      <section class="card roi-panel" aria-label="Campaign performance">
+        <h2 class="roi-title">Return on spend</h2>
+        <div class="roi-stats">
+          <div><span class="stat__label">Attributed revenue</span><strong>{{ money(performance.attributedRevenue) }}</strong></div>
+          <div><span class="stat__label">Unattributed revenue</span><strong>{{ money(performance.unattributedRevenue) }}</strong></div>
+          <div><span class="stat__label">Campaign spend</span><strong>{{ money(performance.spend) }}</strong></div>
+          <div><span class="stat__label">Overall ROI</span><strong>{{ performance.roi === null ? '—' : performance.roi.toFixed(1) + '%' }}</strong></div>
+        </div>
+        @if (performance.campaigns.length > 0) {
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th scope="col">Campaign</th><th scope="col" class="num">Orders</th><th scope="col" class="num">Revenue</th><th scope="col" class="num">ROI</th></tr></thead>
+              <tbody>
+                @for (row of performance.campaigns; track row.id) {
+                  <tr>
+                    <td>{{ row.name }}</td>
+                    <td class="num">{{ row.orders }}</td>
+                    <td class="num">{{ money(row.revenue) }}</td>
+                    <td class="num">{{ row.roi === null ? '—' : row.roi.toFixed(1) + '%' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="roi-note">No campaign spend recorded yet — enter spend to see ROI.</p>
+        }
+      </section>
+    } @else if (roiError()) {
+      <p class="roi-note roi-note--error" role="alert">{{ roiError() }}</p>
+    }
 
     <div class="toolbar">
       <div class="toolbar__spacer"></div>
@@ -131,6 +165,17 @@ import { MarketingApiService, type Campaign, type CampaignList, type CampaignTyp
     </app-drawer>
   `,
   styles: `
+    .roi-panel { margin-bottom: var(--gap); padding: 16px; }
+    .roi-title { margin: 0 0 12px; font-size: var(--fs-lg); }
+    .roi-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .roi-stats div { display: grid; gap: 4px; }
+    .roi-stats strong { font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+    .roi-panel table { width: 100%; border-collapse: collapse; }
+    .roi-panel th, .roi-panel td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+    .roi-panel th { color: var(--faint); font-size: var(--fs-2xs); text-transform: uppercase; }
+    .roi-panel .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .roi-note { margin: 0; color: var(--muted); font-size: var(--fs-xs); }
+    .roi-note--error { color: var(--bad); }
     .campaign-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
     .campaign-card { display: grid; gap: 16px; width: 100%; min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--sd-r-card); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; box-shadow: var(--shadow); }
     .campaign-card:hover { border-color: var(--primary); }
@@ -158,8 +203,11 @@ export class MarketingCampaigns {
   private readonly marketingApi = inject(MarketingApiService);
   private readonly toast = inject(ToastService);
 
+  protected readonly money = fmtMoney;
   protected readonly campaigns = signal<Campaign[]>([]);
   protected readonly query = signal('');
+  protected readonly roi = signal<CampaignRoi | null>(null);
+  protected readonly roiError = signal<string | null>(null);
 
   protected readonly creating = signal(false);
   protected readonly creatingBusy = signal(false);
@@ -185,6 +233,17 @@ export class MarketingCampaigns {
   async load(): Promise<void> {
     const result = await this.marketingApi.list({ page: 1, limit: 100 });
     this.campaigns.set(result.data);
+    void this.loadRoi();
+  }
+
+  protected async loadRoi(): Promise<void> {
+    this.roiError.set(null);
+    try {
+      this.roi.set(await this.marketingApi.roi());
+    } catch {
+      this.roi.set(null);
+      this.roiError.set('Campaign ROI could not be loaded.');
+    }
   }
 
   protected readonly visible = computed(() => {
