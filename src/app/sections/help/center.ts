@@ -20,7 +20,7 @@ const TOPICS: Topic[] = [
   { id: 'shortcuts', title: 'Shortcuts', blurb: 'Get around without the mouse', icon: 'selector' },
 ];
 
-const POPULAR = ['expiry', 'transfer', 'count', 'return', 'shortcuts'];
+const POPULAR = ['restock', 'expiry', 'transfer', 'count', 'return', 'shortcuts'];
 
 @Component({
   selector: 'app-help-center',
@@ -139,7 +139,7 @@ const POPULAR = ['expiry', 'transfer', 'count', 'return', 'shortcuts'];
     .q__question { font-size: var(--fs-md); font-weight: 600; }
     .q.is-open .q__head app-icon { transform: rotate(180deg); }
     .q__body { padding: 0 16px 16px; display: grid; gap: 12px; }
-    .q__answer { margin: 0; font-size: var(--fs-sm); line-height: 1.65; color: var(--muted); max-width: 76ch; }
+    .q__answer { margin: 0; font-size: var(--fs-sm); line-height: 1.65; color: var(--muted); max-width: 76ch; white-space: pre-line; }
     .q__foot { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
     .q__help { font-size: var(--fs-2xs); color: var(--faint); }
     .empty { color: var(--muted); font-size: var(--fs-sm); margin: 0; }
