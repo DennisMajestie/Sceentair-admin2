@@ -15,11 +15,12 @@ import {
 } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 
 @Component({
   selector: 'app-purchasing-orders',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, FormsModule, Icon, Drawer],
+  imports: [RouterLink, FormsModule, Icon, Drawer, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -46,6 +47,11 @@ import { Drawer } from '../../ui/drawer';
       </div>
     </div>
 
+    @if (store.loading() && store.pos().length === 0) {
+      <div class="load-center" role="status">
+        <app-spinner size="sm" label="Loading material purchases" />
+      </div>
+    } @else {
     <div class="stats" aria-label="Material purchase summary">
       <article class="stat">
         <span class="stat__label">Total spent</span>
@@ -109,6 +115,8 @@ import { Drawer } from '../../ui/drawer';
         </div>
       }
     </div>
+
+    }
 
     <app-drawer [open]="!!selected()" (close)="close()" label="Material purchase detail">
       <ng-container drawerTitle>

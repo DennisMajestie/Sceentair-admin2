@@ -627,6 +627,9 @@ export class Store {
   /** Set when a core API call cannot reach the server, for the shell's connection warning. */
   readonly connectionError = signal('');
 
+  /** True while the store is hydrating; pages can show a loader instead of an empty state. */
+  readonly loading = signal(true);
+
   private noteNetworkError(error: unknown): void {
     if (isNetworkError(error)) this.connectionError.set(NETWORK_ERROR_MESSAGE);
   }
@@ -657,6 +660,7 @@ export class Store {
   }
 
   async load(): Promise<void> {
+    this.loading.set(true);
     this.connectionError.set('');
     const next: import('./models').Seed = { ...emptySeed() };
     const me = this.auth.user();
@@ -691,11 +695,13 @@ export class Store {
             this.noteNetworkError(error);
             return { data: [] as ApiOrder[], total: 0 };
           }),
-      ]).then(([cRes, oRes]) => {
-        const unified = synthesizeGuestShoppers(cRes.data, oRes.data);
-        next.customers = unified.customers.map(mapCustomer);
-        next.orders = unified.orders.map(mapOrder);
-      }),
+      ])
+        .then(([cRes, oRes]) => {
+          const unified = synthesizeGuestShoppers(cRes.data, oRes.data);
+          next.customers = unified.customers.map(mapCustomer);
+          next.orders = unified.orders.map(mapOrder);
+        })
+        .catch((error: unknown) => this.noteNetworkError(error)),
       this.businessApi
         .getProfile()
         .then((profile) => {
@@ -925,6 +931,7 @@ export class Store {
           prefs: next.settings.prefs,
         },
       }));
+      this.loading.set(false);
     }
   }
 
