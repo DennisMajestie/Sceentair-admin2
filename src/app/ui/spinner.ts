@@ -22,7 +22,8 @@ export type SpinnerVariant =
   | 'pulsar'
   | 'orbit'
   | 'waveform'
-  | 'mirage';
+  | 'mirage'
+  | 'orbital';
 
 @Component({
   selector: 'app-spinner',
@@ -106,6 +107,21 @@ export type SpinnerVariant =
           [attr.aria-label]="label() || 'Loading'"
         ></l-mirage>
       }
+      @case ('orbital') {
+        <svg
+          class="spinner-orbital"
+          viewBox="0 0 48 48"
+          fill="none"
+          [attr.width]="pixelSize()"
+          [attr.height]="pixelSize()"
+          role="status"
+          [attr.aria-label]="label() || 'Loading'"
+        >
+          <path class="spinner-orbital__dark" d="M24 6C31.5 6 38.2 10.6 40.8 17.6" stroke-width="4.5" stroke-linecap="round" />
+          <path class="spinner-orbital__mid" d="M7.2 30.4C5.4 24.4 6.7 17.8 10.8 12.8" stroke-width="4.5" stroke-linecap="round" />
+          <path class="spinner-orbital__soft" d="M36.5 37.2C31.2 42.1 23.4 43.4 16.8 40.5" stroke-width="4.5" stroke-linecap="round" />
+        </svg>
+      }
       @default {
         <span
           class="spinner"
@@ -175,6 +191,20 @@ export type SpinnerVariant =
       box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 40%, transparent);
       animation: sd-spin-pulse 1.4s ease-out infinite;
     }
+    .spinner-orbital {
+      --arc-dark: var(--warn);
+      --arc-mid: var(--ochre);
+      --arc-soft: color-mix(in srgb, var(--ochre) 55%, #fff);
+      animation: sd-orbital 1.15s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+    .spinner-orbital__dark { stroke: var(--arc-dark); }
+    .spinner-orbital__mid { stroke: var(--arc-mid); }
+    .spinner-orbital__soft { stroke: var(--arc-soft); }
+    @keyframes sd-orbital {
+      to { transform: rotate(1turn); }
+    }
     .spinner__label {
       color: var(--muted);
       font-size: var(--fs-sm);
@@ -191,6 +221,7 @@ export type SpinnerVariant =
     @media (prefers-reduced-motion: reduce) {
       .spinner__ring { animation-duration: 2.4s; }
       .spinner__core { animation: none; }
+      .spinner-orbital { animation-duration: 2.4s; }
     }
   `,
 })

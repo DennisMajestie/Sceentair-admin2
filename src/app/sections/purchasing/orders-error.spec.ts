@@ -16,6 +16,7 @@ describe('PurchasingOrders purchase feed failures', () => {
       materials: signal([]),
       suppliers: signal([]),
       purchasesError: signal('Gateway timeout'),
+      loading: signal(false),
       load: () => Promise.resolve(),
       material: () => undefined,
     };

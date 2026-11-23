@@ -90,6 +90,7 @@ describe('OrdersInStore', () => {
     };
 
     await page.submit();
+    fixture.detectChanges();
 
     expect(orders.create).toHaveBeenCalledWith({
       channel: 'in_store',

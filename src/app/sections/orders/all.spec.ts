@@ -77,9 +77,13 @@ function makeApi(listResult: ApiOrderList = { data: [], total: 0 }) {
     'tracking',
     'updateStatus',
     'publicConfig',
+    'recordPayment',
   ]);
   api.list.and.returnValue(Promise.resolve(listResult));
   api.publicConfig.and.returnValue(Promise.resolve(PUBLIC_CONFIG));
+  api.detail.and.returnValue(Promise.resolve(ORDER));
+  api.tracking.and.returnValue(Promise.resolve(TRACKING));
+  api.recordPayment.and.resolveTo({});
   return api;
 }
 
@@ -100,7 +104,16 @@ function createComponent(api: ReturnType<typeof makeApi>, auth: ReturnType<typeo
         provide: ActivatedRoute,
         useValue: { paramMap: of({ get: () => null } as unknown as ParamMap) },
       },
-      { provide: Router, useValue: { navigate: jasmine.createSpy('navigate') } },
+      {
+        provide: Router,
+        useValue: {
+          url: '',
+          events: of(null),
+          navigate: jasmine.createSpy('navigate'),
+          createUrlTree: jasmine.createSpy('createUrlTree').and.returnValue({}),
+          serializeUrl: jasmine.createSpy('serializeUrl').and.returnValue('/'),
+        },
+      },
     ],
   });
   return TestBed.createComponent(OrdersAll);
@@ -302,5 +315,46 @@ describe('permitted status actions', () => {
     const component = fixture.componentInstance;
 
     expect((component as any).canAdvance({ ...baseOrder, status: 'stock_exception' as ApiOrderStatus }, 'processing')).toBeFalse();
+  });
+});
+
+describe('orders payment feedback', () => {
+  it('shows processing then success with a receipt prompt', async () => {
+    const api = makeApi();
+    const fixture = createComponent(api, makeAuth());
+    const component = fixture.componentInstance as any;
+    component.paymentForm.method = 'bank_transfer';
+    component.paymentForm.amount = 46;
+
+    const pending = component.submitPayment({ id: 'o-1', total: 46 });
+    expect(component.feedbackOpen()).toBeTrue();
+    expect(component.feedbackState()).toBe('processing');
+    expect(component.feedbackDetail()).toContain('Bank transfer');
+
+    await pending;
+    expect(api.recordPayment).toHaveBeenCalledWith('o-1', { method: 'bank_transfer', amount: 46 });
+    expect(component.feedbackState()).toBe('success');
+    expect(component.feedbackTitle()).toBe('Payment successful');
+    expect(component.feedbackQuestion()).toBe('Would you like a receipt?');
+    expect(component.feedbackActions().map((a: { label: string }) => a.label)).toEqual([
+      'No, thanks',
+      'Print receipt',
+    ]);
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).querySelector('app-feedback-modal')).not.toBeNull();
+  });
+
+  it('shows an error state when the payment is rejected', async () => {
+    const api = makeApi();
+    api.recordPayment.and.rejectWith(new Error('Gateway declined the card'));
+    const fixture = createComponent(api, makeAuth());
+    const component = fixture.componentInstance as any;
+    component.paymentForm.amount = 46;
+
+    await component.submitPayment({ id: 'o-1', total: 46 });
+
+    expect(component.feedbackState()).toBe('error');
+    expect(component.feedbackDetail()).toContain('Gateway declined the card');
+    expect(component.feedbackActions().map((a: { label: string }) => a.label)).toEqual(['Close']);
   });
 });

@@ -51,6 +51,8 @@ Waves: **1** = this week, revenue/trust blockers · **2** = next 3–4 weeks, op
 
 **Effort:** 0.5–1 day. **Risk:** backfill touches financial history — needs explicit approval.
 
+**Completion note (2026-11-23):** Root cause on the admin side was response-envelope drift. `MaterialsApiService.purchases()` was the one materials list method still typed as a hard `{ data, total }` envelope instead of using `normalizeList`, so a bare-array or grouped response either mapped zero rows or threw during `mapPurchase`. The feed now normalises both shapes, and regression specs cover the paginated envelope and a bare array. The UI also surfaces `purchasesError` explicitly rather than presenting an empty feed as "0 records". No money records were backfilled — that still needs owner sign-off. Also fixed three stale specs (purchasing mock store, in-store sale DOM update, warehouse route providers).
+
 ---
 
 ### 2. Go live: storefront + Paystack live keys

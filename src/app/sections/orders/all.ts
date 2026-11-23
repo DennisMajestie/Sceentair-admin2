@@ -8,6 +8,7 @@ import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { Spinner } from '../../ui/spinner';
+import { FeedbackAction, FeedbackModal, FeedbackState } from '../../ui/feedback-modal';
 import { AuthService } from '../../core/auth.service';
 import {
   ApiOrder,
@@ -42,7 +43,7 @@ const API_FLOW: ApiOrderStatus[] = [
 @Component({
   selector: 'app-orders-all',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner, FeedbackModal],
   template: `
     <div class="head">
       <div class="head__text">
@@ -403,6 +404,17 @@ const API_FLOW: ApiOrderStatus[] = [
         </div>
       }
     </app-drawer>
+
+    <app-feedback-modal
+      [open]="feedbackOpen()"
+      [state]="feedbackState()"
+      [title]="feedbackTitle()"
+      [detail]="feedbackDetail()"
+      [question]="feedbackQuestion()"
+      [actions]="feedbackActions()"
+      (dismiss)="closeFeedback()"
+      (choose)="onFeedbackAction($event)"
+    />
   `,
   styles: `
     .select {
@@ -543,6 +555,13 @@ export class OrdersAll {
     method: 'cash' as OfflinePaymentMethod,
     amount: 0,
   };
+
+  protected readonly feedbackOpen = signal(false);
+  protected readonly feedbackState = signal<FeedbackState>('processing');
+  protected readonly feedbackTitle = signal('');
+  protected readonly feedbackDetail = signal('');
+  protected readonly feedbackQuestion = signal('');
+  protected readonly feedbackActions = signal<FeedbackAction[]>([]);
   protected readonly tracking = signal<ApiTracking | null>(null);
   protected readonly totalOrders = signal(0);
   private readonly page = signal(0);
@@ -793,17 +812,56 @@ export class OrdersAll {
       this.toasts.show(`The amount must match the order total (${order.total}).`, 'bad');
       return;
     }
+    const method = this.paymentMethodLabel(this.paymentForm.method);
     this.paymentBusy.set(true);
+    this.feedbackState.set('processing');
+    this.feedbackTitle.set('Processing payment');
+    this.feedbackDetail.set(`${this.money(amount)} with ${method}`);
+    this.feedbackQuestion.set('');
+    this.feedbackActions.set([]);
+    this.feedbackOpen.set(true);
     try {
       await this.api.recordPayment(order.id, { method: this.paymentForm.method, amount });
-      this.toasts.show('Payment recorded', 'good');
       this.paymentOpen.set(false);
       await this.loadDetail(order.id);
       void this.loadOrders(true);
+      this.feedbackState.set('success');
+      this.feedbackTitle.set('Payment successful');
+      this.feedbackDetail.set(`${this.money(amount)} paid via ${method}`);
+      this.feedbackQuestion.set('Would you like a receipt?');
+      this.feedbackActions.set([
+        { label: 'No, thanks', tone: 'quiet' },
+        { label: 'Print receipt', tone: 'accent' },
+      ]);
     } catch (error) {
-      this.toasts.show(this.errorMessage(error), 'bad');
+      const message = this.errorMessage(error);
+      this.feedbackState.set('error');
+      this.feedbackTitle.set('Payment could not be recorded');
+      this.feedbackDetail.set(message);
+      this.feedbackQuestion.set('');
+      this.feedbackActions.set([{ label: 'Close', tone: 'accent' }]);
     } finally {
       this.paymentBusy.set(false);
+    }
+  }
+
+  protected closeFeedback(): void {
+    this.feedbackOpen.set(false);
+  }
+
+  protected onFeedbackAction(label: string): void {
+    this.feedbackOpen.set(false);
+    if (label === 'Print receipt') window.print();
+  }
+
+  private paymentMethodLabel(method: OfflinePaymentMethod): string {
+    switch (method) {
+      case 'pos':
+        return 'POS terminal';
+      case 'bank_transfer':
+        return 'Bank transfer';
+      default:
+        return 'Cash';
     }
   }
 

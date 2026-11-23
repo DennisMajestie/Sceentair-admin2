@@ -112,8 +112,8 @@ export class MaterialsApiService {
       .set('page', page)
       .set('limit', limit);
     return firstValueFrom(
-      this.http.get<ApiPurchaseList>(apiUrl(this.baseUrl, 'materials/purchases'), { params }),
-    );
+      this.http.get<ApiPurchaseList | ApiPurchase[]>(apiUrl(this.baseUrl, 'materials/purchases'), { params }),
+    ).then((result) => normalizeList<ApiPurchase>(result));
   }
 
   lowStock(): Promise<ApiMaterial[]> {

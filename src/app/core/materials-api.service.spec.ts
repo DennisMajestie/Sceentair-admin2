@@ -32,3 +32,43 @@ describe('MaterialsApiService update', () => {
     await expectAsync(result).toBeResolved();
   });
 });
+
+describe('MaterialsApiService purchases', () => {
+  let http: HttpTestingController;
+  let service: MaterialsApiService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
+      providers: [{ provide: API_BASE_URL, useValue: '/api/v1' }],
+    });
+    http = TestBed.inject(HttpTestingController);
+    service = TestBed.inject(MaterialsApiService);
+  });
+
+  afterEach(() => http.verify());
+
+  it('reads the paginated purchase envelope', async () => {
+    const result = service.purchases(2, 10);
+    http.expectOne('/api/v1/materials/purchases?page=2&limit=10').flush({
+      data: [{ id: 'p-1', quantity: 4, cost: 1200 }],
+      total: 7,
+    });
+
+    const list = await result;
+    expect(list.data.length).toBe(1);
+    expect(list.total).toBe(7);
+  });
+
+  it('reads a bare purchase array without claiming zero records', async () => {
+    const result = service.purchases();
+    http.expectOne('/api/v1/materials/purchases?page=1&limit=50').flush([
+      { id: 'p-1', quantity: 4, cost: 1200 },
+      { id: 'p-2', quantity: 2, cost: 600 },
+    ]);
+
+    const list = await result;
+    expect(list.data.length).toBe(2);
+    expect(list.total).toBe(2);
+  });
+});

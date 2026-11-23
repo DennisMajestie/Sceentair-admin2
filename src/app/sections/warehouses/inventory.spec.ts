@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router } from '@angular/router';
 import { of } from 'rxjs';
 import { InventoryApiService } from '../../core/inventory-api.service';
 import { CatalogueApiService } from '../../core/catalogue-api.service';
@@ -137,6 +137,13 @@ function createComponent(apis: Apis) {
   TestBed.configureTestingModule({
     imports: [WarehouseStock],
     providers: [
+      {
+        provide: ActivatedRoute,
+        useValue: {
+          paramMap: of({ get: () => null } as unknown as ParamMap),
+          snapshot: { paramMap: { get: () => null } },
+        },
+      },
       { provide: InventoryApiService, useValue: apis.inventoryApi },
       { provide: CatalogueApiService, useValue: apis.catalogueApi },
       { provide: MaterialsApiService, useValue: apis.materialsApi },
@@ -144,7 +151,13 @@ function createComponent(apis: Apis) {
       { provide: ReturnsApiService, useValue: apis.returnsApi },
       {
         provide: Router,
-        useValue: { url: '', events: of(null), navigate: jasmine.createSpy('navigate') },
+        useValue: {
+          url: '',
+          events: of(null),
+          navigate: jasmine.createSpy('navigate'),
+          createUrlTree: jasmine.createSpy('createUrlTree').and.returnValue({}),
+          serializeUrl: jasmine.createSpy('serializeUrl').and.returnValue('/'),
+        },
       },
     ],
   });
