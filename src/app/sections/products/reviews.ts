@@ -8,6 +8,7 @@ import {
   type ApiReview,
 } from '../../core/reviews-api.service';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { Icon } from '../../ui/icon';
 
 @Component({
@@ -53,12 +54,6 @@ import { Icon } from '../../ui/icon';
               <button class="btn btn--ghost" type="button" [disabled]="!!busyId()" (click)="startReject(review.id)">Reject</button>
               <button class="btn btn--primary" type="button" [disabled]="!!busyId()" (click)="publish(review.id)">{{ busyId() === review.id ? 'Publishing…' : 'Publish' }}</button>
             </div>
-            @if (rejectingId() === review.id) {
-              <form class="reject-row" (ngSubmit)="confirmReject(review.id)">
-                <button class="btn btn--ghost" type="button" (click)="rejectingId.set(null)">Keep</button>
-                <button class="btn btn--ghost destructive" type="submit" [disabled]="!!busyId()">Confirm rejection</button>
-              </form>
-            }
           </footer>
         </article>
       }
@@ -90,6 +85,7 @@ import { Icon } from '../../ui/icon';
 export class ProductsReviews {
   private readonly api = inject(ReviewsApiService);
   private readonly toast = inject(ToastService);
+  private readonly alerts = inject(AlertService);
 
 
 
@@ -113,8 +109,16 @@ export class ProductsReviews {
     this.moderate(id, 'published');
   }
 
-  protected startReject(id: string): void {
-    this.rejectingId.set(id);
+  protected async startReject(id: string): Promise<void> {
+    const confirmed = await this.alerts.show({
+      title: 'Reject this review?',
+      message: 'The customer review will be hidden from the storefront. This is recorded in the audit log.',
+      tone: 'neutral',
+      showCancel: true,
+      cancelLabel: 'Keep',
+      confirmLabel: 'Reject',
+    });
+    if (confirmed) this.confirmReject(id);
   }
 
   protected confirmReject(id: string): void {

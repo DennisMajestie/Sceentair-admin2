@@ -21,6 +21,7 @@ import { Store } from '../../core/store';
 import { AuthService } from '../../core/auth.service';
 import { UsersApiService } from '../../core/users-api.service';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { Icon } from '../../ui/icon';
 import { SdSlidingIndicator } from '../../ui/sliding-indicator';
 import {
@@ -395,15 +396,9 @@ function errorStatus(error: unknown): number | undefined {
 
       @if (totalChanges() > 0) {
         <aside class="sd-save-bar" aria-live="polite" #saveBar>
-          @if (discardPrompt()) {
-            <span class="sd-save-bar__text">Discard {{ totalChanges() }} unsaved changes?</span>
-            <button type="button" class="sd-text-btn" (click)="discardPrompt.set(false)">Keep editing</button>
-            <button type="button" class="sd-text-btn" (click)="discardAll()">Discard</button>
-          } @else {
-            <span class="sd-save-bar__text">{{ totalChanges() }} unsaved changes in {{ dirtyRoleLabels() }}</span>
-            <button type="button" class="sd-text-btn" (click)="discard()">Discard</button>
-            <button #reviewButton class="sd-save-bar__primary" type="button" [disabled]="!canManage() || saving()" (click)="requestReview()">Review changes</button>
-          }
+          <span class="sd-save-bar__text">{{ totalChanges() }} unsaved changes in {{ dirtyRoleLabels() }}</span>
+          <button type="button" class="sd-text-btn" (click)="discard()">Discard</button>
+          <button #reviewButton class="sd-save-bar__primary" type="button" [disabled]="!canManage() || saving()" (click)="requestReview()">Review changes</button>
         </aside>
       }
 
@@ -610,6 +605,7 @@ export class StaffPermissionsComponent {
   private readonly api = inject(UsersApiService);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly alerts = inject(AlertService);
   private readonly zone = inject(NgZone);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -633,7 +629,6 @@ export class StaffPermissionsComponent {
   protected readonly saving = signal(false);
   protected readonly saveProgress = signal('');
   protected readonly refreshNotice = signal(false);
-  protected readonly discardPrompt = signal(false);
   protected readonly saveErrors = signal<Array<{ role: string; message: string; conflict: boolean }>>([]);
 
   protected readonly canView = computed(() => {
@@ -904,10 +899,17 @@ export class StaffPermissionsComponent {
     this.updateDraft(roleName, module, this.savedLevel(roleName, module));
   }
 
-  protected discard(): void {
+  protected async discard(): Promise<void> {
     if (this.totalChanges() >= 5) {
-      this.discardPrompt.set(true);
-      return;
+      const confirmed = await this.alerts.show({
+        title: 'Discard these changes?',
+        message: `${this.totalChanges()} unsaved permission changes will be lost.`,
+        tone: 'neutral',
+        showCancel: true,
+        cancelLabel: 'Keep editing',
+        confirmLabel: 'Discard',
+      });
+      if (!confirmed) return;
     }
     this.discardAll();
   }
@@ -916,7 +918,6 @@ export class StaffPermissionsComponent {
     const next = { ...this.drafts() };
     for (const role of this.matrix()) next[role.name] = draftForRole(role, this.modules());
     this.drafts.set(next);
-    this.discardPrompt.set(false);
   }
 
   protected requestReview(): void {

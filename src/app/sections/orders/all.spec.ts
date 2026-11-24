@@ -10,6 +10,7 @@ import {
   OrdersApiService,
 } from '../../core/orders-api.service';
 import { AuthService } from '../../core/auth.service';
+import { AlertService } from '../../core/alert.service';
 import { ToastService } from '../../core/toast';
 import { OrdersAll } from './all';
 
@@ -99,6 +100,7 @@ function createComponent(api: ReturnType<typeof makeApi>, auth: ReturnType<typeo
     providers: [
       { provide: OrdersApiService, useValue: api },
       { provide: AuthService, useValue: auth },
+      { provide: AlertService, useValue: { show: jasmine.createSpy('show').and.resolveTo(false) } },
       { provide: ToastService, useValue: jasmine.createSpyObj('ToastService', ['show', 'dismiss']) },
       {
         provide: ActivatedRoute,
@@ -319,42 +321,42 @@ describe('permitted status actions', () => {
 });
 
 describe('orders payment feedback', () => {
-  it('shows processing then success with a receipt prompt', async () => {
+  it('shows the shared success card with a receipt prompt', async () => {
     const api = makeApi();
     const fixture = createComponent(api, makeAuth());
+    const alerts = TestBed.inject(AlertService) as jasmine.SpyObj<AlertService>;
     const component = fixture.componentInstance as any;
     component.paymentForm.method = 'bank_transfer';
     component.paymentForm.amount = 46;
 
-    const pending = component.submitPayment({ id: 'o-1', total: 46 });
-    expect(component.feedbackOpen()).toBeTrue();
-    expect(component.feedbackState()).toBe('processing');
-    expect(component.feedbackDetail()).toContain('Bank transfer');
+    await component.submitPayment({ id: 'o-1', total: 46 });
 
-    await pending;
     expect(api.recordPayment).toHaveBeenCalledWith('o-1', { method: 'bank_transfer', amount: 46 });
-    expect(component.feedbackState()).toBe('success');
-    expect(component.feedbackTitle()).toBe('Payment successful');
-    expect(component.feedbackQuestion()).toBe('Would you like a receipt?');
-    expect(component.feedbackActions().map((a: { label: string }) => a.label)).toEqual([
-      'No, thanks',
-      'Print receipt',
-    ]);
-    fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).querySelector('app-feedback-modal')).not.toBeNull();
+    expect(alerts.show).toHaveBeenCalledWith({
+      title: 'Payment successful',
+      message: jasmine.stringMatching(/Bank transfer/),
+      question: 'Would you like a receipt?',
+      cancelLabel: 'No, thanks',
+      confirmLabel: 'Print receipt',
+      tone: 'success',
+    });
   });
 
-  it('shows an error state when the payment is rejected', async () => {
+  it('shows the shared error card when the payment is rejected', async () => {
     const api = makeApi();
     api.recordPayment.and.rejectWith(new Error('Gateway declined the card'));
     const fixture = createComponent(api, makeAuth());
+    const alerts = TestBed.inject(AlertService) as jasmine.SpyObj<AlertService>;
     const component = fixture.componentInstance as any;
     component.paymentForm.amount = 46;
 
     await component.submitPayment({ id: 'o-1', total: 46 });
 
-    expect(component.feedbackState()).toBe('error');
-    expect(component.feedbackDetail()).toContain('Gateway declined the card');
-    expect(component.feedbackActions().map((a: { label: string }) => a.label)).toEqual(['Close']);
+    expect(alerts.show).toHaveBeenCalledWith({
+      title: 'Payment could not be recorded',
+      message: jasmine.stringMatching(/Gateway declined the card/),
+      tone: 'error',
+      confirmLabel: 'Close',
+    });
   });
 });

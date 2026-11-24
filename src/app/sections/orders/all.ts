@@ -8,7 +8,7 @@ import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { Spinner } from '../../ui/spinner';
-import { FeedbackAction, FeedbackModal, FeedbackState } from '../../ui/feedback-modal';
+import { AlertService } from '../../core/alert.service';
 import { AuthService } from '../../core/auth.service';
 import {
   ApiOrder,
@@ -43,7 +43,7 @@ const API_FLOW: ApiOrderStatus[] = [
 @Component({
   selector: 'app-orders-all',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner, FeedbackModal],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -307,7 +307,7 @@ const API_FLOW: ApiOrderStatus[] = [
             @if (o.deliveryFee !== null) {
               <div><span>Delivery fee</span><strong>{{ money(o.deliveryFee) }}</strong></div>
             }
-            <div><span>VAT / coupon breakdown</span><strong>Not available in order response</strong></div>
+            <div><span>Other adjustments (VAT, coupons)</span><strong>{{ money(o.total - o.subtotal - (o.deliveryFee ?? 0)) }}</strong></div>
             <div><span>Payment</span><strong>{{ o.paymentStatusLabel }}</strong></div>
             <div class="totals__grand"><span>Order total</span><strong>{{ money(o.total) }}</strong></div>
           </div>
@@ -404,17 +404,6 @@ const API_FLOW: ApiOrderStatus[] = [
         </div>
       }
     </app-drawer>
-
-    <app-feedback-modal
-      [open]="feedbackOpen()"
-      [state]="feedbackState()"
-      [title]="feedbackTitle()"
-      [detail]="feedbackDetail()"
-      [question]="feedbackQuestion()"
-      [actions]="feedbackActions()"
-      (dismiss)="closeFeedback()"
-      (choose)="onFeedbackAction($event)"
-    />
   `,
   styles: `
     .select {
@@ -522,6 +511,7 @@ export class OrdersAll {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly toasts = inject(ToastService);
+  private readonly alerts = inject(AlertService);
   private readonly api = inject(OrdersApiService);
   private readonly auth = inject(AuthService);
 
@@ -555,13 +545,6 @@ export class OrdersAll {
     method: 'cash' as OfflinePaymentMethod,
     amount: 0,
   };
-
-  protected readonly feedbackOpen = signal(false);
-  protected readonly feedbackState = signal<FeedbackState>('processing');
-  protected readonly feedbackTitle = signal('');
-  protected readonly feedbackDetail = signal('');
-  protected readonly feedbackQuestion = signal('');
-  protected readonly feedbackActions = signal<FeedbackAction[]>([]);
   protected readonly tracking = signal<ApiTracking | null>(null);
   protected readonly totalOrders = signal(0);
   private readonly page = signal(0);
@@ -814,44 +797,30 @@ export class OrdersAll {
     }
     const method = this.paymentMethodLabel(this.paymentForm.method);
     this.paymentBusy.set(true);
-    this.feedbackState.set('processing');
-    this.feedbackTitle.set('Processing payment');
-    this.feedbackDetail.set(`${this.money(amount)} with ${method}`);
-    this.feedbackQuestion.set('');
-    this.feedbackActions.set([]);
-    this.feedbackOpen.set(true);
     try {
       await this.api.recordPayment(order.id, { method: this.paymentForm.method, amount });
       this.paymentOpen.set(false);
       await this.loadDetail(order.id);
       void this.loadOrders(true);
-      this.feedbackState.set('success');
-      this.feedbackTitle.set('Payment successful');
-      this.feedbackDetail.set(`${this.money(amount)} paid via ${method}`);
-      this.feedbackQuestion.set('Would you like a receipt?');
-      this.feedbackActions.set([
-        { label: 'No, thanks', tone: 'quiet' },
-        { label: 'Print receipt', tone: 'accent' },
-      ]);
+      const wantsReceipt = await this.alerts.show({
+        title: 'Payment successful',
+        message: `${this.money(amount)} paid via ${method}`,
+        question: 'Would you like a receipt?',
+        cancelLabel: 'No, thanks',
+        confirmLabel: 'Print receipt',
+        tone: 'success',
+      });
+      if (wantsReceipt) window.print();
     } catch (error) {
-      const message = this.errorMessage(error);
-      this.feedbackState.set('error');
-      this.feedbackTitle.set('Payment could not be recorded');
-      this.feedbackDetail.set(message);
-      this.feedbackQuestion.set('');
-      this.feedbackActions.set([{ label: 'Close', tone: 'accent' }]);
+      await this.alerts.show({
+        title: 'Payment could not be recorded',
+        message: this.errorMessage(error),
+        tone: 'error',
+        confirmLabel: 'Close',
+      });
     } finally {
       this.paymentBusy.set(false);
     }
-  }
-
-  protected closeFeedback(): void {
-    this.feedbackOpen.set(false);
-  }
-
-  protected onFeedbackAction(label: string): void {
-    this.feedbackOpen.set(false);
-    if (label === 'Print receipt') window.print();
   }
 
   private paymentMethodLabel(method: OfflinePaymentMethod): string {

@@ -7,8 +7,16 @@ export interface AlertOptions {
   message: string;
   tone?: WipAlertTone;
   question?: string;
+  showCancel?: boolean;
   confirmLabel?: string;
   cancelLabel?: string;
+  reasonLabel?: string;
+  reasonPlaceholder?: string;
+}
+
+export interface AlertResult {
+  confirmed: boolean;
+  reason: string;
 }
 
 let nextId = 0;
@@ -25,6 +33,9 @@ const ALERT_CSS = `
 .sd-alert__message{margin:4px 0 0;font-size:13px;color:var(--muted,#7b756a)}
 .sd-alert__divider{width:100%;height:1px;margin:16px 0;background:var(--line,#e8e1d3)}
 .sd-alert__question{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--text,#1b1916)}
+.sd-alert__reason{display:grid;gap:6px;width:100%;margin:0 0 14px;text-align:left;font-size:12px;font-weight:600;color:var(--muted,#7b756a)}
+.sd-alert__reason textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--line,#e8e1d3);border-radius:12px;background:var(--surface,#fffdf9);color:var(--text,#1b1916);font:inherit;font-size:13px;resize:vertical}
+.sd-alert__reason textarea:focus-visible{outline:2px solid var(--primary,#c88a12);outline-offset:2px}
 .sd-alert__actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
 .sd-alert__btn{min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:14px;font-size:13px;font-weight:650;cursor:pointer}
 .sd-alert__btn:focus-visible{outline:2px solid var(--primary,#c88a12);outline-offset:2px}
@@ -46,7 +57,16 @@ function ensureStyles(): void {
 @Injectable({ providedIn: 'root' })
 export class AlertService {
   show(options: AlertOptions): Promise<boolean> {
-    if (typeof document === 'undefined') return Promise.resolve(false);
+    return this.present(options, false).then((result) => result.confirmed);
+  }
+
+  /** Same card, with an audit-reason field and the entered reason in the result. */
+  showWithReason(options: AlertOptions): Promise<AlertResult> {
+    return this.present(options, true);
+  }
+
+  private present(options: AlertOptions, collectReason: boolean): Promise<AlertResult> {
+    if (typeof document === 'undefined') return Promise.resolve({ confirmed: false, reason: '' });
     ensureStyles();
     const id = `sd-alert-${++nextId}`;
     const tone = options.tone ?? 'success';
@@ -73,13 +93,27 @@ export class AlertService {
     message.textContent = options.message;
     card.append(disc, title, message);
 
-    if (options.question) {
-      const divider = document.createElement('div');
-      divider.className = 'sd-alert__divider';
-      const question = document.createElement('p');
-      question.className = 'sd-alert__question';
-      question.textContent = options.question;
-      card.append(divider, question);
+    let reasonInput: HTMLTextAreaElement | null = null;
+    if (collectReason) {
+      const label = document.createElement('label');
+      label.className = 'sd-alert__reason';
+      label.textContent = options.reasonLabel ?? 'Reason (audit)';
+      reasonInput = document.createElement('textarea');
+      reasonInput.placeholder = options.reasonPlaceholder ?? 'Required';
+      reasonInput.maxLength = 300;
+      label.append(reasonInput);
+      card.append(label);
+    }
+
+    if (options.question || options.showCancel) {
+      if (options.question) {
+        const divider = document.createElement('div');
+        divider.className = 'sd-alert__divider';
+        const question = document.createElement('p');
+        question.className = 'sd-alert__question';
+        question.textContent = options.question;
+        card.append(divider, question);
+      }
 
       const actions = document.createElement('div');
       actions.className = 'sd-alert__actions';
@@ -94,17 +128,27 @@ export class AlertService {
       actions.append(cancel, confirm);
       card.append(actions);
 
-      return new Promise<boolean>((resolve) => {
-        const finish = (result: boolean) => {
+      return new Promise<AlertResult>((resolve) => {
+        const finish = (confirmed: boolean) => {
           dialog.close();
           dialog.remove();
-          resolve(result);
+          resolve({ confirmed, reason: reasonInput?.value.trim() ?? '' });
         };
-        cancel.addEventListener('click', () => finish(false), { once: true });
-        confirm.addEventListener('click', () => finish(true), { once: true });
-        dialog.addEventListener('close', () => resolve(false), { once: true });
+        const accept = () => {
+          if (collectReason && reasonInput && !reasonInput.value.trim()) {
+            reasonInput.focus();
+            return;
+          }
+          finish(true);
+        };
+        cancel.addEventListener('click', () => finish(false));
+        confirm.addEventListener('click', accept);
+        dialog.addEventListener('cancel', (event) => {
+          event.preventDefault();
+          finish(false);
+        });
         document.body.append(dialog);
-        cancel.focus();
+        (reasonInput ?? cancel).focus();
         dialog.showModal();
       });
     }
@@ -115,15 +159,25 @@ export class AlertService {
     done.textContent = options.confirmLabel ?? 'Done';
     card.append(done);
 
-    return new Promise<boolean>((resolve) => {
-      done.addEventListener('click', () => {
+    return new Promise<AlertResult>((resolve) => {
+      const finish = (confirmed: boolean) => {
         dialog.close();
         dialog.remove();
-        resolve(true);
-      }, { once: true });
-      dialog.addEventListener('close', () => resolve(false), { once: true });
+        resolve({ confirmed, reason: reasonInput?.value.trim() ?? '' });
+      };
+      done.addEventListener('click', () => {
+        if (collectReason && reasonInput && !reasonInput.value.trim()) {
+          reasonInput.focus();
+          return;
+        }
+        finish(true);
+      });
+      dialog.addEventListener('cancel', (event) => {
+        event.preventDefault();
+        finish(false);
+      });
       document.body.append(dialog);
-      done.focus();
+      (reasonInput ?? done).focus();
       dialog.showModal();
     });
   }

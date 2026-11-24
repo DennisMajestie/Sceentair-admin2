@@ -6,6 +6,7 @@ import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { WholesaleApiService, type WholesaleTier, type CreateWholesaleTierInput, type UpdateWholesaleTierInput } from '../../core/wholesale-api.service';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 
 @Component({
   selector: 'app-wholesale-tiers',
@@ -181,6 +182,7 @@ export class WholesaleTiers {
   private readonly route = inject(ActivatedRoute);
   private readonly wholesaleApi = inject(WholesaleApiService);
   private readonly toast = inject(ToastService);
+  private readonly alerts = inject(AlertService);
 
   protected readonly tiers = signal<WholesaleTier[]>([]);
   protected readonly query = signal('');
@@ -251,7 +253,16 @@ export class WholesaleTiers {
   }
 
   protected async deleteTier(id: string): Promise<void> {
-    if (!confirm('Delete this tier? This cannot be undone.')) return;
+    const tier = this.tiers().find((t) => t.id === id);
+    const confirmed = await this.alerts.show({
+      title: 'Delete this tier?',
+      message: `${tier?.name ?? 'This tier'} will be removed. Stockists on this tier keep their existing prices until reassigned.`,
+      tone: 'error',
+      showCancel: true,
+      cancelLabel: 'Keep',
+      confirmLabel: 'Delete',
+    });
+    if (!confirmed) return;
     try {
       await this.wholesaleApi.deleteTier(id);
       await this.load();

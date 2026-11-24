@@ -16,6 +16,7 @@ import {
   CatalogueApiService,
 } from '../../core/catalogue-api.service';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { ApprovalsApiService } from '../../core/approvals-api.service';
 import { AuthService } from '../../core/auth.service';
 import { Drawer } from '../../ui/drawer';
@@ -278,18 +279,9 @@ function extractCreatedId(created: unknown): string | null {
 
         <section class="psection">
           <h3 class="dlabel">Danger zone</h3>
-          @if (confirmingDelete()) {
-            <div class="remove-row">
-              <button class="btn btn--ghost" type="button" (click)="confirmingDelete.set(false)">Keep</button>
-              <button class="btn btn--ghost destructive" type="button" [disabled]="working() !== ''" (click)="removeProduct()">
-                {{ working() === 'delete' ? 'Deleting…' : 'Confirm removal' }}
-              </button>
-            </div>
-          } @else {
-            <button class="btn btn--ghost destructive" type="button" [disabled]="working() !== ''" (click)="confirmingDelete.set(true)">
-              Delete product
-            </button>
-          }
+          <button class="btn btn--ghost destructive" type="button" [disabled]="working() !== ''" (click)="requestDelete()">
+            {{ working() === 'delete' ? 'Deleting…' : 'Delete product' }}
+          </button>
         </section>
       }
     </app-drawer>
@@ -356,6 +348,7 @@ export class CatalogApiProductEditor {
   private readonly approvalsApi = inject(ApprovalsApiService);
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
+  private readonly alerts = inject(AlertService);
   protected readonly isOwner = computed(() => this.auth.user()?.role === 'business_owner_admin');
 
   readonly product = input<ApiProduct | null>(null);
@@ -563,6 +556,20 @@ export class CatalogApiProductEditor {
     } finally {
       this.working.set('');
     }
+  }
+
+  protected async requestDelete(): Promise<void> {
+    const current = this.product();
+    if (!current) return;
+    const confirmed = await this.alerts.show({
+      title: 'Delete this product?',
+      message: `${current.name} and its variants will be removed. This cannot be undone.`,
+      tone: 'error',
+      showCancel: true,
+      cancelLabel: 'Keep',
+      confirmLabel: 'Delete',
+    });
+    if (confirmed) await this.removeProduct();
   }
 
   protected async removeProduct(): Promise<void> {

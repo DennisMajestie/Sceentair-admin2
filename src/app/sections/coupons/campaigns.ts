@@ -16,6 +16,7 @@ import {
 } from '../../core/coupons-api.service';
 import { date as fmtDate } from '../../core/format';
 import { UsersApiService, type ApiUser } from '../../core/users-api.service';
+import { AlertService } from '../../core/alert.service';
 
 type Tab = 'campaigns' | 'coupons' | 'bundles';
 type CreateKind = 'campaign' | 'coupon' | 'bundle';
@@ -390,27 +391,6 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
       }
     </app-drawer>
 
-    <app-drawer [open]="!!deactivateTarget()" (close)="cancelDeactivate()" label="Confirm deactivation">
-      <ng-container drawerTitle>
-        <strong>Deactivate</strong>
-      </ng-container>
-      @if (deactivateTarget(); as target) {
-        <div class="form">
-          <p class="hint">
-            Deactivating <strong>{{ target.label }}</strong> stops new use but keeps its history. This is recorded in the audit log.
-          </p>
-          <label class="field"><span class="field__label">Reason (audit)</span>
-            <input type="text" [(ngModel)]="deactivateReason" name="dReason" placeholder="Required" /></label>
-          <div class="form__actions">
-            <button type="button" class="btn" (click)="cancelDeactivate()">Cancel</button>
-            <button type="button" class="btn btn--primary" [disabled]="saving()" (click)="confirmDeactivate()">
-              {{ saving() ? 'Working…' : 'Deactivate' }}
-            </button>
-          </div>
-        </div>
-      }
-    </app-drawer>
-
     <app-drawer [open]="!!issueTarget()" (close)="cancelIssue()" label="Issue coupon">
       <ng-container drawerTitle>
         <strong>Issue coupon</strong>
@@ -483,6 +463,7 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
 export class CouponsCampaigns {
   private readonly couponsApi = inject(CouponsApiService);
   private readonly usersApi = inject(UsersApiService);
+  private readonly alerts = inject(AlertService);
 
   protected readonly tabs = TABS;
   protected readonly couponTypes = COUPON_TYPES;
@@ -498,14 +479,12 @@ export class CouponsCampaigns {
   protected readonly message = signal<string | null>(null);
   protected readonly saving = signal(false);
   protected readonly createMode = signal<CreateKind | null>(null);
-  protected readonly deactivateTarget = signal<{ kind: DeactivateKind; id: string; label: string } | null>(null);
   protected readonly issueTarget = signal<AdminCoupon | null>(null);
   protected readonly issuers = signal<ApiUser[]>([]);
 
   protected campaignForm = EMPTY_CAMPAIGN();
   protected couponForm = EMPTY_COUPON();
   protected bundleForm = EMPTY_BUNDLE();
-  protected deactivateReason = '';
   protected issueSearch = '';
   protected issueForm = {
     customerIds: [] as string[],
@@ -702,26 +681,22 @@ export class CouponsCampaigns {
       : [...this.bundleForm.couponIds, id];
   }
 
-  protected askDeactivate(kind: DeactivateKind, id: string, label: string): void {
-    this.deactivateReason = '';
-    this.deactivateTarget.set({ kind, id, label });
-  }
-
-  protected cancelDeactivate(): void {
-    this.deactivateTarget.set(null);
-  }
-
-  protected async confirmDeactivate(): Promise<void> {
-    const target = this.deactivateTarget();
-    if (!target) return;
-    const reason = this.deactivateReason.trim();
-    if (!reason) return this.fail('A reason is required for the audit log.');
+  protected async askDeactivate(kind: DeactivateKind, id: string, label: string): Promise<void> {
+    const result = await this.alerts.showWithReason({
+      title: `Deactivate ${kind}?`,
+      message: `${label} stops new use but keeps its history.`,
+      tone: 'neutral',
+      showCancel: true,
+      cancelLabel: 'Keep',
+      confirmLabel: 'Deactivate',
+      reasonLabel: 'Reason (audit)',
+    });
+    if (!result.confirmed) return;
 
     await this.save(async () => {
-      if (target.kind === 'campaign') await this.couponsApi.deactivateCampaign(target.id, reason);
-      else await this.couponsApi.deactivateCoupon(target.id, reason);
-      this.deactivateTarget.set(null);
-      this.message.set(`${target.kind === 'campaign' ? 'Campaign' : 'Coupon'} deactivated.`);
+      if (kind === 'campaign') await this.couponsApi.deactivateCampaign(id, result.reason);
+      else await this.couponsApi.deactivateCoupon(id, result.reason);
+      this.message.set(`${kind === 'campaign' ? 'Campaign' : 'Coupon'} deactivated.`);
     });
   }
 

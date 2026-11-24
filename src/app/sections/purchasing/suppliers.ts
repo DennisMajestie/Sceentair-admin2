@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { monthYear, money as fmtMoney, date as fmtDate } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { Drawer } from '../../ui/drawer';
 import {
   ApiSupplier,
@@ -96,7 +97,7 @@ interface SupplierRow {
               @if (s.certified) {
                 <span class="badge badge--warn">Certified</span>
               }
-              <button type="button" class="btn btn--xs btn--ghost destructive" [disabled]="busy()" aria-label="Remove supplier" (click)="removingId.set(s.id)">
+              <button type="button" class="btn btn--xs btn--ghost destructive" [disabled]="busy()" aria-label="Remove supplier" (click)="requestRemove(s.id)">
                 <app-icon name="close" [size]="14" aria-hidden="true" />
               </button>
             </div>
@@ -121,12 +122,6 @@ interface SupplierRow {
               <button type="button" class="btn btn--xs btn--ghost" (click)="open(s.id)">View</button>
             </div>
 
-            @if (removingId() === s.id) {
-              <form class="remove-row" (ngSubmit)="confirmRemove(s.id)">
-                <button class="btn btn--ghost" type="button" (click)="removingId.set(null)">Keep</button>
-                <button class="btn btn--ghost destructive" type="submit" [disabled]="busy()">Confirm removal</button>
-              </form>
-            }
           </article>
         }
       </div>
@@ -254,6 +249,7 @@ interface SupplierRow {
 export class PurchasingSuppliers {
   private readonly suppliersApi = inject(SuppliersApiService);
   private readonly toasts = inject(ToastService);
+  private readonly alerts = inject(AlertService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -436,6 +432,19 @@ export class PurchasingSuppliers {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  protected async requestRemove(id: string): Promise<void> {
+    const supplier = this.suppliers().find((s) => s.id === id);
+    const confirmed = await this.alerts.show({
+      title: 'Remove supplier?',
+      message: `${supplier?.name ?? 'This supplier'} will be removed from the directory. Its history is kept in the audit log.`,
+      tone: 'neutral',
+      showCancel: true,
+      cancelLabel: 'Keep',
+      confirmLabel: 'Remove',
+    });
+    if (confirmed) await this.confirmRemove(id);
   }
 
   protected async confirmRemove(id: string): Promise<void> {

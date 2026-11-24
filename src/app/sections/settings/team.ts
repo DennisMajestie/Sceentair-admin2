@@ -18,6 +18,7 @@ import { AuthService } from '../../core/auth.service';
 import { Store } from '../../core/store';
 import { count as fmtCount } from '../../core/format';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { friendlyErrorMessage } from '../../core/network-error';
 import { ApiCreateUserInput, UsersApiService } from '../../core/users-api.service';
 import { StaffPermissionsComponent } from './staff-permissions.component';
@@ -405,24 +406,6 @@ function avatarToneForId(id: string): string {
       </form>
     </app-drawer>
 
-    <app-drawer [open]="!!deactivateTarget()" (close)="cancelDeactivate()" label="Deactivate staff">
-      <ng-container drawerTitle><div class="dtitle"><strong>Deactivate staff</strong></div></ng-container>
-      @if (deactivateTarget(); as member) {
-        <div class="staff-form">
-          <p class="hint">
-            Deactivating <strong>{{ member.name }}</strong> disables their account and signs them out of
-            all devices immediately. This is recorded in the audit log.
-          </p>
-          <div class="form-actions">
-            <button class="btn btn--primary" type="button" [disabled]="busy()" (click)="confirmDeactivate()">
-              {{ busy() ? 'Deactivating…' : 'Deactivate' }}
-            </button>
-            <button class="btn btn--ghost" type="button" (click)="cancelDeactivate()">Cancel</button>
-          </div>
-        </div>
-      }
-    </app-drawer>
-
   `,
   styles: `
     .kpis {
@@ -737,6 +720,7 @@ export class SettingsTeam {
   protected readonly store = inject(Store);
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
+  private readonly alerts = inject(AlertService);
   private readonly users = inject(UsersApiService);
 
   protected readonly count = fmtCount;
@@ -754,7 +738,6 @@ export class SettingsTeam {
   private readonly searchQuery = signal('');
   protected readonly busy = signal(false);
   protected readonly creating = signal(false);
-  protected readonly deactivateTarget = signal<TeamMemberRow | null>(null);
   protected readonly createForm = { name: '', email: '', role: 'sales', phone: '', password: '' };
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
   private entranceContext?: gsap.Context;
@@ -864,22 +847,20 @@ export class SettingsTeam {
     }
   }
 
-  protected askDeactivate(member: TeamMemberRow): void {
-    this.deactivateTarget.set(member);
-  }
-
-  protected cancelDeactivate(): void {
-    this.deactivateTarget.set(null);
-  }
-
-  protected async confirmDeactivate(): Promise<void> {
-    const member = this.deactivateTarget();
-    if (!member) return;
+  protected async askDeactivate(member: TeamMemberRow): Promise<void> {
+    const confirmed = await this.alerts.show({
+      title: 'Deactivate staff?',
+      message: `${member.name} will be signed out of all devices immediately. This is recorded in the audit log.`,
+      tone: 'neutral',
+      showCancel: true,
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Deactivate',
+    });
+    if (!confirmed) return;
     this.busy.set(true);
     try {
       const user = await this.users.deactivate(member.id);
       this.store.deactivateTeammate(user);
-      this.deactivateTarget.set(null);
       this.toasts.show(`${member.name} deactivated`, 'good');
     } catch (err) {
       this.toasts.show(err instanceof Error ? err.message : 'Could not deactivate the staff account.', 'bad');

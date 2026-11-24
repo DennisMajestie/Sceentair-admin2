@@ -1,4 +1,4 @@
-﻿import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, effect, inject, signal, untracked, viewChild } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NAV, matchSection } from '../core/nav';
@@ -8,6 +8,7 @@ import { ThemeService } from '../core/theme';
 import { ToastService } from '../core/toast';
 import { SdShellStateService } from '../core/sd-shell-state.service';
 import { BadgeStateService } from '../core/badge-state';
+import { AlertService } from '../core/alert.service';
 import { SdSlidingIndicator } from './sliding-indicator';
 import { Icon } from './icon';
 
@@ -71,20 +72,6 @@ const BADGE_KEYS = [
           }
         </ul>
       </nav>
-
-      <!-- Logout confirmation dialog -->
-      <dialog #logoutDialog class="logout-dialog" aria-labelledby="logout-dialog-title" aria-describedby="logout-dialog-msg" (click)="onDialogClick($event)" (close)="onDialogClose()">
-        <div class="logout-dialog__body">
-          <h3 class="logout-dialog__title" id="logout-dialog-title">Sign out?</h3>
-          <p class="logout-dialog__msg" id="logout-dialog-msg">You'll need to sign back in to access the dashboard.</p>
-          <div class="logout-dialog__actions">
-            <button type="button" class="btn btn--ghost btn--sm" (click)="cancelLogout()">Cancel</button>
-            <button type="button" class="btn btn--primary btn--sm logout-dialog__confirm" [disabled]="signingOut()" (click)="confirmLogout()">
-              {{ signingOut() ? 'Signing out…' : 'Sign out' }}
-            </button>
-          </div>
-        </div>
-      </dialog>
 
       <!-- Utility island: Sign out, Collapse -->
       <div class="railbox railbox--util" role="group" aria-label="Utilities">
@@ -291,52 +278,6 @@ const BADGE_KEYS = [
       }
     }
 
-    /* ---- Logout confirmation dialog ---- */
-    .logout-dialog {
-      position: fixed;
-      inset: 0;
-      margin: auto;
-      width: min(380px, calc(100vw - 32px));
-      border: 0;
-      border-radius: var(--r-card);
-      background: var(--surface);
-      color: var(--text);
-      box-shadow: var(--shadow-pop);
-      padding: 0;
-      overflow: hidden;
-    }
-    .logout-dialog::backdrop {
-      background: rgb(0 0 0 / 0.45);
-      backdrop-filter: blur(2px);
-    }
-    .logout-dialog__body {
-      display: grid;
-      gap: 10px;
-      padding: 22px 24px;
-    }
-    .logout-dialog__title {
-      font-size: var(--fs-xl);
-      font-weight: 750;
-      letter-spacing: -0.01em;
-      color: var(--text);
-      margin: 0;
-    }
-    .logout-dialog__msg {
-      font-size: var(--fs-sm);
-      color: var(--muted);
-      margin: 0;
-      line-height: 1.55;
-    }
-    .logout-dialog__actions {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      padding-top: 6px;
-    }
-    .logout-dialog__confirm:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
   `,
 })
 export class Sidebar {
@@ -347,13 +288,11 @@ export class Sidebar {
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly alerts = inject(AlertService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly nav = NAV;
   protected readonly activeSectionId = signal<string | null>(null);
-
-  /** Reference to the native <dialog> confirmation element */
-  private readonly logoutDialogRef = viewChild<ElementRef<HTMLDialogElement>>('logoutDialog');
 
   constructor() {
     // One batched reconciliation pass outside change detection: writing from a
@@ -491,35 +430,25 @@ export class Sidebar {
 
   protected signingOut = signal(false);
 
-  /** Open the confirmation dialog instead of logging out immediately. */
-  protected promptLogout(): void {
-    this.logoutDialogRef()?.nativeElement.showModal();
-  }
-
-  /** Close dialog on backdrop click. */
-  protected onDialogClick(event: MouseEvent): void {
-    if (event.target === this.logoutDialogRef()?.nativeElement) {
-      this.cancelLogout();
-    }
-  }
-
-  /** Reset state when dialog is closed by any means (e.g. Escape key). */
-  protected onDialogClose(): void {
-    this.signingOut.set(false);
-  }
-
-  protected cancelLogout(): void {
-    this.logoutDialogRef()?.nativeElement.close();
-  }
-
-  protected async confirmLogout(): Promise<void> {
-    if (this.signingOut()) return;
+  /** Confirm through the shared alert card before ending the session. */
+  protected async promptLogout(): Promise<void> {
+    const confirmed = await this.alerts.show({
+      title: 'Sign out?',
+      message: "You'll need to sign back in to access the dashboard.",
+      tone: 'neutral',
+      showCancel: true,
+      cancelLabel: 'Cancel',
+      confirmLabel: 'Sign out',
+    });
+    if (!confirmed || this.signingOut()) return;
     this.signingOut.set(true);
-    await this.auth.logout();
-    this.logoutDialogRef()?.nativeElement.close();
-    this.signingOut.set(false);
-    this.toast.show('Signed out.', 'good');
-    await this.router.navigateByUrl('/signin');
+    try {
+      await this.auth.logout();
+      this.toast.show('Signed out.', 'good');
+      await this.router.navigateByUrl('/signin');
+    } finally {
+      this.signingOut.set(false);
+    }
   }
 }
 
