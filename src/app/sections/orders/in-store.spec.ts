@@ -5,6 +5,7 @@ import {
   type ApiProduct,
 } from '../../core/catalogue-api.service';
 import { OrdersApiService, type ApiOrder } from '../../core/orders-api.service';
+import { AlertService } from '../../core/alert.service';
 import { ToastService } from '../../core/toast';
 import { OrdersInStore } from './in-store';
 
@@ -64,6 +65,7 @@ describe('OrdersInStore', () => {
         { provide: CatalogueApiService, useValue: catalogue },
         { provide: OrdersApiService, useValue: orders },
         { provide: ToastService, useValue: { show: () => undefined } },
+        { provide: AlertService, useValue: { show: () => Promise.resolve(false) } },
       ],
     }).compileComponents();
 
@@ -99,6 +101,6 @@ describe('OrdersInStore', () => {
       walkIn: { name: 'Ada Obi', phone: '08012345678' },
     });
     expect(orders.recordPayment).toHaveBeenCalledWith('o-1', { method: 'cash', amount: 8400 });
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Sale recorded');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Last sale');
   });
 });

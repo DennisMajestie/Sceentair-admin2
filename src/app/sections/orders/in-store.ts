@@ -13,7 +13,7 @@ import {
   type ApiOrder,
   type OfflinePaymentMethod,
 } from '../../core/orders-api.service';
-import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { Spinner } from '../../ui/spinner';
 
 @Component({
@@ -100,26 +100,23 @@ import { Spinner } from '../../ui/spinner';
           <p class="total">Estimated total {{ money(estimate()) }}</p>
           @if (formError()) { <p class="error" role="alert">{{ formError() }}</p> }
           <button class="btn btn--primary" type="submit" [disabled]="busy() || !form.variantId || !form.buyerName.trim() || !form.buyerPhone.trim() || form.quantity < 1">
+            @if (busy()) { <app-spinner size="sm" /> }
             {{ busy() ? 'Recording…' : 'Record sale' }}
           </button>
         </form>
       </section>
 
       @if (lastSale(); as sale) {
-        <section class="card receipt" role="status">
-          <h2 class="panel__title">Sale recorded</h2>
-          <dl class="facts">
-            <div><dt>Order</dt><dd class="mono">{{ sale.orderNumber ?? sale.id }}</dd></div>
-            <div><dt>Buyer</dt><dd>{{ sale.guestName }}</dd></div>
-            <div><dt>Total</dt><dd>{{ money(sale.totalAmount) }}</dd></div>
-            <div><dt>Status</dt><dd>{{ sale.paymentStatus }}</dd></div>
-          </dl>
-        </section>
+        <p class="last-sale" role="status">
+          Last sale: <span class="mono">{{ sale.orderNumber ?? sale.id }}</span> · {{ money(sale.totalAmount) }}
+        </p>
       }
     }
   `,
   styles: `
-    .form-panel, .receipt { max-width: 860px; margin-bottom: var(--gap); padding: 16px; }
+    .form-panel { max-width: 860px; margin-bottom: var(--gap); padding: 16px; }
+    .last-sale { max-width: 860px; color: var(--muted); font-size: var(--fs-sm); }
+    .mono { font-family: var(--fs-mono, monospace); }
     .panel__title { margin: 0 0 12px; font-size: var(--fs-lg); }
     .sale-form { display: grid; gap: 14px; }
     .cgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -142,7 +139,7 @@ import { Spinner } from '../../ui/spinner';
 export class OrdersInStore {
   private readonly catalogue = inject(CatalogueApiService);
   private readonly orders = inject(OrdersApiService);
-  private readonly toast = inject(ToastService);
+  private readonly alert = inject(AlertService);
 
   protected readonly money = fmtMoney;
   protected readonly loading = signal(true);
@@ -198,6 +195,12 @@ export class OrdersInStore {
     return (variant.priceOverride ?? product.basePrice) * Math.max(1, this.form.quantity);
   });
 
+  private methodLabel(method: OfflinePaymentMethod): string {
+    if (method === 'pos') return 'POS terminal';
+    if (method === 'bank_transfer') return 'bank transfer';
+    return 'cash';
+  }
+
   protected async submit(): Promise<void> {
     const quantity = Math.trunc(Number(this.form.quantity));
     if (!this.form.variantId || !Number.isFinite(quantity) || quantity < 1) {
@@ -226,7 +229,15 @@ export class OrdersInStore {
         amount: order.totalAmount,
       });
       this.lastSale.set(order);
-      this.toast.show('In-store sale recorded', 'good');
+      const wantsReceipt = await this.alert.show({
+        title: 'Payment successful',
+        message: `${fmtMoney(order.totalAmount)} paid via ${this.methodLabel(this.form.method)}`,
+        question: 'Would you like a receipt?',
+        cancelLabel: 'No, thanks',
+        confirmLabel: 'Print receipt',
+        tone: 'success',
+      });
+      if (wantsReceipt) window.print();
       this.form.quantity = 1;
       this.form.buyerName = '';
       this.form.buyerPhone = '';
