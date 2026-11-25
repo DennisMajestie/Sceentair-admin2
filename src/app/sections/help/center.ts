@@ -31,7 +31,7 @@ const POPULAR = ['restock', 'expiry', 'transfer', 'count', 'return', 'shortcuts'
       <span class="hero__eyebrow">Help</span>
       <h1 class="hero__title">How can we help?</h1>
       <p class="hero__lead">
-        Answers about batches, stock, orders and the team — written by the people who run Sceentair.
+        Answers about batches, stock, orders and the team — written by the people who run Seentair.
       </p>
     </div>
 

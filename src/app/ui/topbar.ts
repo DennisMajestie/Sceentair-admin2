@@ -29,7 +29,7 @@ export function activePageFor(url: string, pages: readonly { path: string }[]): 
         <img
           class="brand__logo"
           [src]="theme.resolved() === 'dark' ? '/logo-dark.png' : '/logo-light.png'"
-          alt="Sceentair — Style for Everyone"
+          alt="Seentair — Style for Everyone"
         />
       </a>
 

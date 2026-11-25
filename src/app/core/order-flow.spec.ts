@@ -2,11 +2,11 @@ import { canAdvanceOrder, nextOrderStatus } from './order-flow';
 import type { OrderStatus } from './models';
 
 describe('order flow', () => {
-  it('allows only the next fulfillment step', () => {
+  it('allows only the next customer-facing status', () => {
     const transitions: [OrderStatus, OrderStatus][] = [
-      ['new', 'picking'],
-      ['picking', 'packed'],
-      ['packed', 'shipped'],
+      ['awaiting_payment', 'order_received'],
+      ['order_received', 'processing'],
+      ['processing', 'shipped'],
       ['shipped', 'delivered'],
     ];
 
@@ -17,9 +17,10 @@ describe('order flow', () => {
   });
 
   it('does not allow skipping, reversing, or advancing terminal statuses', () => {
-    expect(canAdvanceOrder('new', 'packed')).toBeFalse();
-    expect(canAdvanceOrder('packed', 'picking')).toBeFalse();
+    expect(canAdvanceOrder('order_received', 'shipped')).toBeFalse();
+    expect(canAdvanceOrder('processing', 'order_received')).toBeFalse();
     expect(nextOrderStatus('delivered')).toBeUndefined();
     expect(nextOrderStatus('cancelled')).toBeUndefined();
+    expect(nextOrderStatus('returned')).toBeUndefined();
   });
 });

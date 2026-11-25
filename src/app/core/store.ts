@@ -295,6 +295,7 @@ function mapReturn(
     reason: r.reason,
     status,
     createdAt: Date.parse(r.requestedAt) || 0,
+    returnDeadline: Date.parse(r.returnDeadline) || 0,
     refund: r.refundAmount ?? 0,
     trackingNumber: r.trackingNumber ?? null,
     bayTag: r.bayTag ?? null,
@@ -1055,7 +1056,10 @@ export class Store {
   );
 
   readonly ordersToShip = computed(() =>
-    this.openOrders().filter((o) => o.status === 'new' || o.status === 'picking' || o.status === 'packed'),
+    this.openOrders().filter(
+      (o) =>
+        o.status === 'order_received' || o.status === 'processing' || o.status === 'shipped',
+    ),
   );
 
   readonly unpaidOrders = computed(() => this.openOrders().filter((o) => !o.paid));

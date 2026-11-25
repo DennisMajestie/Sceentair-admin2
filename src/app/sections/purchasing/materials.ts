@@ -60,7 +60,6 @@ interface MaterialRow {
         </p>
       </div>
       <div class="head__actions">
-        <a class="btn btn--ghost" routerLink="/purchasing/suppliers">Suppliers</a>
         <button type="button" class="btn btn--ghost" (click)="openUsage()">
           <app-icon name="package" [size]="15" />
           Record usage

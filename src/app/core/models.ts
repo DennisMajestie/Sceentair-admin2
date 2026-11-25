@@ -1,6 +1,14 @@
-/** Domain model for the Sceentair stock & supply app. */
+/** Domain model for the Seentair stock & supply app. */
 
-export type OrderStatus = 'new' | 'picking' | 'packed' | 'shipped' | 'delivered' | 'cancelled';
+export type OrderStatus =
+  | 'awaiting_payment'
+  | 'order_received'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'returned'
+  | 'stock_exception'
+  | 'cancelled';
 export type OrderChannel = 'online' | 'wholesale' | 'studio';
 export type BatchStatus = 'released' | 'hold' | 'quarantine';
 export type PoStatus = 'draft' | 'sent' | 'partial' | 'received';
@@ -204,6 +212,8 @@ export interface Return {
   reason: string;
   status: ReturnStatus;
   createdAt: number;
+  /** Request window closes 12h after delivery; this is the server's completion deadline. */
+  returnDeadline: number;
   refund: number;
   trackingNumber: string | null;
   bayTag: string | null;

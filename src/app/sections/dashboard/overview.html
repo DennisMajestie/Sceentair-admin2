@@ -10,13 +10,13 @@
     <h1 class="welcome__title">Welcome back, {{ me().name.split(' ')[0] || 'there' }}!</h1>
     <p class="welcome__lead">Here's what's moving today: <strong>{{ toShip() }} orders</strong> to dispatch and <strong>{{ lowCount() ?? '—' }} stock items</strong> running low.</p>
     <div class="welcome__actions">
-      <button type="button" class="btn btn--primary" routerLink="/orders/all">
+      <a class="btn btn--primary" routerLink="/orders/in-store">
         <app-icon name="plus" [size]="15" />
-        New order
-      </button>
-      <button type="button" class="btn btn--dark" routerLink="/products/batches">
+        Record in-store sale
+      </a>
+      <a class="btn btn--dark" routerLink="/products/catalog">
         Add product
-      </button>
+      </a>
     </div>
   </div>
 }
@@ -160,7 +160,7 @@
   <article class="card sales-card">
     <div class="card__head">
       <h2 class="card__title">Sales overview</h2>
-      <button class="card__more" type="button"><app-icon name="more" [size]="22" /></button>
+      <a class="card__more" routerLink="/analytics/sales" aria-label="View sales analytics"><app-icon name="more" [size]="22" /></a>
     </div>
     <div class="sales-content">
       <app-gauge [pct]="salesPct()" [value]="salesPctLabel()" [caption]="'Sales goal'" [size]="300" />
@@ -209,7 +209,7 @@
   <article class="card acts-card">
     <div class="card__head">
       <h2 class="card__title">Recent activities</h2>
-      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+      <a class="card__more" routerLink="/dashboard/activity" aria-label="View all activity"><app-icon name="more" [size]="18" /></a>
     </div>
     <ul class="feed">
       @for (row of feed(); track row.id) {
@@ -231,7 +231,7 @@
   <article class="card alerts-card">
     <div class="card__head">
       <h2 class="card__title">Alerts</h2>
-      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+      <a class="card__more" routerLink="/dashboard/alerts" aria-label="View all alerts"><app-icon name="more" [size]="18" /></a>
     </div>
     <ul class="rows">
       @for (row of dashboardAlerts().slice(0, 5); track row.id) {
@@ -251,7 +251,7 @@
   <article class="card topsell-card">
     <div class="card__head">
       <h2 class="card__title">Top sellers</h2>
-      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+      <a class="card__more" routerLink="/analytics/sales" aria-label="View sales analytics"><app-icon name="more" [size]="18" /></a>
     </div>
     @if (sellersLoading()) {
       <div class="load-center" role="status">
@@ -285,7 +285,7 @@
   <article class="card ships-card">
     <div class="card__head">
       <h2 class="card__title">Ships out the door</h2>
-      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+      <a class="card__more" routerLink="/orders/all" aria-label="View all orders"><app-icon name="more" [size]="18" /></a>
     </div>
     <div class="table-wrap">
       <table>
@@ -318,7 +318,7 @@
   <article class="card loc-card">
     <div class="card__head">
       <h2 class="card__title">Stock by location</h2>
-      <button class="card__more" type="button"><app-icon name="more" [size]="18" /></button>
+      <a class="card__more" routerLink="/warehouses/inventory" aria-label="View inventory"><app-icon name="more" [size]="18" /></a>
     </div>
     <ul class="location-list">
       @for (l of locationSlices(); track l.label) {

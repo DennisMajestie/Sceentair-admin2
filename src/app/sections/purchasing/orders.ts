@@ -39,7 +39,6 @@ import { Spinner } from '../../ui/spinner';
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" routerLink="/purchasing/materials">Materials</a>
-        <a class="btn btn--ghost" routerLink="/purchasing/suppliers">Suppliers</a>
         <button type="button" class="btn btn--primary" (click)="openCreate()">
           <app-icon name="plus" [size]="15" />
           New purchase

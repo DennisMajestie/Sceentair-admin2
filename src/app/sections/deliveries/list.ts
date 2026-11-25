@@ -10,6 +10,7 @@ import { moneyNgn } from '../customers/cs-data';
 import { DeliveriesApiService, type DeliveryLeg, type DeliveryLegStatus, type DeliveryLegFilters } from '../../core/deliveries-api.service';
 import { LogisticsApiService, type ApiLogisticsPricing, type ApiShippingSettings, type ApiShippingSettingsUpdate } from '../../core/logistics-api.service';
 import { ToastService } from '../../core/toast';
+import { Store } from '../../core/store';
 import { Spinner } from '../../ui/spinner';
 
 const NIGERIA_GEOPOLITICAL_ZONES = [
@@ -34,6 +35,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
       </div>
       <div class="head__actions">
         <a class="btn btn--ghost" (click)="load()">Refresh</a>
+        <button class="btn btn--primary" type="button" (click)="openCreate()">New delivery</button>
       </div>
     </div>
 
@@ -257,8 +259,51 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New delivery">
+      <ng-container drawerTitle><div class="dtitle"><strong>New delivery</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="createDelivery()">
+        <label class="field"><span class="field__label">Order</span>
+          <select [(ngModel)]="createForm.orderId" name="orderId" required>
+            <option value="">Select an order</option>
+            @for (order of orders(); track order.id) {
+              <option [value]="order.id">{{ order.number }} · {{ order.customerName }}</option>
+            }
+          </select>
+        </label>
+        <label class="field"><span class="field__label">Carrier</span>
+          <input type="text" [(ngModel)]="createForm.carrier" name="carrier" required placeholder="gigl or manual carrier name" />
+        </label>
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Weight (kg)</span>
+            <input type="number" min="0" step="0.01" [(ngModel)]="createForm.weightKg" name="weightKg" />
+          </label>
+          <label class="field"><span class="field__label">Zone</span>
+            <select [(ngModel)]="createForm.zone" name="zone">
+              <option value="">Select a zone</option>
+              @for (zone of zones; track zone) { <option [value]="zone">{{ zone }}</option> }
+            </select>
+          </label>
+        </div>
+        <button class="btn btn--ghost" type="button" [disabled]="quoteBusy() || !createForm.weightKg || !createForm.zone" (click)="getQuote()">
+          {{ quoteBusy() ? 'Quoting…' : 'Get freight quote' }}
+        </button>
+        @if (quote(); as cost) { <p class="quote">Estimated freight: {{ money(cost) }}</p> }
+        @if (createError()) { <p class="field-err" role="alert">{{ createError() }}</p> }
+        <button class="btn btn--primary" type="submit" [disabled]="createBusy() || !createForm.orderId || !createForm.carrier.trim()">
+          {{ createBusy() ? 'Creating…' : 'Create delivery' }}
+        </button>
+      </form>
+    </app-drawer>
   `,
   styles: `
+    .create-form { display: grid; gap: 12px; }
+    .cgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); }
+    .field__label { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); }
+    .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
+    .quote { font-size: var(--fs-sm); font-weight: 700; }
     .delivery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
     .delivery-card { display: grid; gap: 16px; width: 100%; min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: var(--sd-r-card); background: var(--surface); color: var(--text); text-align: left; cursor: pointer; box-shadow: var(--shadow); }
     .delivery-card:hover { border-color: var(--primary); }
@@ -314,6 +359,7 @@ export class DeliveriesList {
   private readonly deliveriesApi = inject(DeliveriesApiService);
   private readonly logistics = inject(LogisticsApiService);
   private readonly toasts = inject(ToastService);
+  private readonly store = inject(Store);
 
   protected readonly date = fmtDate;
   protected readonly money = fmtMoney;
@@ -331,6 +377,14 @@ export class DeliveriesList {
   protected readonly settings = signal<ApiShippingSettings | null>(null);
   protected readonly pricingRows = signal<ApiLogisticsPricing[]>([]);
   protected readonly zones = NIGERIA_GEOPOLITICAL_ZONES;
+  protected readonly orders = computed(() => this.store.orders());
+
+  protected readonly creating = signal(false);
+  protected readonly createBusy = signal(false);
+  protected readonly quoteBusy = signal(false);
+  protected readonly quote = signal<number | null>(null);
+  protected readonly createError = signal<string | null>(null);
+  protected readonly createForm = { orderId: '', carrier: '', weightKg: 0, zone: '' };
   protected readonly missingZones = computed(() => {
     const existing = new Set(this.pricingRows().map((row) => row.zone.trim().toLowerCase()));
     return this.zones.filter((zone) => !existing.has(zone.toLowerCase()));
@@ -541,5 +595,53 @@ export class DeliveriesList {
 
   protected close(): void {
     this.router.navigate(['/deliveries']);
+  }
+
+  protected openCreate(): void {
+    this.createForm.orderId = '';
+    this.createForm.carrier = '';
+    this.createForm.weightKg = 0;
+    this.createForm.zone = '';
+    this.quote.set(null);
+    this.createError.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected async getQuote(): Promise<void> {
+    if (!this.createForm.weightKg || !this.createForm.zone) return;
+    this.quoteBusy.set(true);
+    try {
+      const result = await this.logistics.quote(this.createForm.weightKg, this.createForm.zone);
+      this.quote.set(result.cost);
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'Freight quote unavailable.');
+    } finally {
+      this.quoteBusy.set(false);
+    }
+  }
+
+  protected async createDelivery(): Promise<void> {
+    if (!this.createForm.orderId || !this.createForm.carrier.trim()) return;
+    this.createBusy.set(true);
+    this.createError.set(null);
+    try {
+      await this.deliveriesApi.create({
+        orderId: this.createForm.orderId,
+        carrier: this.createForm.carrier.trim(),
+        weightKg: this.createForm.weightKg || undefined,
+        zone: this.createForm.zone || undefined,
+      });
+      this.creating.set(false);
+      await this.load();
+      this.toasts.show('Delivery created', 'good');
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'The delivery could not be created.');
+    } finally {
+      this.createBusy.set(false);
+    }
   }
 }

@@ -93,6 +93,18 @@ export class DeliveriesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = inject(API_BASE_URL);
 
+  create(input: {
+    orderId: string;
+    carrier: string;
+    weightKg?: number;
+    zone?: string;
+    contents?: Array<{ sku: string; quantity: number }>;
+  }): Promise<DeliveryLeg> {
+    return firstValueFrom(
+      this.http.post<ApiDeliveryLeg>(apiUrl(this.baseUrl, 'deliveries'), input),
+    ).then(mapDeliveryLeg);
+  }
+
   list(filters: DeliveryLegFilters = { page: 1, limit: 50 }): Promise<DeliveryLeg[]> {
     let params = new HttpParams()
       .set('page', filters.page)

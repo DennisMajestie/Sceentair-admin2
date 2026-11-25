@@ -13,12 +13,14 @@ import {
   ApiProduct,
   ApiProductVariant,
   ApiVariantAvailability,
+  ApiBomRow,
   CatalogueApiService,
 } from '../../core/catalogue-api.service';
 import { ToastService } from '../../core/toast';
 import { AlertService } from '../../core/alert.service';
 import { ApprovalsApiService } from '../../core/approvals-api.service';
 import { AuthService } from '../../core/auth.service';
+import { MaterialsApiService } from '../../core/materials-api.service';
 import { Drawer } from '../../ui/drawer';
 import { Spinner } from '../../ui/spinner';
 
@@ -166,6 +168,9 @@ function extractCreatedId(created: unknown): string | null {
             @for (variant of variants(); track variant.id) {
               <div class="variant-row">
                 <span class="variant-row__sku">{{ variant.sku }}</span>
+                @if (editing()) {
+                  <button type="button" class="btn btn--ghost btn--xs" (click)="openBom(variant.id)">BOM</button>
+                }
                 <span>Size {{ variant.size ?? '—' }}</span>
                 <span>Colour {{ variant.colour ?? '—' }}</span>
                 @if (variant.priceOverride !== null) {
@@ -285,8 +290,48 @@ function extractCreatedId(created: unknown): string | null {
         </section>
       }
     </app-drawer>
+
+    <app-drawer [open]="!!bomVariantId()" (close)="closeBom()" label="Bill of materials">
+      <ng-container drawerTitle><div class="dtitle"><strong>Bill of materials</strong></div></ng-container>
+      <div class="dbody">
+        <p class="psub">Per-unit material requirements for this variant.</p>
+        @for (row of bomRows(); track row.id) {
+          <div class="variant-row">
+            <span class="variant-row__sku">{{ row.materialName ?? row.materialId }}</span>
+            <span>{{ row.quantity }} {{ row.materialUnit ?? '' }}</span>
+          </div>
+        } @empty {
+          <p class="pempty">No materials recorded for this variant.</p>
+        }
+        <div class="cgrid">
+          <label class="field"><span class="field__label">Material</span>
+            <select [(ngModel)]="bomDraft.materialId" name="bomMaterial">
+              <option value="">Select a material</option>
+              @for (material of materialsList(); track material.id) {
+                <option [value]="material.id">{{ material.name }} ({{ material.unit }})</option>
+              }
+            </select>
+          </label>
+          <label class="field"><span class="field__label">Quantity per unit</span>
+            <input type="number" min="0.01" step="0.01" [(ngModel)]="bomDraft.quantity" name="bomQuantity" />
+          </label>
+        </div>
+        <button class="btn btn--ghost" type="button" [disabled]="!bomDraft.materialId || bomDraft.quantity <= 0" (click)="addBomRow()">Add line</button>
+        @if (bomError()) { <p class="field-err" role="alert">{{ bomError() }}</p> }
+        <div class="edit-actions">
+          <button class="btn btn--primary" type="button" [disabled]="bomBusy() || bomRows().length === 0" (click)="saveBom()">{{ bomBusy() ? 'Saving…' : 'Save BOM' }}</button>
+          <button class="btn btn--ghost" type="button" (click)="closeBom()">Cancel</button>
+        </div>
+      </div>
+    </app-drawer>
   `,
   styles: `
+    .cgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .field { display: grid; gap: 5px; }
+    .field input, .field select { height: 40px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); }
+    .field__label { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); }
+    .field-err { color: var(--bad); font-size: var(--fs-xs); margin: 0; }
+    .edit-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .psub { overflow: hidden; color: var(--faint); font-size: 11px; text-overflow: ellipsis; }
     .pform { display: grid; gap: 12px; }
     .psection { display: grid; gap: 12px; margin-top: 2px; padding-top: 14px; border-top: 1px solid var(--line); }
@@ -349,6 +394,7 @@ export class CatalogApiProductEditor {
   private readonly auth = inject(AuthService);
   private readonly toasts = inject(ToastService);
   private readonly alerts = inject(AlertService);
+  private readonly materialsApi = inject(MaterialsApiService);
   protected readonly isOwner = computed(() => this.auth.user()?.role === 'business_owner_admin');
 
   readonly product = input<ApiProduct | null>(null);
@@ -375,6 +421,13 @@ export class CatalogApiProductEditor {
 
   protected readonly sPercent = signal<number | null>(null);
   protected readonly sEndsAt = signal('');
+
+  protected readonly bomVariantId = signal<string | null>(null);
+  protected readonly bomRows = signal<ApiBomRow[]>([]);
+  protected readonly bomBusy = signal(false);
+  protected readonly bomError = signal<string | null>(null);
+  protected readonly materialsList = signal<Array<{ id: string; name: string; unit: string }>>([]);
+  protected readonly bomDraft = { materialId: '', quantity: 1 };
 
   protected readonly cName = signal('');
   protected readonly addingCategory = signal(false);
@@ -694,5 +747,67 @@ export class CatalogApiProductEditor {
     this.sPercent.set(null);
     this.sEndsAt.set('');
     this.cName.set('');
+  }
+
+  protected async openBom(variantId: string): Promise<void> {
+    this.bomVariantId.set(variantId);
+    this.bomRows.set([]);
+    this.bomError.set(null);
+    this.bomDraft.materialId = '';
+    this.bomDraft.quantity = 1;
+    try {
+      const [rows, materials] = await Promise.all([
+        this.api.bom(variantId),
+        this.materialsApi.list({ page: 1, limit: 100 }),
+      ]);
+      this.bomRows.set(rows);
+      this.materialsList.set(materials.data.map((m) => ({ id: m.id, name: m.name, unit: m.unit })));
+    } catch (err) {
+      this.bomError.set(err instanceof Error ? err.message : 'The BOM could not be loaded.');
+    }
+  }
+
+  protected closeBom(): void {
+    this.bomVariantId.set(null);
+  }
+
+  protected addBomRow(): void {
+    const material = this.materialsList().find((m) => m.id === this.bomDraft.materialId);
+    if (!material || this.bomDraft.quantity <= 0) return;
+    this.bomRows.update((rows) => [
+      ...rows,
+      {
+        id: `draft-${material.id}`,
+        materialId: material.id,
+        materialName: material.name,
+        materialUnit: material.unit,
+        quantity: this.bomDraft.quantity,
+      },
+    ]);
+    this.bomDraft.materialId = '';
+    this.bomDraft.quantity = 1;
+  }
+
+  protected async saveBom(): Promise<void> {
+    const variantId = this.bomVariantId();
+    if (!variantId) return;
+    this.bomBusy.set(true);
+    this.bomError.set(null);
+    try {
+      await this.api.replaceBom(
+        variantId,
+        this.bomRows().map((row) => ({
+          materialId: row.materialId,
+          quantity: row.quantity,
+        })),
+      );
+      this.closeBom();
+      this.toasts.show('Bill of materials saved', 'good');
+      this.saved.emit();
+    } catch (err) {
+      this.bomError.set(err instanceof Error ? err.message : 'The BOM could not be saved.');
+    } finally {
+      this.bomBusy.set(false);
+    }
   }
 }

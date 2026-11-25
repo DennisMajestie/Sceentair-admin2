@@ -109,7 +109,14 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
             <div><dt>Reason</dt><dd>{{ r.reason }}</dd></div>
             <div><dt>Tracking</dt><dd>{{ r.trackingNumber ?? '—' }}</dd></div>
             <div><dt>Bay tag</dt><dd>{{ r.bayTag ?? '—' }}</dd></div>
+            <div><dt>Return by</dt><dd>{{ r.returnDeadline ? date(r.returnDeadline) : '—' }}</dd></div>
           </dl>
+
+          @if (r.overdue) {
+            <p class="return-overdue" role="status">Past the 24-hour completion window — contact the customer before resolving.</p>
+          } @else {
+            <p class="return-window">Returns must be requested within 12 hours of delivery and completed within 24 hours of the request.</p>
+          }
 
           <div class="dmeta">{{ r.customer }}</div>
 
@@ -172,6 +179,8 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
   styles: `
     .photo-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
     .photo-links a { font-size: var(--fs-sm); color: var(--primary); }
+    .return-overdue { font-size: var(--fs-xs); color: var(--bad); font-weight: 700; }
+    .return-window { font-size: var(--fs-xs); color: var(--muted); }
     .return-link { color: inherit; text-decoration: none; }
     .return-link:hover { color: var(--primary); text-decoration: underline; }
     .strong { font-weight: 700; }
@@ -239,6 +248,8 @@ export class OrdersReturns {
         label: statusLabel(r.status),
         refund: r.refund,
         createdAt: r.createdAt,
+        returnDeadline: r.returnDeadline,
+        overdue: r.status === 'requested' && r.returnDeadline > 0 && Date.now() > r.returnDeadline,
         customer: this.store.customer(o?.customerId ?? '')?.name ?? '',
         trackingNumber: r.trackingNumber,
         bayTag: r.bayTag,

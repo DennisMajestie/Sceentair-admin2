@@ -31,7 +31,7 @@ const MONTHS = [
   template: `
     <div class="head">
       <div class="head__text">
-        <span class="head__eyebrow">The business behind Sceentair</span>
+        <span class="head__eyebrow">The business behind Seentair</span>
         <h1 class="head__title">Company</h1>
       </div>
     </div>

@@ -51,9 +51,8 @@ export function orderStatusTone(status: string): string {
       return 'good';
     case 'cancelled':
       return 'bad';
-    case 'new':
-    case 'picking':
-    case 'packed':
+    case 'order_received':
+    case 'processing':
     case 'shipped':
       return 'info';
     default:

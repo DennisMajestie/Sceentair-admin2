@@ -1,9 +1,9 @@
 import type { OrderStatus } from './models';
 
 const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
-  new: 'picking',
-  picking: 'packed',
-  packed: 'shipped',
+  awaiting_payment: 'order_received',
+  order_received: 'processing',
+  processing: 'shipped',
   shipped: 'delivered',
 };
 

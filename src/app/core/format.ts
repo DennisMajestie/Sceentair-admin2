@@ -129,9 +129,6 @@ export function statusTone(status: string): string {
     case 'returned':
     case 'stock_exception':
       return 'bad';
-    case 'new':
-    case 'picking':
-    case 'packed':
     case 'shipped':
     case 'processing':
     case 'planned':

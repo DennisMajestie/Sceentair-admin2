@@ -8,9 +8,9 @@ import type { OrderStatus } from '../../core/models';
 import { nextOrderStatus } from '../../core/order-flow';
 
 const COLUMNS: { id: OrderStatus; label: string }[] = [
-  { id: 'new', label: 'New' },
-  { id: 'picking', label: 'Picking' },
-  { id: 'packed', label: 'Packed' },
+  { id: 'awaiting_payment', label: 'Awaiting payment' },
+  { id: 'order_received', label: 'Order received' },
+  { id: 'processing', label: 'Processing' },
   { id: 'shipped', label: 'Shipped' },
 ];
 

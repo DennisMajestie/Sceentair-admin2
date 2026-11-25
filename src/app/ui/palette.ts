@@ -230,7 +230,7 @@ export class Palette {
 
   private readonly index = computed<Command[]>(() => {
     const cmds: Command[] = [];
-    for (const section of navForRole(this.auth.user()?.role)) {
+    for (const section of navForRole(this.auth.user()?.access)) {
       for (const page of section.pages) {
         cmds.push({
           id: `nav-${section.id}-${page.path}`,
@@ -280,16 +280,6 @@ export class Palette {
         hint: m.code,
         path: `/purchasing/materials/${m.id}`,
         icon: 'purchasing',
-      });
-    }
-    for (const s of this.store.suppliers()) {
-      cmds.push({
-        id: `s-${s.id}`,
-        group: 'Suppliers',
-        label: s.name,
-        hint: s.city,
-        path: `/purchasing/suppliers/${s.id}`,
-        icon: 'truck',
       });
     }
     return cmds;

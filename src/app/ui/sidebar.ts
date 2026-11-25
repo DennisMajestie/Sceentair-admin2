@@ -1,7 +1,7 @@
-﻿import { ChangeDetectionStrategy, Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+﻿import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NAV, matchSection } from '../core/nav';
+import { NAV, matchSection, navForRole } from '../core/nav';
 import { Store } from '../core/store';
 import { AuthService } from '../core/auth.service';
 import { ThemeService } from '../core/theme';
@@ -57,7 +57,7 @@ const BADGE_KEYS = [
       <nav class="railbox railbox--nav" aria-label="Main"
            sdSlidingIndicator itemSelector=".ri-group" activeClass="is-on" bg="var(--ochre)" radius="var(--sd-r-active-rail)">
         <ul class="nav-list">
-          @for (section of nav; track section.id) {
+          @for (section of nav(); track section.id) {
             <li class="nav-group">
               <button class="ri ri-group"
                 [routerLink]="section.path"
@@ -291,7 +291,7 @@ export class Sidebar {
   private readonly alerts = inject(AlertService);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly nav = NAV;
+  protected readonly nav = computed(() => navForRole(this.auth.user()?.access));
   protected readonly activeSectionId = signal<string | null>(null);
 
   constructor() {

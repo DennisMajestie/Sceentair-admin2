@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Spinner } from '../../ui/spinner';
 import { dateFull, statusLabel, statusTone } from '../../core/format';
 import { Icon } from '../../ui/icon';
@@ -22,7 +23,7 @@ interface TicketRow {
 @Component({
   selector: 'app-help-tickets',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, Spinner],
+  imports: [FormsModule, Icon, Drawer, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -119,6 +120,25 @@ interface TicketRow {
         </div>
       }
     </app-drawer>
+
+    <app-drawer [open]="creating()" (close)="closeCreate()" label="New ticket">
+      <ng-container drawerTitle><div class="dtitle"><strong>New ticket</strong></div></ng-container>
+      <form class="create-form" (ngSubmit)="createTicket()">
+        <label class="field"><span class="field__label">Subject</span>
+          <input type="text" [(ngModel)]="createForm.subject" name="subject" required />
+        </label>
+        <label class="field"><span class="field__label">Description</span>
+          <textarea rows="5" [(ngModel)]="createForm.body" name="body" required></textarea>
+        </label>
+        @if (createError()) { <p class="notice notice--error" role="alert">{{ createError() }}</p> }
+        <div class="dfoot">
+          <button class="btn btn--primary" type="submit" [disabled]="createBusy() || !createForm.subject.trim() || !createForm.body.trim()">
+            {{ createBusy() ? 'Submitting…' : 'Submit ticket' }}
+          </button>
+          <button class="btn btn--ghost" type="button" (click)="closeCreate()">Cancel</button>
+        </div>
+      </form>
+    </app-drawer>
   `,
   styles: `
     .grid { margin-bottom: var(--gap); }
@@ -134,6 +154,10 @@ interface TicketRow {
     .dmessage__who { font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--faint); }
     .dmessage p { margin: 0; font-size: var(--fs-md); line-height: 1.55; color: var(--muted); }
     .dfoot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
+    .create-form { display: grid; gap: 12px; }
+    .field { display: grid; gap: 5px; }
+    .field input, .field textarea { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text); font: inherit; resize: vertical; }
+    .field__label { font-size: var(--fs-xs); font-weight: 700; color: var(--muted); }
     .cs-skel { display: grid; gap: 8px; }
     .cs-row { height: 58px; border-radius: 8px; background: var(--well); }
     .notice {
@@ -157,6 +181,11 @@ export class HelpTickets {
 
   protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
+  protected readonly selectedId = signal<string | null>(null);
+  protected readonly creating = signal(false);
+  protected readonly createBusy = signal(false);
+  protected readonly createError = signal<string | null>(null);
+  protected readonly createForm = { subject: '', body: '' };
   protected readonly tickets = signal<{ id: string; number: string; subject: string; body: string; reply: string | null; status: 'open' | 'in_progress' | 'resolved'; createdAt: string; updatedAt: string; actorId: string | null }[]>([]);
 
   constructor() {
@@ -201,29 +230,56 @@ export class HelpTickets {
       .sort((a, b) => b.id.localeCompare(a.id));
   });
 
-  protected readonly selected = computed(() => {
-    // route-based selection not available without ActivatedRoute; keep null
-    return null as TicketRow | null;
-  });
+  protected readonly selected = computed(
+    () => this.rows().find((t) => t.id === this.selectedId()) ?? null,
+  );
 
   protected setFilter(id: string): void {
     this.filter.set(id as 'all' | 'open' | 'in_progress' | 'resolved');
   }
 
   protected openTicket(id: string): void {
-    // Selection handled via drawer; kept null for simplicity
+    this.selectedId.set(id);
   }
 
   protected close(): void {
-    // no-op
+    this.selectedId.set(null);
   }
 
   protected openNewTicket(): void {
-    this.toasts.show('New ticket creation requires subject and body input.', 'info');
+    this.createForm.subject = '';
+    this.createForm.body = '';
+    this.createError.set(null);
+    this.creating.set(true);
+  }
+
+  protected closeCreate(): void {
+    this.creating.set(false);
+  }
+
+  protected async createTicket(): Promise<void> {
+    const { subject, body } = this.createForm;
+    if (!subject.trim() || !body.trim()) {
+      this.createError.set('Enter a subject and a description.');
+      return;
+    }
+    this.createBusy.set(true);
+    this.createError.set(null);
+    try {
+      await this.helpApi.createTicket({ subject: subject.trim(), body: body.trim() });
+      this.creating.set(false);
+      await this.loadTickets();
+      this.toasts.show('Ticket submitted to support.', 'good');
+    } catch (err) {
+      this.createError.set(err instanceof Error ? err.message : 'The ticket could not be sent.');
+    } finally {
+      this.createBusy.set(false);
+    }
   }
 
   protected resolveTicket(id: string): void {
-    this.helpApi.updateTicketStatus(id, { status: 'resolved' }).then(() => {
+      this.helpApi.updateTicketStatus(id, { status: 'resolved' }).then(() => {
+      this.close();
       void this.loadTickets();
       this.toasts.show('Ticket marked resolved.', 'good');
     }).catch((err) => {

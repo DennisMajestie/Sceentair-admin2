@@ -174,7 +174,7 @@ describe('customer detail data', () => {
   });
 
   it('maps real order states to readable tones and unknown states to neutral', () => {
-    expect(orderStatusTone('new')).toBe('info');
+    expect(orderStatusTone('processing')).toBe('info');
     expect(orderStatusTone('delivered')).toBe('good');
     expect(orderStatusTone('cancelled')).toBe('bad');
     expect(orderStatusTone('unmapped')).toBe('quiet');

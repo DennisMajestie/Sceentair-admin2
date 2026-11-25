@@ -68,7 +68,7 @@ export const NAV: NavSection[] = [
     pages: [
       { label: 'Material purchases', path: '/purchasing/orders', badge: 'pos' },
       { label: 'Materials', path: '/purchasing/materials', badge: 'materials' },
-      { label: 'Suppliers', path: '/purchasing/suppliers', badge: 'suppliers' },
+
     ],
   },
   {
@@ -170,8 +170,32 @@ export const NAV: NavSection[] = [
   },
 ];
 
-export function navForRole(_role?: string | null): NavSection[] {
-  return NAV;
+/** Dashboard sections map to the backend module that gates them. */
+const SECTION_MODULE: Record<string, string> = {
+  products: 'catalogue',
+  orders: 'retail_orders',
+  messages: 'communication',
+  purchasing: 'raw_materials',
+  production: 'manufacturing',
+  warehouses: 'inventory',
+  customers: 'customers',
+  marketing: 'marketing',
+  finance: 'accounting',
+  analytics: 'analytics',
+};
+
+/**
+ * Hide sections the signed-in user cannot access. An empty access map means
+ * no restriction was supplied (owner-like sessions); an explicit `none` on a
+ * module removes its section. The API remains authoritative — this is only
+ * navigation hygiene, never a security boundary.
+ */
+export function navForRole(access?: Record<string, string> | null): NavSection[] {
+  if (!access || Object.keys(access).length === 0) return NAV;
+  return NAV.filter((section) => {
+    const module = SECTION_MODULE[section.id];
+    return !module || access[module] !== 'none';
+  });
 }
 
 export function matchSection(url: string): NavSection {
