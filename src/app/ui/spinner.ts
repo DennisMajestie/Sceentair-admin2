@@ -38,9 +38,9 @@ export type SpinnerVariant = 'default' | 'orbital';
     .app-spinner__arc--mid { stroke: color-mix(in srgb, var(--primary, #c88a12) 80%, #fff); }
     .app-spinner__arc--soft { stroke: color-mix(in srgb, var(--primary, #c88a12) 55%, #fff); }
     .app-spinner__label { color: var(--muted); font-size: var(--fs-sm); font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
-    .app-spinner--sm { --spinner-size: 16px; }
-    .app-spinner--md { --spinner-size: 24px; }
-    .app-spinner--lg { --spinner-size: 40px; }
+    .app-spinner--sm { --spinner-size: 12px; }
+    .app-spinner--md { --spinner-size: 16px; }
+    .app-spinner--lg { --spinner-size: 24px; }
     @keyframes app-orbital-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .app-spinner__orbits { animation-duration: 3s; } }
   `,
@@ -56,9 +56,9 @@ export class Spinner {
     const s = this.size();
     if (typeof s === 'number') return s;
     switch (s) {
-      case 'sm': return 16;
-      case 'lg': return 40;
-      default: return 24;
+      case 'sm': return 12;
+      case 'lg': return 24;
+      default: return 16;
     }
   });
 }
