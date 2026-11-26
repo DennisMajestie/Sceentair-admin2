@@ -27,7 +27,7 @@ export type SpinnerVariant = 'default' | 'orbital';
     }
   `,
   styles: `
-    :host { display: inline-flex; align-items: center; justify-content: center; gap: 9px; color: var(--text); vertical-align: middle; }
+    :host { display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: var(--text); vertical-align: middle; }
     .app-spinner__orbits {
       width: var(--spinner-size); height: var(--spinner-size); flex: none;
       animation: app-orbital-spin 1.15s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
@@ -38,9 +38,9 @@ export type SpinnerVariant = 'default' | 'orbital';
     .app-spinner__arc--mid { stroke: color-mix(in srgb, var(--primary, #c88a12) 80%, #fff); }
     .app-spinner__arc--soft { stroke: color-mix(in srgb, var(--primary, #c88a12) 55%, #fff); }
     .app-spinner__label { color: var(--muted); font-size: var(--fs-sm); font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
-    .app-spinner--sm { --spinner-size: 24px; }
-    .app-spinner--md { --spinner-size: 36px; }
-    .app-spinner--lg { --spinner-size: 56px; }
+    .app-spinner--sm { --spinner-size: 16px; }
+    .app-spinner--md { --spinner-size: 24px; }
+    .app-spinner--lg { --spinner-size: 40px; }
     @keyframes app-orbital-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     @media (prefers-reduced-motion: reduce) { .app-spinner__orbits { animation-duration: 3s; } }
   `,
@@ -56,9 +56,9 @@ export class Spinner {
     const s = this.size();
     if (typeof s === 'number') return s;
     switch (s) {
-      case 'sm': return 24;
-      case 'lg': return 56;
-      default: return 36;
+      case 'sm': return 16;
+      case 'lg': return 40;
+      default: return 24;
     }
   });
 }
