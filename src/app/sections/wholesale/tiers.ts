@@ -51,7 +51,7 @@ import { AlertService } from '../../core/alert.service';
     </div>
 
     @if (loading() && visible().length === 0) {
-      <div class="load-center" role="status"><app-spinner size="sm" label="Loading wholesale tiers" /></div>
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading wholesale tiers" /></div>
     }
 
     <div class="tier-grid" aria-label="Wholesale tiers">

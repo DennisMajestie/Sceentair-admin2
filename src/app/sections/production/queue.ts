@@ -96,7 +96,7 @@ interface BatchRow {
     </div>
 
     @if (loading()) {
-      <div class="load-center" role="status"><app-spinner size="sm" label="Loading production" /></div>
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading production" /></div>
     } @else if (loadError()) {
       <div class="empty"><strong>Couldn't load production.</strong><span>{{ loadError() }}</span><button class="btn btn--ghost" type="button" (click)="load()">Retry</button></div>
     }

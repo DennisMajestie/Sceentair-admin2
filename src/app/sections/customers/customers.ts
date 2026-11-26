@@ -143,7 +143,7 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
 
         @if (loading() && rows().length === 0) {
           <div class="load-center" role="status">
-            <app-spinner size="sm" label="Loading customers" />
+            <app-spinner size="md" label="Loading customers" />
           </div>
         } @else if (viewMode() === 'grid') {
           <div class="cs-cards">
@@ -283,7 +283,7 @@ const CUSTOMER_KINDS: { id: ApiCustomerKind | 'all'; label: string }[] = [
 
         @if (loading() && rows().length === 0) {
           <div class="load-center" role="status">
-            <app-spinner size="sm" label="Loading customers" />
+            <app-spinner size="md" label="Loading customers" />
           </div>
         } @else {
           <div class="cs-table" style="--cols: 2.2fr 1.3fr 0.6fr 0.8fr 1fr 1.3fr" role="table" aria-label="Shoppers">

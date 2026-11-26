@@ -82,7 +82,7 @@ interface SupplierRow {
 
     @if (loading() && rows().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading suppliers" />
+        <app-spinner size="md" label="Loading suppliers" />
       </div>
     } @else {
       <div class="grid grid--3">

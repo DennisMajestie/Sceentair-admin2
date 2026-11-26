@@ -109,7 +109,7 @@ import { ToastService } from '../../core/toast';
               </tr>
             }
             @if (sessionsLoading() && !sessions().length) {
-              <tr><td colspan="3" class="table-empty"><app-spinner size="sm" label="Loading active sessions" /></td></tr>
+              <tr><td colspan="3" class="table-empty"><app-spinner size="md" label="Loading active sessions" /></td></tr>
             }
             @if (!sessions().length && !sessionsLoading()) {
               <tr><td colspan="3" class="table-empty">No active sessions found (or the sessions list is unavailable on this server).</td></tr>

@@ -54,7 +54,7 @@ import { ToastService } from '../../core/toast';
           <button type="button" class="btn btn--sm btn--soft kiosk__clear" (click)="query.set('')">Clear filter</button>
         }
         @if (loading()) {
-          <p class="kiosk__note"><app-spinner size="sm" label="Loading the floor" /></p>
+          <p class="kiosk__note"><app-spinner size="md" label="Loading the floor" /></p>
         } @else if (loadError()) {
           <p class="kiosk__note kiosk__note--error">{{ loadError() }} <button class="btn btn--sm btn--soft" type="button" (click)="load()">Retry</button></p>
         }

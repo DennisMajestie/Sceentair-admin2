@@ -53,7 +53,7 @@ interface TicketRow {
 
     @if (loading() && rows().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading support tickets" />
+        <app-spinner size="md" label="Loading support tickets" />
       </div>
     } @else {
       <div class="grid grid--2">

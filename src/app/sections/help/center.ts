@@ -76,7 +76,7 @@ const POPULAR = ['restock', 'expiry', 'transfer', 'count', 'return', 'shortcuts'
 
     @if (loading() && articles().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading help center" />
+        <app-spinner size="md" label="Loading help center" />
       </div>
     }
 

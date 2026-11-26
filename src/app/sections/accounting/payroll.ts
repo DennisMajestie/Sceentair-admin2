@@ -36,7 +36,7 @@ interface LineForm {
     </div>
 
     @if (loading()) {
-      <div class="load-center"><app-spinner size="sm" label="Loading payroll runs" /></div>
+      <div class="load-center"><app-spinner size="md" label="Loading payroll runs" /></div>
     } @else if (error(); as message) {
       <div class="empty">
         <strong>Couldn't load payroll runs.</strong>

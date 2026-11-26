@@ -1,6 +1,6 @@
 @if (pending()) {
   <div class="sd-loading">
-    <app-spinner size="sm" label="Loading dashboard" />
+    <app-spinner size="md" label="Loading dashboard" />
   </div>
 }
 
@@ -255,7 +255,7 @@
     </div>
     @if (sellersLoading()) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading top sellers" />
+        <app-spinner size="md" label="Loading top sellers" />
       </div>
     } @else {
       <ul class="sellers">

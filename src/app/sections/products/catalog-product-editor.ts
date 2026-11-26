@@ -151,7 +151,7 @@ function extractCreatedId(created: unknown): string | null {
             [disabled]="working() !== '' || !fName().trim() || fBasePrice() === null || (!editing() && !fCategory().trim())"
           >
             @if (working() === 'save') {
-              <app-spinner size="sm" />
+              <app-spinner size="md" />
               {{ editing() ? 'Saving' : 'Creating' }}
             } @else {
               {{ editing() ? 'Save changes' : 'Create product' }}
@@ -233,7 +233,7 @@ function extractCreatedId(created: unknown): string | null {
               [disabled]="working() !== '' || (!vSku().trim() && !vSize().trim() && !vColour().trim())"
             >
               @if (working() === 'variant') {
-                <app-spinner size="sm" />
+                <app-spinner size="md" />
                 Adding
               } @else {
                 {{ editing() ? 'Add variant' : 'Stage variant' }}

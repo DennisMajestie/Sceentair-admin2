@@ -113,7 +113,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
       @if (panelOpen()) {
         @if (panelLoading()) {
           <div class="ship-loading">
-            <app-spinner size="sm" label="Loading shipping settings" />
+            <app-spinner size="md" label="Loading shipping settings" />
           </div>
         } @else {
           @if (settings(); as s) {
@@ -139,7 +139,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
               <label class="field"><span class="field__label">Reason for change</span><input type="text" placeholder="Required for the audit trail" [(ngModel)]="reason" name="shipPanelReason" /></label>
               <button type="button" class="btn" [disabled]="saving() || !reason.trim()" (click)="saveSettings()">
                 @if (saving()) {
-                  <app-spinner size="sm" />
+                  <app-spinner size="md" />
                   Saving
                 } @else {
                   Save settings
@@ -184,7 +184,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
                         <div class="ship-add__actions">
                           <button type="submit" class="btn" [disabled]="addingPriceRow() || addingAllZones() || !addRowForm.zone.trim()">
                             @if (addingPriceRow()) {
-                              <app-spinner size="sm" />
+                              <app-spinner size="md" />
                               Saving
                             } @else {
                               Add price row
@@ -192,7 +192,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
                           </button>
                           <button type="button" class="btn btn--ghost" [disabled]="addingPriceRow() || addingAllZones() || missingZones().length === 0" (click)="addAllZones()">
                             @if (addingAllZones()) {
-                              <app-spinner size="sm" />
+                              <app-spinner size="md" />
                               Adding {{ missingZones().length }} zones
                             } @else {
                               Add all missing zones

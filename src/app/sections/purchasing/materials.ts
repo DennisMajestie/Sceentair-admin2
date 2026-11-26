@@ -111,7 +111,7 @@ interface MaterialRow {
 
     @if (loading() && rows().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading materials" />
+        <app-spinner size="md" label="Loading materials" />
       </div>
     } @else {
       <div class="card">

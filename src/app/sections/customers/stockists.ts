@@ -136,7 +136,7 @@ interface Row {
 
       @if (loading() && rows().length === 0) {
         <div class="load-center" role="status">
-          <app-spinner size="sm" label="Loading stockists" />
+          <app-spinner size="md" label="Loading stockists" />
         </div>
       } @else if (viewMode() === 'grid') {
         <div class="cs-cards">

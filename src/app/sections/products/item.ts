@@ -170,7 +170,7 @@ interface KvRow {
               @if (inventoryError(); as error) {
                 <p class="sd-inline-error" role="alert">Stock data could not be loaded: {{ error }}</p>
               } @else if (inventorySummary() === null) {
-                <p class="sd-stock-empty" aria-live="polite"><app-spinner size="sm" label="Loading stock ledger" /></p>
+                <p class="sd-stock-empty" aria-live="polite"><app-spinner size="md" label="Loading stock ledger" /></p>
               } @else if (p.variants.length > 0) {
                 <ul class="sd-locs">
                   @for (v of p.variants; track v.id) {

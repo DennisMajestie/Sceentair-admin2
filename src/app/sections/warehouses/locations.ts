@@ -59,7 +59,7 @@ const KIND_LABEL: Record<string, string> = {
 
     @if (loading() && rows().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading locations" />
+        <app-spinner size="md" label="Loading locations" />
       </div>
     } @else {
       <section class="loc-list">

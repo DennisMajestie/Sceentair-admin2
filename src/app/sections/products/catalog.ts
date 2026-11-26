@@ -271,7 +271,7 @@ function mapRow(product: ApiProduct): CatalogRow {
 
         @if (loading() && rows().length === 0) {
           <div class="load-center" role="status">
-            <app-spinner size="sm" label="Loading catalog" />
+            <app-spinner size="md" label="Loading catalog" />
           </div>
         } @else if (visibleRows().length === 0) {
           <app-catalog-empty data-enter (clear)="clearFilters()" />

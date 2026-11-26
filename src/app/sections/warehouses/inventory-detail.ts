@@ -82,7 +82,7 @@ function stockState(quantity: number): 'out_of_stock' | 'in_stock' {
 
     @if (loading() && entries().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading stock movements" />
+        <app-spinner size="md" label="Loading stock movements" />
       </div>
     } @else {
       <div class="grid">

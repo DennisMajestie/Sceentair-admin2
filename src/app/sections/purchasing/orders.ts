@@ -48,7 +48,7 @@ import { Spinner } from '../../ui/spinner';
 
     @if (store.loading() && store.pos().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading material purchases" />
+        <app-spinner size="md" label="Loading material purchases" />
       </div>
     } @else {
     <div class="stats" aria-label="Material purchase summary">

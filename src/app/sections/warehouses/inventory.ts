@@ -212,7 +212,7 @@ function fingerprint(hash: string | null): string | null {
 
     @if (loading() && rows().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading inventory" />
+        <app-spinner size="md" label="Loading inventory" />
       </div>
     } @else {
       <div class="card">

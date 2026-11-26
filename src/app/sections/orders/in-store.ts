@@ -36,7 +36,7 @@ import { Spinner } from '../../ui/spinner';
     </div>
 
     @if (loading()) {
-      <div class="load-center"><app-spinner size="sm" label="Loading catalogue" /></div>
+      <div class="load-center"><app-spinner size="md" label="Loading catalogue" /></div>
     } @else if (error(); as message) {
       <div class="empty">
         <strong>Couldn't load the catalogue.</strong>
@@ -100,7 +100,7 @@ import { Spinner } from '../../ui/spinner';
           <p class="total">Estimated total {{ money(estimate()) }}</p>
           @if (formError()) { <p class="error" role="alert">{{ formError() }}</p> }
           <button class="btn btn--primary" type="submit" [disabled]="busy() || !form.variantId || !form.buyerName.trim() || !form.buyerPhone.trim() || form.quantity < 1">
-            @if (busy()) { <app-spinner size="sm" /> }
+            @if (busy()) { <app-spinner size="md" /> }
             {{ busy() ? 'Recording…' : 'Record sale' }}
           </button>
         </form>

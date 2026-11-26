@@ -115,7 +115,7 @@ function errorText(err: unknown, fallback: string): string {
         </thead>
         <tbody>
           @if (loading()) {
-            <tr><td colspan="7"><div class="loading"><app-spinner size="sm" label="Loading conversations" /></div></td></tr>
+            <tr><td colspan="7"><div class="loading"><app-spinner size="md" label="Loading conversations" /></div></td></tr>
           }
           @for (row of rows(); track row.id) {
             <tr>
@@ -189,7 +189,7 @@ function errorText(err: unknown, fallback: string): string {
           }
         </div>
       } @else {
-        <div class="loading"><app-spinner size="sm" label="Loading conversation" /></div>
+        <div class="loading"><app-spinner size="md" label="Loading conversation" /></div>
       }
     </app-drawer>
   `,

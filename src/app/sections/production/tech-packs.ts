@@ -37,7 +37,7 @@ const SIZE_ORDER = ['XXS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', 'XXL'];
     </div>
 
     @if (loading()) {
-      <div class="load-center" role="status"><app-spinner size="sm" label="Loading tech packs" /></div>
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading tech packs" /></div>
     } @else if (loadError()) {
       <div class="empty"><strong>Couldn't load tech packs.</strong><span>{{ loadError() }}</span><button class="btn btn--ghost" type="button" (click)="load()">Retry</button></div>
     }

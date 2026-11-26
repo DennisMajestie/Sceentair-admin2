@@ -149,7 +149,7 @@ function errorText(err: unknown, fallback: string): string {
 
     @if (loading() && threads().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading inbox" />
+        <app-spinner size="md" label="Loading inbox" />
       </div>
     } @else {
       <div class="card">

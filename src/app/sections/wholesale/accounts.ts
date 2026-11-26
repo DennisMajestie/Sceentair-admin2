@@ -82,7 +82,7 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
     </div>
 
     @if (loading() && visible().length === 0) {
-      <div class="load-center" role="status"><app-spinner size="sm" label="Loading wholesale accounts" /></div>
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading wholesale accounts" /></div>
     }
 
     <div class="account-grid" aria-label="Wholesale accounts">

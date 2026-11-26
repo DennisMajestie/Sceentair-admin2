@@ -100,7 +100,7 @@ function errorText(err: unknown): string {
 
     @if (loading() && rows().length === 0) {
       <div class="load-center" role="status">
-        <app-spinner size="sm" label="Loading cycle counts" />
+        <app-spinner size="md" label="Loading cycle counts" />
       </div>
     } @else {
       <div class="card">

@@ -158,7 +158,7 @@ function errorStatus(error: unknown): number | undefined {
         </div>
       } @else if (loading()) {
         <div class="sd-loading" aria-busy="true" aria-live="polite">
-          <app-spinner size="sm" label="Loading roles" />
+          <app-spinner size="md" label="Loading roles" />
         </div>
       } @else if (loadError()) {
         <div class="sd-banner sd-banner--danger" role="alert">

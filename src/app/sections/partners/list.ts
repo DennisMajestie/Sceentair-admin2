@@ -108,7 +108,7 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
           </dl>
 
           @if (dashboardLoading()) {
-            <div class="load-center" role="status"><app-spinner size="sm" label="Loading partner dashboard" /></div>
+            <div class="load-center" role="status"><app-spinner size="md" label="Loading partner dashboard" /></div>
           } @else if (dashboardError()) {
             <p class="dnote dnote--bad">{{ dashboardError() }}</p>
           } @else {
