@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Store } from '../core/store';
 import { ThemeService } from '../core/theme';
 import { matchSection } from '../core/nav';
+import { STOREFRONT_URL } from '../core/api-config';
 import { relative as relativeTime } from '../core/format';
 import { Icon } from './icon';
 import { SdSlidingIndicator } from './sliding-indicator';
@@ -54,6 +55,11 @@ export function activePageFor(url: string, pages: readonly { path: string }[]): 
         <span>Search</span>
         <kbd>⌘K</kbd>
       </button>
+
+      <a class="btn btn--ghost storefront-link" [href]="storefrontUrl" target="_blank" rel="noopener" aria-label="View storefront (opens in a new tab)">
+        <app-icon name="store" [size]="15" />
+        <span>View storefront</span>
+      </a>
 
       <button type="button" class="circ" aria-label="Settings" (click)="navigate(['/settings/account'])">
         <app-icon name="settings" [size]="17" />
@@ -250,6 +256,15 @@ export function activePageFor(url: string, pages: readonly { path: string }[]): 
       color: var(--muted);
       background: none;
     }
+    .storefront-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 12px;
+      border-radius: var(--sd-r-pill, 999px);
+      white-space: nowrap;
+    }
     .circ {
       position: relative;
       width: 42px;
@@ -426,11 +441,20 @@ export function activePageFor(url: string, pages: readonly { path: string }[]): 
       .search {
         display: none;
       }
+      .storefront-link {
+        width: 36px;
+        padding: 0;
+        justify-content: center;
+      }
+      .storefront-link span {
+        display: none;
+      }
     }
   `,
 })
 export class Topbar {
   protected readonly store = inject(Store);
+  protected readonly storefrontUrl = inject(STOREFRONT_URL);
   protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 

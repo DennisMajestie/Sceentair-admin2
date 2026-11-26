@@ -20,14 +20,20 @@ const realtimeUrl =
   process.env.VESSA_REALTIME_URL ||
   (isVercel ? 'https://seentair-backend.onrender.com' : 'http://localhost:3000');
 
+const storefrontUrl =
+  process.env.VESSA_STOREFRONT_URL ||
+  (isVercel ? 'https://seent-air-fashion.vercel.app' : 'http://localhost:4200');
+
 let html = fs.readFileSync(indexPath, 'utf8');
 html = html.replace(/apiBaseUrl:\s*'[^']*'/, `apiBaseUrl: '${apiBaseUrl}'`);
 html = html.replace(/realtimeUrl:\s*'[^']*'/, `realtimeUrl: '${realtimeUrl}'`);
+html = html.replace(/storefrontUrl:\s*'[^']*'/, `storefrontUrl: '${storefrontUrl}'`);
 fs.writeFileSync(indexPath, html, 'utf8');
 
 console.log(
   `[inject-api-url] Set VESSA_CONFIG.apiBaseUrl = ${apiBaseUrl}` +
     (isVercel ? ' (Vercel: same-origin, env override ignored)' : process.env.VESSA_API_BASE_URL ? ' (VESSA_API_BASE_URL)' : ' (relative default)') +
     `, realtimeUrl = ${realtimeUrl}` +
-    (process.env.VESSA_REALTIME_URL ? ' (VESSA_REALTIME_URL)' : isVercel ? ' (Vercel default)' : ' (local default)'),
+    (process.env.VESSA_REALTIME_URL ? ' (VESSA_REALTIME_URL)' : isVercel ? ' (Vercel default)' : ' (local default)') +
+    `, storefrontUrl = ${storefrontUrl}`,
 );

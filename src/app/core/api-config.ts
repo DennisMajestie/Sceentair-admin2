@@ -5,6 +5,7 @@ declare global {
     VESSA_CONFIG?: {
       apiBaseUrl?: string;
       realtimeUrl?: string;
+      storefrontUrl?: string;
     };
   }
 }
@@ -29,6 +30,16 @@ export const REALTIME_URL = new InjectionToken<string>('REALTIME_URL', {
     if (typeof window === 'undefined') return '';
     return window.VESSA_CONFIG?.realtimeUrl?.replace(/\/+$/, '') || '';
   },
+});
+
+/** Storefront origin, injected at build time so preview links go to the live shop. */
+export const STOREFRONT_URL = new InjectionToken<string>('STOREFRONT_URL', {
+  providedIn: 'root',
+  factory: () =>
+    typeof window === 'undefined'
+      ? 'https://seent-air-fashion.vercel.app'
+      : window.VESSA_CONFIG?.storefrontUrl?.replace(/\/+$/, '') ||
+        'https://seent-air-fashion.vercel.app',
 });
 
 export function apiUrl(baseUrl: string, path: string): string {
