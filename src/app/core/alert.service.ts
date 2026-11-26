@@ -22,7 +22,7 @@ export interface AlertResult {
 let nextId = 0;
 
 const ALERT_CSS = `
-.sd-alert{width:min(100% - 32px,310px);max-width:none;margin:auto;padding:0;border:0;background:transparent;color:var(--text,#1b1916);overflow:visible}
+.sd-alert{position:fixed;inset:0;margin:auto;width:min(100% - 32px,310px);max-width:none;max-height:calc(100dvh - 32px);padding:0;border:0;background:transparent;color:var(--text,#1b1916);overflow:visible;z-index:2147483647}
 .sd-alert::backdrop{background:rgba(23,20,17,.55)}
 .sd-alert__card{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px 20px 20px;border:1px solid var(--line,#e8e1d3);border-radius:22px;background:var(--surface,#fffdf9);box-shadow:0 20px 48px -8px rgba(27,25,22,.22)}
 .sd-alert__disc{display:grid;place-items:center;width:56px;height:56px;margin-bottom:16px;border-radius:999px;background:var(--good,#23804d);color:#fff;font:700 24px/1 sans-serif}
@@ -51,6 +51,14 @@ function ensureStyles(): void {
   style.id = 'sd-alert-styles';
   style.textContent = ALERT_CSS;
   document.head.append(style);
+}
+
+function openDialog(dialog: HTMLDialogElement): void {
+  try {
+    if (!dialog.open) dialog.showModal();
+  } catch {
+    dialog.setAttribute('open', '');
+  }
 }
 
 /** Reusable outcome modal (native dialog, focus-trapped) for Vessa screens. */
@@ -147,9 +155,10 @@ export class AlertService {
           event.preventDefault();
           finish(false);
         });
+        dialog.append(card);
         document.body.append(dialog);
         (reasonInput ?? cancel).focus();
-        dialog.showModal();
+        openDialog(dialog);
       });
     }
 
@@ -176,6 +185,7 @@ export class AlertService {
         event.preventDefault();
         finish(false);
       });
+      dialog.append(card);
       document.body.append(dialog);
       (reasonInput ?? done).focus();
       dialog.showModal();
