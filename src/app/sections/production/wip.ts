@@ -28,7 +28,7 @@ import { Spinner } from '../../ui/spinner';
     </div>
 
     @if (loading()) {
-      <div class="load-center"><app-spinner size="md" label="Loading work in progress" /></div>
+      <div class="load-center"><app-spinner size="sm" label="Loading work in progress" /></div>
     } @else if (error(); as message) {
       <div class="empty">
         <strong>Couldn't load work in progress.</strong>

@@ -26,7 +26,7 @@ import { Spinner } from '../../ui/spinner';
     </div>
 
     @if (loading()) {
-      <div class="load-center"><app-spinner size="md" label="Loading loyalty accounts" /></div>
+      <div class="load-center"><app-spinner size="sm" label="Loading loyalty accounts" /></div>
     } @else if (error(); as message) {
       <div class="empty">
         <strong>Couldn't load loyalty accounts.</strong>

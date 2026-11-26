@@ -113,7 +113,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
       @if (panelOpen()) {
         @if (panelLoading()) {
           <div class="ship-loading">
-            <app-spinner size="md" label="Loading shipping settings" />
+            <app-spinner size="sm" label="Loading shipping settings" />
           </div>
         } @else {
           @if (settings(); as s) {

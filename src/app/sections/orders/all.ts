@@ -100,7 +100,7 @@ const API_FLOW: ApiOrderStatus[] = [
     }
     @if (loading() && rows().length === 0) {
       <div class="order-empty" role="status">
-        <app-spinner size="lg" label="Loading orders" />
+        <app-spinner size="sm" label="Loading orders" />
       </div>
     }
 

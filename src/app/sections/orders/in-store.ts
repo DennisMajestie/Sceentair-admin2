@@ -36,7 +36,7 @@ import { Spinner } from '../../ui/spinner';
     </div>
 
     @if (loading()) {
-      <div class="load-center"><app-spinner size="md" label="Loading catalogue" /></div>
+      <div class="load-center"><app-spinner size="sm" label="Loading catalogue" /></div>
     } @else if (error(); as message) {
       <div class="empty">
         <strong>Couldn't load the catalogue.</strong>
