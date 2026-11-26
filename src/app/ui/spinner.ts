@@ -60,9 +60,9 @@ export class Spinner {
     const s = this.size();
     if (typeof s === 'number') return s;
     switch (s) {
-      case 'sm': return 16;
-      case 'lg': return 40;
-      default: return 24;
+      case 'sm': return 20;
+      case 'lg': return 48;
+      default: return 32;
     }
   });
 }
