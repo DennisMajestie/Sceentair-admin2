@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
+import { AlertService } from '../../core/alert.service';
 import { count as fmtCount, money as fmtMoney, moneyCompact } from '../../core/format';
 import { Sparkline, Donut } from '../../ui/chart';
 import { Icon } from '../../ui/icon';
@@ -264,6 +265,7 @@ import {
 })
 export class AnalyticsOverview {
   protected readonly store = inject(Store);
+  private readonly alerts = inject(AlertService);
 
   protected readonly count = fmtCount;
   protected readonly money = fmtMoney;
@@ -366,11 +368,21 @@ export class AnalyticsOverview {
     this.compare.update((v) => !v);
   }
 
-  protected editGoal(): void {
-    const goal = Number(prompt('Monthly revenue goal', String(this.store.settings().goal)));
-    if (!Number.isNaN(goal) && goal > 0) {
-      this.store.setGoal(goal);
-    }
+  protected async editGoal(): Promise<void> {
+    const result = await this.alerts.showWithInput({
+      title: 'Monthly revenue goal',
+      message: 'Set the monthly target used across the reports.',
+      tone: 'neutral',
+      inputLabel: 'Goal (₦)',
+      inputType: 'number',
+      inputValue: String(this.store.settings().goal),
+      showCancel: true,
+      confirmLabel: 'Save goal',
+      cancelLabel: 'Cancel',
+    });
+    if (!result.confirmed) return;
+    const goal = Number(result.value);
+    if (Number.isFinite(goal) && goal > 0) this.store.setGoal(goal);
   }
 
   protected exportCsv(): void {

@@ -12,11 +12,16 @@ export interface AlertOptions {
   cancelLabel?: string;
   reasonLabel?: string;
   reasonPlaceholder?: string;
+  inputLabel?: string;
+  inputValue?: string;
+  inputType?: 'number' | 'text';
+  inputPlaceholder?: string;
 }
 
 export interface AlertResult {
   confirmed: boolean;
   reason: string;
+  value: string;
 }
 
 let nextId = 0;
@@ -36,6 +41,8 @@ const ALERT_CSS = `
 .sd-alert__reason{display:grid;gap:6px;width:100%;margin:0 0 14px;text-align:left;font-size:12px;font-weight:600;color:var(--muted,#7b756a)}
 .sd-alert__reason textarea{width:100%;min-height:76px;padding:10px 12px;border:1px solid var(--line,#e8e1d3);border-radius:12px;background:var(--surface,#fffdf9);color:var(--text,#1b1916);font:inherit;font-size:13px;resize:vertical}
 .sd-alert__reason textarea:focus-visible{outline:2px solid var(--primary,#c88a12);outline-offset:2px}
+.sd-alert__input{width:100%;padding:11px 12px;border:1px solid var(--line,#e8e1d3);border-radius:12px;background:var(--surface,#fffdf9);color:var(--text,#1b1916);font:inherit;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.sd-alert__input:focus-visible{outline:2px solid var(--primary,#c88a12);outline-offset:2px}
 .sd-alert__actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
 .sd-alert__btn{min-height:44px;padding:0 16px;border:1px solid transparent;border-radius:14px;font-size:13px;font-weight:650;cursor:pointer}
 .sd-alert__btn:focus-visible{outline:2px solid var(--primary,#c88a12);outline-offset:2px}
@@ -65,16 +72,21 @@ function openDialog(dialog: HTMLDialogElement): void {
 @Injectable({ providedIn: 'root' })
 export class AlertService {
   show(options: AlertOptions): Promise<boolean> {
-    return this.present(options, false).then((result) => result.confirmed);
+    return this.present(options, 'none').then((result) => result.confirmed);
   }
 
   /** Same card, with an audit-reason field and the entered reason in the result. */
   showWithReason(options: AlertOptions): Promise<AlertResult> {
-    return this.present(options, true);
+    return this.present(options, 'reason');
   }
 
-  private present(options: AlertOptions, collectReason: boolean): Promise<AlertResult> {
-    if (typeof document === 'undefined') return Promise.resolve({ confirmed: false, reason: '' });
+  /** Same card, with a validated single-line field and the entered value in the result. */
+  showWithInput(options: AlertOptions): Promise<AlertResult> {
+    return this.present(options, 'input');
+  }
+
+  private present(options: AlertOptions, field: 'none' | 'reason' | 'input'): Promise<AlertResult> {
+    if (typeof document === 'undefined') return Promise.resolve({ confirmed: false, reason: '', value: '' });
     ensureStyles();
     const id = `sd-alert-${++nextId}`;
     const tone = options.tone ?? 'success';
@@ -102,7 +114,8 @@ export class AlertService {
     card.append(disc, title, message);
 
     let reasonInput: HTMLTextAreaElement | null = null;
-    if (collectReason) {
+    let valueInput: HTMLInputElement | null = null;
+    if (field === 'reason') {
       const label = document.createElement('label');
       label.className = 'sd-alert__reason';
       label.textContent = options.reasonLabel ?? 'Reason (audit)';
@@ -110,6 +123,21 @@ export class AlertService {
       reasonInput.placeholder = options.reasonPlaceholder ?? 'Required';
       reasonInput.maxLength = 300;
       label.append(reasonInput);
+      card.append(label);
+    } else if (field === 'input') {
+      const label = document.createElement('label');
+      label.className = 'sd-alert__reason';
+      label.textContent = options.inputLabel ?? 'Value';
+      valueInput = document.createElement('input');
+      valueInput.className = 'sd-alert__input';
+      valueInput.type = options.inputType ?? 'number';
+      valueInput.value = options.inputValue ?? '';
+      valueInput.placeholder = options.inputPlaceholder ?? '';
+      if (valueInput.type === 'number') {
+        valueInput.min = '1';
+        valueInput.step = '1';
+      }
+      label.append(valueInput);
       card.append(label);
     }
 
@@ -140,10 +168,14 @@ export class AlertService {
         const finish = (confirmed: boolean) => {
           dialog.close();
           dialog.remove();
-          resolve({ confirmed, reason: reasonInput?.value.trim() ?? '' });
+          resolve({ confirmed, reason: reasonInput?.value.trim() ?? '', value: valueInput?.value.trim() ?? '' });
         };
         const accept = () => {
-          if (collectReason && reasonInput && !reasonInput.value.trim()) {
+          if (valueInput && !valueInput.checkValidity()) {
+            valueInput.reportValidity();
+            return;
+          }
+          if (reasonInput && !reasonInput.value.trim()) {
             reasonInput.focus();
             return;
           }
@@ -157,7 +189,7 @@ export class AlertService {
         });
         dialog.append(card);
         document.body.append(dialog);
-        (reasonInput ?? cancel).focus();
+        (valueInput ?? reasonInput ?? cancel).focus();
         openDialog(dialog);
       });
     }
@@ -172,23 +204,27 @@ export class AlertService {
       const finish = (confirmed: boolean) => {
         dialog.close();
         dialog.remove();
-        resolve({ confirmed, reason: reasonInput?.value.trim() ?? '' });
-      };
-      done.addEventListener('click', () => {
-        if (collectReason && reasonInput && !reasonInput.value.trim()) {
-          reasonInput.focus();
-          return;
-        }
-        finish(true);
-      });
+          resolve({ confirmed, reason: reasonInput?.value.trim() ?? '', value: valueInput?.value.trim() ?? '' });
+        };
+        done.addEventListener('click', () => {
+          if (valueInput && !valueInput.checkValidity()) {
+            valueInput.reportValidity();
+            return;
+          }
+          if (reasonInput && !reasonInput.value.trim()) {
+            reasonInput.focus();
+            return;
+          }
+          finish(true);
+        });
       dialog.addEventListener('cancel', (event) => {
         event.preventDefault();
         finish(false);
       });
       dialog.append(card);
       document.body.append(dialog);
-      (reasonInput ?? done).focus();
-      dialog.showModal();
+      (valueInput ?? reasonInput ?? done).focus();
+      openDialog(dialog);
     });
   }
 }
