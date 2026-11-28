@@ -67,7 +67,7 @@ import { AlertService } from '../../core/alert.service';
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="tier-empty">
           <strong>No wholesale tiers match.</strong>
           <span>Try another search term.</span>

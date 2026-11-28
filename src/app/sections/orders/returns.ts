@@ -6,6 +6,7 @@ import { map } from 'rxjs';
 import { Store } from '../../core/store';
 import { date as fmtDate, money as fmtMoney, statusLabel, statusTone } from '../../core/format';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 import { Drawer } from '../../ui/drawer';
 import { ProductShot } from '../../ui/product-shot';
 import { ReturnsApiService, type ResolveReturnInput } from '../../core/returns-api.service';
@@ -23,7 +24,7 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
 @Component({
   selector: 'app-orders-returns',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Drawer, ProductShot, RouterLink, FormsModule],
+  imports: [Drawer, ProductShot, RouterLink, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -45,6 +46,10 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
         }
       </div>
     </div>
+
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading returns" /></div>
+    }
 
     <div class="card">
       <div class="table-wrap">
@@ -74,7 +79,7 @@ const STATUS_LABELS: Record<ReturnStatus, string> = {
                 <td><span class="badge" [class]="'badge badge--' + row.tone">{{ row.label }}</span></td>
               </tr>
             }
-            @if (visible().length === 0) {
+            @if (!store.loading() && visible().length === 0) {
               <tr><td colspan="8" class="empty">No returns match.</td></tr>
             }
           </tbody>

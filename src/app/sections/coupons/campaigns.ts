@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { FormsModule } from '@angular/forms';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import {
   CouponsApiService,
   campaignStatus,
@@ -66,7 +67,7 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
 @Component({
   selector: 'app-coupons-campaigns',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -112,6 +113,9 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
     }
     @if (message()) {
       <div class="notice" role="status">{{ message() }}</div>
+    }
+    @if (loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading coupons" /></div>
     }
 
     <div class="toolbar">
@@ -169,7 +173,7 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
             }
           </article>
         }
-        @if (visibleCampaigns().length === 0) {
+        @if (!loading() && visibleCampaigns().length === 0) {
           <div class="empty">
             <strong>No campaigns{{ query() ? ' match.' : ' yet.' }}</strong>
             <span>{{ query() ? 'Try another search term.' : 'Create a banner to promote an offer.' }}</span>
@@ -204,7 +208,7 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
             }
           </article>
         }
-        @if (visibleCoupons().length === 0) {
+        @if (!loading() && visibleCoupons().length === 0) {
           <div class="empty">
             <strong>No coupons{{ query() ? ' match.' : ' yet.' }}</strong>
             <span>{{ query() ? 'Try another search term.' : 'Create a discount rule to get started.' }}</span>
@@ -250,7 +254,7 @@ const EMPTY_BUNDLE = () => ({ name: '', description: '', couponIds: [] as string
             <span class="tile__meta"><span>Created {{ day(b.createdAt) }}</span></span>
           </article>
         }
-        @if (visibleBundles().length === 0) {
+        @if (!loading() && visibleBundles().length === 0) {
           <div class="empty">
             <strong>No bundles{{ query() ? ' match.' : ' yet.' }}</strong>
             <span>{{ query() ? 'Try another search term.' : 'Group coupons to offer them together.' }}</span>
@@ -475,6 +479,7 @@ export class CouponsCampaigns {
   protected readonly coupons = signal<AdminCoupon[]>([]);
   protected readonly bundles = signal<CouponBundle[]>([]);
   protected readonly report = signal<CouponReportRow[]>([]);
+  protected readonly loading = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly message = signal<string | null>(null);
   protected readonly saving = signal(false);
@@ -545,6 +550,7 @@ export class CouponsCampaigns {
 
   protected async load(): Promise<void> {
     this.error.set(null);
+    this.loading.set(true);
     try {
       const [campaigns, coupons, bundles, report] = await Promise.all([
         this.couponsApi.campaigns(),
@@ -558,6 +564,8 @@ export class CouponsCampaigns {
       this.report.set(report);
     } catch (err) {
       this.error.set(this.messageFor(err, 'Could not load coupon data.'));
+    } finally {
+      this.loading.set(false);
     }
   }
 

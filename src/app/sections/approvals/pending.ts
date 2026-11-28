@@ -12,6 +12,7 @@ import {
 } from '../../core/approvals-api.service';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import { ToastService } from '../../core/toast';
 import { date as fmtDate } from '../../core/format';
 
@@ -52,7 +53,7 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
 @Component({
   selector: 'app-approvals-pending',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -109,6 +110,10 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
       <span class="badge">{{ visible().length }} requests</span>
     </div>
 
+    @if (loading() && approvals().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading approvals" /></div>
+    }
+
     <div class="approval-grid" aria-label="Approval requests">
       @for (row of visible(); track row.id) {
         <button type="button" class="approval-card" (click)="open(row.id)" [attr.aria-label]="'Approval ' + row.id + ' ' + row.actionType">
@@ -129,7 +134,7 @@ const STATUS_TONE: Record<ApprovalStatus, string> = {
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="approval-empty">
           <strong>No approval requests match.</strong>
           <span>Try another status or search term.</span>
@@ -255,6 +260,7 @@ export class ApprovalsPending {
   protected readonly query = signal('');
   protected readonly status = signal<ApprovalStatus | 'all'>('all');
   protected readonly approvals = signal<ApprovalRow[]>([]);
+  protected readonly loading = signal(false);
 
   protected decisionNote = '';
   protected readonly requestOpen = signal(false);
@@ -285,6 +291,7 @@ export class ApprovalsPending {
   }
 
   async load(): Promise<void> {
+    this.loading.set(true);
     try {
       const result = await this.approvalsApi.list({ page: 1, limit: 100 });
       this.approvals.set(
@@ -302,6 +309,8 @@ export class ApprovalsPending {
       );
     } catch (err) {
       this.toasts.show(errorText(err), 'bad');
+    } finally {
+      this.loading.set(false);
     }
   }
 

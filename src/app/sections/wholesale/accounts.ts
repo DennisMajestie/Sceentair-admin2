@@ -99,7 +99,7 @@ const STATUS_TONE: Record<WholesaleAccountStatus, string> = {
           <span class="account-card__tier">{{ row.tierName ?? 'No tier' }}</span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="account-empty">
           <strong>No wholesale accounts match.</strong>
           <span>Try another status or search term.</span>

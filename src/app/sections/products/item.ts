@@ -43,7 +43,9 @@ interface KvRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink, Icon, ProductShot, Spinner],
   template: `
-    @if (product(); as p) {
+    @if (loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading product" /></div>
+    } @else if (product(); as p) {
       <div #root class="sd-item">
         <header class="sd-head">
           <p class="sd-crumb">{{ p.category ?? 'Uncategorized' }} · {{ p.variants[0]?.size ?? '' }}</p>
@@ -344,6 +346,7 @@ export class ProductItem {
   private readonly titleEl = viewChild<ElementRef<HTMLElement>>('titleEl');
 
   private readonly products = signal<ApiProduct[]>([]);
+  protected readonly loading = signal(true);
   protected readonly inventorySummary = signal<ApiInventorySummaryItem[] | null>(null);
   protected readonly inventoryError = signal<string | null>(null);
 
@@ -427,11 +430,14 @@ export class ProductItem {
   }
 
   private async loadCatalog(): Promise<void> {
+    this.loading.set(true);
     try {
       const result = await this.catalogueApi.list({ page: 1, limit: 100 });
       this.products.set(result.data);
     } catch {
       // product detail will show not-found if the direct fetch below fails
+    } finally {
+      this.loading.set(false);
     }
     const pid = this.id();
     if (pid) {

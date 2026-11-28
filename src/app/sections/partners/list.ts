@@ -67,6 +67,10 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
       <span class="badge">{{ visible().length }} partners</span>
     </div>
 
+    @if (loading() && partners().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading partners" /></div>
+    }
+
     <div class="partner-grid" aria-label="Partners">
       @for (row of visible(); track row.id) {
         <button type="button" class="partner-card" (click)="open(row.id)" [attr.aria-label]="'Partner ' + row.id">
@@ -81,7 +85,7 @@ type PartnerDashboard = Awaited<ReturnType<PartnersApiService['getPartnerDashboa
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="partner-empty">
           <strong>No partners match.</strong>
           <span>Try another search term.</span>
@@ -237,6 +241,7 @@ export class PartnersList {
   private readonly toast = inject(ToastService);
 
   protected readonly partners = signal<Partner[]>([]);
+  protected readonly loading = signal(false);
   protected readonly query = signal('');
   protected readonly dashboard = signal<PartnerDashboard | null>(null);
   protected readonly dashboardLoading = signal(false);
@@ -272,8 +277,13 @@ export class PartnersList {
   }
 
   async load(): Promise<void> {
-    const result = await this.partnersApi.listPartners({ page: 1, limit: 100 });
-    this.partners.set(result.data);
+    this.loading.set(true);
+    try {
+      const result = await this.partnersApi.listPartners({ page: 1, limit: 100 });
+      this.partners.set(result.data);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   private async loadDashboard(id: string): Promise<void> {

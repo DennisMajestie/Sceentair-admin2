@@ -5,12 +5,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import { CouponsApiService, type ClaimCouponInput, type Coupon } from '../../core/coupons-api.service';
 
 @Component({
   selector: 'app-coupons-wallet',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -55,6 +56,10 @@ import { CouponsApiService, type ClaimCouponInput, type Coupon } from '../../cor
       <span class="badge">{{ visible().length }} coupons</span>
     </div>
 
+    @if (loading() && coupons().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading coupon wallet" /></div>
+    }
+
     <div class="coupon-grid" aria-label="Coupon wallet">
       @for (row of visible(); track row.id) {
         <button type="button" class="coupon-card" (click)="open(row.id)" [attr.aria-label]="'Coupon ' + row.code">
@@ -74,7 +79,7 @@ import { CouponsApiService, type ClaimCouponInput, type Coupon } from '../../cor
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="coupon-empty">
           <strong>No coupons in wallet.</strong>
           <span>Claim a coupon to add it here.</span>
@@ -165,6 +170,7 @@ export class CouponsWallet {
   protected readonly claimError = signal<string | null>(null);
   protected readonly claimSuccess = signal<string | null>(null);
   protected readonly coupons = signal<Coupon[]>([]);
+  protected readonly loading = signal(false);
 
   protected readonly unusedCount = computed(() =>
     this.coupons().filter((c) => c.timesUsed < (c.usageCap ?? Infinity)).length,
@@ -207,8 +213,13 @@ export class CouponsWallet {
   }
 
   public async load(): Promise<void> {
-    const result = await this.couponsApi.mine(1, 100);
-    this.coupons.set(result);
+    this.loading.set(true);
+    try {
+      const result = await this.couponsApi.mine(1, 100);
+      this.coupons.set(result);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected close(): void {

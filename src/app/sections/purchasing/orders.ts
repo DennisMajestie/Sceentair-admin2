@@ -106,7 +106,7 @@ import { Spinner } from '../../ui/spinner';
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!store.loading() && visible().length === 0) {
         <div class="po-empty">
           <strong>No material purchases match.</strong>
           <span>Try another search term.</span>

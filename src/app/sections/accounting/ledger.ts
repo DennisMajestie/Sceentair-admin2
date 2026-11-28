@@ -7,6 +7,7 @@ import { Store } from '../../core/store';
 import { date as fmtDate, money as fmtMoney } from '../../core/format';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import { ToastService } from '../../core/toast';
 import {
   AccountingApiService,
@@ -71,7 +72,7 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
 @Component({
   selector: 'app-accounting-ledger',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon, Drawer, FormsModule],
+  imports: [RouterLink, Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -162,6 +163,10 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
       <span class="badge">{{ visible().length }} entries</span>
     </div>
 
+    @if (store.loading() && store.ledgerEntries().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading ledger" /></div>
+    }
+
     <div class="ledger-grid" aria-label="Ledger entries">
       @for (row of visible(); track row.id) {
         <button type="button" class="ledger-card" (click)="open(row.id)" [attr.aria-label]="entryTitle(row) + ' ' + row.type + ' ' + money(row.amount)">
@@ -182,7 +187,7 @@ const REPORT_TYPES: { id: LedgerReportType; label: string }[] = [
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!store.loading() && visible().length === 0) {
         <div class="ledger-empty">
           <strong>No ledger entries match.</strong>
           <span>Try another type, date range or search term.</span>

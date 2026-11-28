@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { dateFull as fmtDateFull, relative } from '../../core/format';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 
 const KINDS = [
   { id: 'all', label: 'Everything' },
@@ -16,7 +17,7 @@ const KINDS = [
 @Component({
   selector: 'app-dashboard-activity',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -51,8 +52,12 @@ const KINDS = [
       </label>
     </div>
 
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading activity" /></div>
+    }
+
     <div class="card">
-      @if (visible().length === 0) {
+      @if (!store.loading() && visible().length === 0) {
         <div class="empty">Nothing matches that filter.</div>
       }
       <ol class="log">

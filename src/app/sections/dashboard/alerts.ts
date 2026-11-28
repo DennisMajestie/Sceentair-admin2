@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 
 type Kind = 'stock' | 'expiry' | 'order' | 'po';
 
@@ -16,7 +17,7 @@ const FILTERS: { id: Kind | 'all'; label: string }[] = [
 @Component({
   selector: 'app-dashboard-alerts',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -50,7 +51,11 @@ const FILTERS: { id: Kind | 'all'; label: string }[] = [
       </button>
     </div>
 
-    @if (visible().length === 0) {
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading alerts" /></div>
+    }
+
+    @if (!store.loading() && visible().length === 0) {
       <div class="card">
         <div class="empty">
           <app-icon name="check" [size]="22" />

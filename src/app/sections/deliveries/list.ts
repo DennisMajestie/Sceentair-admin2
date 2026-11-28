@@ -78,6 +78,10 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
       <span class="badge">{{ visible().length }} legs</span>
     </div>
 
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading deliveries" /></div>
+    }
+
     <div class="delivery-grid" aria-label="Delivery legs">
       @for (row of visible(); track row.id) {
         <button type="button" class="delivery-card" (click)="open(row.id)" [attr.aria-label]="'Delivery leg ' + row.id">
@@ -94,7 +98,7 @@ const NIGERIA_GEOPOLITICAL_ZONES = [
           <span class="delivery-card__cost">{{ money(row.cost ?? 0) }}</span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!store.loading() && visible().length === 0) {
         <div class="delivery-empty">
           <strong>No delivery legs match.</strong>
           <span>Try another status or search term.</span>
@@ -359,7 +363,7 @@ export class DeliveriesList {
   private readonly deliveriesApi = inject(DeliveriesApiService);
   private readonly logistics = inject(LogisticsApiService);
   private readonly toasts = inject(ToastService);
-  private readonly store = inject(Store);
+  protected readonly store = inject(Store);
 
   protected readonly date = fmtDate;
   protected readonly money = fmtMoney;

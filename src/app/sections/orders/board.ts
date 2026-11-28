@@ -4,6 +4,7 @@ import { Store } from '../../core/store';
 import { money as fmtMoney, until } from '../../core/format';
 import { ToastService } from '../../core/toast';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 import type { OrderStatus } from '../../core/models';
 import { nextOrderStatus } from '../../core/order-flow';
 
@@ -17,7 +18,7 @@ const COLUMNS: { id: OrderStatus; label: string }[] = [
 @Component({
   selector: 'app-orders-board',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -29,6 +30,10 @@ const COLUMNS: { id: OrderStatus; label: string }[] = [
         <a class="btn btn--ghost" routerLink="/orders/all">List view</a>
       </div>
     </div>
+
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading order board" /></div>
+    }
 
     <div class="board">
       @for (col of columns; track col.id) {
@@ -60,7 +65,7 @@ const COLUMNS: { id: OrderStatus; label: string }[] = [
                 </div>
               </article>
             }
-            @if (byStatus(col.id).length === 0) {
+            @if (!store.loading() && byStatus(col.id).length === 0) {
               <div class="col__empty">Nothing here</div>
             }
           </div>
@@ -162,7 +167,7 @@ const COLUMNS: { id: OrderStatus; label: string }[] = [
   `,
 })
 export class OrdersBoard {
-  private readonly store = inject(Store);
+  protected readonly store = inject(Store);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
 

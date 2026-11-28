@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { count as fmtCount, money as fmtMoney } from '../../core/format';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 import {
   RANGES,
   channelRows,
@@ -39,7 +40,7 @@ interface BuyerRow {
 @Component({
   selector: 'app-analytics-sales',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -61,6 +62,10 @@ interface BuyerRow {
         </button>
       </div>
     </div>
+
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading sales" /></div>
+    }
 
     <section class="kpis">
       <article class="card kpi">

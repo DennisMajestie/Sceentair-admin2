@@ -7,11 +7,12 @@ import { date as fmtDate, daysUntil, money as fmtMoney, statusLabel, statusTone 
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { ProductShot } from '../../ui/product-shot';
+import { Spinner } from '../../ui/spinner';
 
 @Component({
   selector: 'app-products-batches',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, ProductShot],
+  imports: [Icon, Drawer, ProductShot, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -40,6 +41,10 @@ import { ProductShot } from '../../ui/product-shot';
         <input type="search" placeholder="Search lot or product" [value]="query()" (input)="query.set($any($event.target).value)" />
       </label>
     </div>
+
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading batches" /></div>
+    }
 
     <div class="card">
       <div class="table-wrap">
@@ -77,7 +82,7 @@ import { ProductShot } from '../../ui/product-shot';
                 <td><span class="badge" [class]="'badge badge--' + row.tone">{{ row.label }}</span></td>
               </tr>
             }
-            @if (visible().length === 0) {
+            @if (!store.loading() && visible().length === 0) {
               <tr><td colspan="7" class="empty">No batches match.</td></tr>
             }
           </tbody>
@@ -184,7 +189,7 @@ import { ProductShot } from '../../ui/product-shot';
   `,
 })
 export class ProductBatches {
-  private readonly store = inject(Store);
+  protected readonly store = inject(Store);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 

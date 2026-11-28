@@ -24,6 +24,7 @@ import { ApiCreateUserInput, UsersApiService } from '../../core/users-api.servic
 import { StaffPermissionsComponent } from './staff-permissions.component';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 
 export type RoleFilter = 'all' | string;
 
@@ -167,7 +168,7 @@ function avatarToneForId(id: string): string {
 @Component({
   selector: 'app-settings-team',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, StaffPermissionsComponent, Drawer, FormsModule],
+  imports: [Icon, StaffPermissionsComponent, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -205,6 +206,10 @@ function avatarToneForId(id: string): string {
         </article>
       }
     </section>
+
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading team" /></div>
+    }
 
     <article class="card members-card" aria-labelledby="members-heading">
       <div class="card__head members-head">
@@ -333,18 +338,20 @@ function avatarToneForId(id: string): string {
                 </td>
               </tr>
             } @empty {
-              <tr>
-                <td class="empty-cell" [attr.colspan]="hasLocations() ? 5 : 4">
-                  <span>No people match</span>
-                  <button
-                    type="button"
-                    class="btn btn--xs btn--ghost clear-button"
-                    (click)="clearFilters()"
-                  >
-                    Clear filters
-                  </button>
-                </td>
-              </tr>
+              @if (!store.loading()) {
+                <tr>
+                  <td class="empty-cell" [attr.colspan]="hasLocations() ? 5 : 4">
+                    <span>No people match</span>
+                    <button
+                      type="button"
+                      class="btn btn--xs btn--ghost clear-button"
+                      (click)="clearFilters()"
+                    >
+                      Clear filters
+                    </button>
+                  </td>
+                </tr>
+              }
             }
           </tbody>
         </table>

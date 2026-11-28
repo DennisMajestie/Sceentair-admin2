@@ -5,6 +5,7 @@ import { map } from 'rxjs';
 import { AuditApiService, type ApiAuditEntry, type ApiAuditVerify } from '../../core/audit-api.service';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import { date as fmtDate, money } from '../../core/format';
 
 interface AuditChange {
@@ -98,7 +99,7 @@ function describeRefund(state: Record<string, unknown>): string {
 @Component({
   selector: 'app-audit-log',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer],
+  imports: [Icon, Drawer, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -153,6 +154,10 @@ function describeRefund(state: Record<string, unknown>): string {
       <span class="badge">{{ visible().length }} entries</span>
     </div>
 
+    @if (loading() && entries().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading audit log" /></div>
+    }
+
     <div class="audit-grid" aria-label="Audit entries">
       @for (row of visible(); track row.id) {
         <button type="button" class="audit-card" (click)="open(row.id)" [attr.aria-label]="'Audit entry ' + row.id + ' ' + row.action">
@@ -168,7 +173,7 @@ function describeRefund(state: Record<string, unknown>): string {
           </span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="audit-empty">
           <strong>No audit entries match.</strong>
           <span>Try another actor, action or date range.</span>
@@ -267,6 +272,7 @@ export class AuditLog {
   protected readonly dateFrom = signal<string | null>(null);
   protected readonly dateTo = signal<string | null>(null);
   protected readonly entries = signal<AuditRow[]>([]);
+  protected readonly loading = signal(false);
 
   private readonly routeId = toSignal(this.route.paramMap.pipe(map((p) => p.get('id'))), {
     initialValue: this.route.snapshot.paramMap.get('id'),
@@ -279,35 +285,40 @@ export class AuditLog {
   }
 
   async load(): Promise<void> {
-    const [entriesResult, chain] = await Promise.all([
-      this.auditApi.list(1, 100),
-      this.auditApi.verify(),
-    ]);
-    this.entries.set(
-      entriesResult.data.map((e) => {
-        const stockRefund = isStockRefund(e.action);
-        const state = asRecord(e.afterState);
-        const items = Array.isArray(state?.['items']) ? state['items'] : [];
-        const totalAmount = state?.['totalAmount'];
-        const action = describeAction(e.action, stockRefund);
-        return {
-          id: e.id,
-          at: Date.parse(e.timestamp) || 0,
-          actorId: e.actorId ?? 'system',
-          whoName: e.actorId ? 'Team member' : 'System',
-          action,
-          text: stockRefund && state ? describeRefund(state) : action,
-          beforeState: e.beforeState,
-          afterState: e.afterState,
-          orderNumber: stringValue(state?.['orderNumber']),
-          customerName: stringValue(state?.['guestName']),
-          orderTotal: typeof totalAmount === 'number' ? money(totalAmount) : '',
-          itemSummary: `${items.length} ${items.length === 1 ? 'item' : 'items'}`,
-          changes: stockRefund && state ? stockRefundChanges(state) : [],
-        };
-      }),
-    );
-    this.chain.set(chain);
+    this.loading.set(true);
+    try {
+      const [entriesResult, chain] = await Promise.all([
+        this.auditApi.list(1, 100),
+        this.auditApi.verify(),
+      ]);
+      this.entries.set(
+        entriesResult.data.map((e) => {
+          const stockRefund = isStockRefund(e.action);
+          const state = asRecord(e.afterState);
+          const items = Array.isArray(state?.['items']) ? state['items'] : [];
+          const totalAmount = state?.['totalAmount'];
+          const action = describeAction(e.action, stockRefund);
+          return {
+            id: e.id,
+            at: Date.parse(e.timestamp) || 0,
+            actorId: e.actorId ?? 'system',
+            whoName: e.actorId ? 'Team member' : 'System',
+            action,
+            text: stockRefund && state ? describeRefund(state) : action,
+            beforeState: e.beforeState,
+            afterState: e.afterState,
+            orderNumber: stringValue(state?.['orderNumber']),
+            customerName: stringValue(state?.['guestName']),
+            orderTotal: typeof totalAmount === 'number' ? money(totalAmount) : '',
+            itemSummary: `${items.length} ${items.length === 1 ? 'item' : 'items'}`,
+            changes: stockRefund && state ? stockRefundChanges(state) : [],
+          };
+        }),
+      );
+      this.chain.set(chain);
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected readonly visible = computed(() => {

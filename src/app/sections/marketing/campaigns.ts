@@ -5,6 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
+import { Spinner } from '../../ui/spinner';
 import { ToastService } from '../../core/toast';
 import { MarketingApiService, type Campaign, type CampaignList, type CampaignType, type CampaignRoi } from '../../core/marketing-api.service';
 import { money as fmtMoney } from '../../core/format';
@@ -12,7 +13,7 @@ import { money as fmtMoney } from '../../core/format';
 @Component({
   selector: 'app-marketing-campaigns',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, Drawer, FormsModule],
+  imports: [Icon, Drawer, FormsModule, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -79,6 +80,10 @@ import { money as fmtMoney } from '../../core/format';
       <span class="badge">{{ visible().length }} campaigns</span>
     </div>
 
+    @if (loading() && campaigns().length === 0) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading campaigns" /></div>
+    }
+
     <div class="campaign-grid" aria-label="Marketing campaigns">
       @for (row of visible(); track row.id) {
         <button type="button" class="campaign-card" (click)="open(row.id)" [attr.aria-label]="'Campaign ' + row.name">
@@ -94,7 +99,7 @@ import { money as fmtMoney } from '../../core/format';
           <span class="campaign-card__discount">{{ row.discountPercent ?? 0 }}% off</span>
         </button>
       }
-      @if (visible().length === 0) {
+      @if (!loading() && visible().length === 0) {
         <div class="campaign-empty">
           <strong>No campaigns match.</strong>
           <span>Try another search term.</span>
@@ -205,6 +210,7 @@ export class MarketingCampaigns {
 
   protected readonly money = fmtMoney;
   protected readonly campaigns = signal<Campaign[]>([]);
+  protected readonly loading = signal(false);
   protected readonly query = signal('');
   protected readonly roi = signal<CampaignRoi | null>(null);
   protected readonly roiError = signal<string | null>(null);
@@ -231,9 +237,14 @@ export class MarketingCampaigns {
   }
 
   async load(): Promise<void> {
-    const result = await this.marketingApi.list({ page: 1, limit: 100 });
-    this.campaigns.set(result.data);
-    void this.loadRoi();
+    this.loading.set(true);
+    try {
+      const result = await this.marketingApi.list({ page: 1, limit: 100 });
+      this.campaigns.set(result.data);
+      void this.loadRoi();
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   protected async loadRoi(): Promise<void> {

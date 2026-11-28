@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { Store } from '../../core/store';
 import { count as fmtCount, money as fmtMoney, moneyCompact } from '../../core/format';
 import { Icon } from '../../ui/icon';
+import { Spinner } from '../../ui/spinner';
 
 interface CoverRow {
   id: string;
@@ -25,7 +26,7 @@ interface ExpiryRow {
 @Component({
   selector: 'app-analytics-stock',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, Icon],
+  imports: [RouterLink, Icon, Spinner],
   template: `
     <div class="head">
       <div class="head__text">
@@ -44,6 +45,10 @@ interface ExpiryRow {
         </a>
       </div>
     </div>
+
+    @if (store.loading()) {
+      <div class="load-center" role="status"><app-spinner size="md" label="Loading stock" /></div>
+    }
 
     <section class="kpis">
       <article class="card kpi">
@@ -259,7 +264,7 @@ interface ExpiryRow {
             <p class="card__sub">On the shelf, with no sale in the last 30 days</p>
           </div>
         </div>
-        @if (deadStock().length === 0) {
+        @if (!store.loading() && deadStock().length === 0) {
           <p class="empty">No stocked products are without a sale in the last 30 days.</p>
         } @else {
           <ul class="rows">
