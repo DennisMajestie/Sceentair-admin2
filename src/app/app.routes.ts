@@ -48,12 +48,12 @@ export const routes: Routes = [
   },
 
   {
-    path: 'orders/all',
-    canActivate: [requireAuth],
-    loadComponent: () => import('./sections/orders/all').then((m) => m.OrdersAll),
-  },
-  {
-    path: 'orders/all/:id',
+    matcher: (segments) => {
+      if (segments.length < 2 || segments.length > 3) return null;
+      if (segments[0].path !== 'orders' || segments[1].path !== 'all') return null;
+      const id = segments[2];
+      return { consumed: segments, ...(id ? { posParams: { id } } : {}) };
+    },
     canActivate: [requireAuth],
     loadComponent: () => import('./sections/orders/all').then((m) => m.OrdersAll),
   },
