@@ -104,6 +104,16 @@ export class UsersApiService {
     );
   }
 
+  /** Audited recovery when a partner loses their authenticator device. */
+  resetTwoFactor(id: string, reason: string): Promise<{ reset: boolean }> {
+    return firstValueFrom(
+      this.http.post<{ reset: boolean }>(
+        apiUrl(this.baseUrl, `users/${encodeURIComponent(id)}/2fa/reset`),
+        { reason },
+      ),
+    );
+  }
+
   /** Re-enables a disabled staff account. */
   activate(id: string): Promise<ApiUser> {
     return firstValueFrom(
