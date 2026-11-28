@@ -143,7 +143,7 @@ import { OverviewPrefetchService } from '../../core/overview-prefetch';
             <div class="auth-wrap">
               <form class="auth-card" (ngSubmit)="onSubmit()" novalidate>
                 <p class="eyebrow">Staff access</p>
-                <h1 class="auth-title">Welcome back.</h1>
+                <h1 class="auth-title">Admin Portal</h1>
                 <p class="subtext">Sign in to run the drop.</p>
 
                 <label class="field">
