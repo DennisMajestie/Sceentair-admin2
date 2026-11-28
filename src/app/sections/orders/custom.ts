@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
@@ -11,6 +12,7 @@ import {
 } from '../../core/custom-orders-api.service';
 import { date as fmtDate, initials } from '../../core/format';
 import { ToastService } from '../../core/toast';
+import { AlertService } from '../../core/alert.service';
 import { Icon } from '../../ui/icon';
 import { Drawer } from '../../ui/drawer';
 import { Spinner } from '../../ui/spinner';
@@ -212,6 +214,7 @@ export class OrdersCustom {
   private readonly api = inject(CustomOrdersApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
+  private readonly alerts = inject(AlertService);
 
   protected readonly date = fmtDate;
   protected readonly initials = initials;
@@ -319,20 +322,54 @@ export class OrdersCustom {
 
   protected async sendQuote(): Promise<void> {
     const o = this.selected();
-    if (!o) return;
+    if (!o || this.busy()) return;
     this.busy.set(true);
     try {
-      await this.api.sendQuotation(o.id, { amount: Number(this.quoteForm.amount), note: this.quoteForm.note.trim() || undefined });
-      await this.api.updateStatus(o.id, { status: 'quoted' });
+      const current = await this.api.detail(o.id);
+      if (current.status !== 'submitted' && current.status !== 'under_review') {
+        await this.quoteBlocked(`This request moved to ${this.labelOf(current.status).toLowerCase()} while you were viewing it, so the quote form has been closed.`);
+        return;
+      }
+      const quote = await this.api.sendQuotation(o.id, { amount: Number(this.quoteForm.amount), note: this.quoteForm.note.trim() || undefined });
+      if (quote.request?.status !== 'quoted') {
+        await this.api.updateStatus(o.id, { status: 'quoted' });
+      }
       this.toast.show('Quote sent to the buyer', 'good');
       this.quoteForm.amount = 0;
       this.quoteForm.note = '';
       await this.load();
-    } catch {
-      this.toast.show('Could not send the quote — check the amount.', 'bad');
+    } catch (error) {
+      const conflict = error instanceof HttpErrorResponse && error.status === 409;
+      await this.quoteBlocked(
+        conflict
+          ? 'This request was quoted elsewhere while you were viewing it. The current quote is ready to review.'
+          : this.errorMessage(error, 'Could not send the quote. Check the amount and try again.'),
+        conflict ? 'Quote already sent' : 'Quote not sent',
+      );
     } finally {
       this.busy.set(false);
     }
+  }
+
+  private async quoteBlocked(message: string, title = 'Quote not sent'): Promise<void> {
+    await this.alerts.show({
+      title,
+      message,
+      tone: 'error',
+      confirmLabel: 'Refresh',
+    });
+    this.quoteForm.amount = 0;
+    this.quoteForm.note = '';
+    await this.load();
+  }
+
+  private errorMessage(error: unknown, fallback: string): string {
+    if (error instanceof HttpErrorResponse) {
+      const body = error.error as { message?: string | string[] } | null;
+      if (body?.message) return Array.isArray(body.message) ? body.message.join(' ') : body.message;
+      return error.message || fallback;
+    }
+    return error instanceof Error && error.message ? error.message : fallback;
   }
 
   protected openPayment(): void {
